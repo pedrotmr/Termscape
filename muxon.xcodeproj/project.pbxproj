@@ -35,6 +35,7 @@
 		C553217CCC7580BDDAC70A8F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D41826094D6F41FF4138FB04 /* MetalKit.framework */; };
 		C69072D0A6FF493B59AC18BA /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D94B0C78EB77F562F2D6EC7A /* GhosttyApp.swift */; };
 		D61C12880EFFA160F82E8F9C /* WorkspaceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B797072A8D1220414A05D709 /* WorkspaceTab.swift */; };
+		D9B97F6B5BD0519F8BCFC76C /* GhosttyThemeWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62614D3FEE4712F63B2DC29E /* GhosttyThemeWriter.swift */; };
 		F8AE196A9692B4037A9E1FCB /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C33D881B1E909E216A1250FE /* GhosttyKit.xcframework */; };
 		FA8C5A58DB375AEBD2B6683F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0135AF3472D9B04FCBB77B8C /* SettingsView.swift */; };
 		FE3FCE20DA195CC1677C68ED /* CanvasHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B11EBA02E295A4E0E275293 /* CanvasHostingView.swift */; };
@@ -50,6 +51,7 @@
 		56ADE32DFCD296FA66759E13 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		56F3CD8C6E934EE6B6DC1A11 /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
 		5B11EBA02E295A4E0E275293 /* CanvasHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasHostingView.swift; sourceTree = "<group>"; };
+		62614D3FEE4712F63B2DC29E /* GhosttyThemeWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyThemeWriter.swift; sourceTree = "<group>"; };
 		6655C006E5F42978AD4493A6 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		6E3C49A6A026F36209E4C44A /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		7335D16D8839A04A8484AC1A /* Group.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
@@ -223,6 +225,7 @@
 				D94B0C78EB77F562F2D6EC7A /* GhosttyApp.swift */,
 				82B1F88496DF7A949086674B /* GhosttyNSView.swift */,
 				FC09187425A66F7A1C3C0758 /* GhosttySurfaceScrollView.swift */,
+				62614D3FEE4712F63B2DC29E /* GhosttyThemeWriter.swift */,
 				E0C796AC276A31DEFDF15620 /* TerminalSurface.swift */,
 			);
 			path = Ghostty;
@@ -324,6 +327,7 @@
 				C69072D0A6FF493B59AC18BA /* GhosttyApp.swift in Sources */,
 				A18589F59C1DDF1D72367454 /* GhosttyNSView.swift in Sources */,
 				98E778C516F608F534E8A1D6 /* GhosttySurfaceScrollView.swift in Sources */,
+				D9B97F6B5BD0519F8BCFC76C /* GhosttyThemeWriter.swift in Sources */,
 				B4B6530AEE3892644550F67C /* Group.swift in Sources */,
 				46B97769AAB834E76AB201C9 /* GroupRowView.swift in Sources */,
 				A79094D0CDB8AA7A711F5A5C /* MuxonApp.swift in Sources */,
