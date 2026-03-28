@@ -32,23 +32,7 @@ struct SidebarView: View {
                 Spacer()
 
                 Menu {
-                    Button {
-                        appState.openFolder()
-                    } label: {
-                        Label("Open Project", systemImage: "folder.badge.plus")
-                    }
-                    Button {
-                        appState.showCloneSheet = true
-                    } label: {
-                        Label("Clone from URL", systemImage: "arrow.down.to.line")
-                    }
-                    Divider()
-                    Button {
-                        let group = WorkspaceGroup(name: "New Group")
-                        appState.groups.append(group)
-                    } label: {
-                        Label("New Group", systemImage: "rectangle.3.group")
-                    }
+                    addMenuItems
                 } label: {
                     SidebarMenuButton(isHovered: isAddHovered)
                 }
@@ -62,27 +46,30 @@ struct SidebarView: View {
             .padding(.vertical, 12)
         }
         .background(Color.muxSidebar)
-        .contextMenu {
-            Button {
-                appState.openFolder()
-            } label: {
-                Label("Open Project", systemImage: "folder.badge.plus")
-            }
-            Button {
-                appState.showCloneSheet = true
-            } label: {
-                Label("Clone from URL", systemImage: "arrow.down.to.line")
-            }
-            Divider()
-            Button {
-                let group = WorkspaceGroup(name: "New Group")
-                appState.groups.append(group)
-            } label: {
-                Label("New Group", systemImage: "rectangle.3.group")
-            }
-        }
+        .contextMenu { addMenuItems }
         .sheet(isPresented: $appState.showCloneSheet) {
             CloneSheetView()
+        }
+    }
+
+    @ViewBuilder
+    private var addMenuItems: some View {
+        Button {
+            appState.openFolder()
+        } label: {
+            Label("Open Project", systemImage: "folder.badge.plus")
+        }
+        Button {
+            appState.showCloneSheet = true
+        } label: {
+            Label("Clone from URL", systemImage: "arrow.down.to.line")
+        }
+        Divider()
+        Button {
+            let group = WorkspaceGroup(name: "New Group")
+            appState.groups.append(group)
+        } label: {
+            Label("New Group", systemImage: "rectangle.3.group")
         }
     }
 }
