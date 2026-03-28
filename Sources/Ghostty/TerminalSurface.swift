@@ -157,4 +157,13 @@ final class TerminalSurface: Identifiable {
             ghostty_surface_text(surface, ptr, UInt(text.utf8.count))
         }
     }
+
+    /// Clears the screen and scrollback — same as Ghostty’s `clear_screen` binding (default ⌘K).
+    func performClearScreen() {
+        guard let surface else { return }
+        let action = "clear_screen"
+        action.withCString { ptr in
+            _ = ghostty_surface_binding_action(surface, ptr, UInt(action.utf8.count))
+        }
+    }
 }

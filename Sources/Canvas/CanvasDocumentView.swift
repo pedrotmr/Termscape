@@ -157,7 +157,10 @@ final class CanvasDocumentView: NSView {
         menu.addItem(makeItem("New Tab",             icon: "plus.rectangle",      action: #selector(menuNewTab(_:))))
         menu.addItem(makeItem("Move to New Tab",     icon: "arrow.up.right.square", action: #selector(menuMoveToNewTab(_:))))
         menu.addItem(.separator())
-        menu.addItem(makeItem("Clear",               icon: "eraser.fill",          action: #selector(menuClear(_:))))
+        let clearItem = makeItem("Clear", icon: "eraser.fill", action: #selector(menuClear(_:)))
+        clearItem.keyEquivalent = "k"
+        clearItem.keyEquivalentModifierMask = .command
+        menu.addItem(clearItem)
         let closeTitle = isMultiPane ? "Close Pane" : "Close Tab"
         menu.addItem(makeItem(closeTitle,            icon: "xmark",                action: #selector(menuClose(_:))))
 
@@ -228,6 +231,6 @@ final class CanvasDocumentView: NSView {
               let tabUUID = UUID(uuidString: selectedTabId),
               let surface = tab.surfaces[tabUUID]
         else { return }
-        surface.sendText("\u{0C}")
+        surface.performClearScreen()
     }
 }
