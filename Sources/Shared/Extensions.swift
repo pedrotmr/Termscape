@@ -63,13 +63,17 @@ extension NSScreen {
 
 extension Color {
     init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let r = Double((int >> 16) & 0xFF) / 255
-        let g = Double((int >> 8) & 0xFF) / 255
-        let b = Double(int & 0xFF) / 255
-        self.init(red: r, green: g, blue: b)
+        var sanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if sanitized.hasPrefix("#") { sanitized = String(sanitized.dropFirst()) }
+        guard sanitized.count == 6, let rgb = UInt64(sanitized, radix: 16) else {
+            self.init(red: 0, green: 0, blue: 0)
+            return
+        }
+        self.init(
+            red:   Double((rgb & 0xFF0000) >> 16) / 255.0,
+            green: Double((rgb & 0x00FF00) >> 8)  / 255.0,
+            blue:  Double( rgb & 0x0000FF)         / 255.0
+        )
     }
 }
 
