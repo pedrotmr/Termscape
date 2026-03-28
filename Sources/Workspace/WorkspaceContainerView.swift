@@ -29,6 +29,9 @@ struct WorkspaceContainerView: View {
                     .onReceive(NotificationCenter.default.publisher(for: .splitDown)) { _ in
                         splitPane(tab: tab, orientation: .vertical)
                     }
+                    .onReceive(NotificationCenter.default.publisher(for: .moveToNewTab)) { notif in
+                        movePaneToNewTab(notif: notif)
+                    }
             } else {
                 Color.clear
                     .onAppear { workspace.ensureHasTab() }
@@ -36,6 +39,32 @@ struct WorkspaceContainerView: View {
         }
         .onAppear {
             workspace.ensureHasTab()
+        }
+    }
+
+    /// Move a pane's terminal surface into a brand-new workspace tab, preserving the live session.
+    /// The surface is extracted from the source tab before Bonsplit can tear it down, then injected
+    /// into the initial pane of the newly created workspace tab.
+    private func movePaneToNewTab(notif: NotificationCenter.Publisher.Output) {
+        let key = Notification.Name.MoveToNewTabKey.self
+        guard let surface = notif.userInfo?[key.surface] as? TerminalSurface,
+              let sourceTab = notif.userInfo?[key.sourceTab] as? WorkspaceTab
+        else { return }
+
+        let shouldCloseSource = notif.userInfo?[key.closeSourceTab] as? Bool ?? false
+        if shouldCloseSource {
+            workspace.closeTab(sourceTab.id)
+        }
+
+        let newTab = workspace.addTab()
+
+        // Bonsplit auto-creates an initial pane+tab on init. Inject our surface under that tab's
+        // UUID so the canvas reuses the live hostedView instead of spawning a fresh terminal.
+        let initialSnapshot = newTab.bonsplitController.layoutSnapshot()
+        if let firstPane = initialSnapshot.panes.first,
+           let tabIdStr = firstPane.selectedTabId,
+           let tabUUID = UUID(uuidString: tabIdStr) {
+            newTab.surfaces[tabUUID] = surface
         }
     }
 
