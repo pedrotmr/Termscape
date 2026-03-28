@@ -61,6 +61,22 @@ extension NSScreen {
     }
 }
 
+extension Color {
+    init(hex: String) {
+        var sanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if sanitized.hasPrefix("#") { sanitized = String(sanitized.dropFirst()) }
+        guard sanitized.count == 6, let rgb = UInt64(sanitized, radix: 16) else {
+            self.init(red: 0, green: 0, blue: 0)
+            return
+        }
+        self.init(
+            red:   Double((rgb & 0xFF0000) >> 16) / 255.0,
+            green: Double((rgb & 0x00FF00) >> 8)  / 255.0,
+            blue:  Double( rgb & 0x0000FF)         / 255.0
+        )
+    }
+}
+
 extension NSColor {
     func hexString() -> String {
         guard let color = usingColorSpace(.sRGB) else { return "#000000" }
