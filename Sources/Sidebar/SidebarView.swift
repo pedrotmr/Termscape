@@ -1,25 +1,50 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SidebarView: View {
     @Environment(AppState.self) var appState
     @State private var isAddHovered = false
+    @State private var draggedGroupId: UUID?
+    @State private var dropTargetGroupId: UUID?
 
     var body: some View {
         @Bindable var appState = appState
 
         VStack(spacing: 0) {
-            // Title bar clearance — pushes content below macOS traffic light buttons.
-            // Standard hidden-title-bar height on macOS is 28pt.
-            Color.clear.frame(height: 28)
+            Color.clear.frame(height: 46)
 
-            // Workspace list
             ScrollView {
                 VStack(spacing: 0) {
                     ForEach(appState.groups) { group in
                         GroupRowView(group: group)
+                            .opacity(draggedGroupId == group.id ? 0.38 : 1.0)
+                            .scaleEffect(draggedGroupId == group.id ? 0.97 : 1.0, anchor: .center)
+                            .overlay(alignment: .top) {
+                                groupDropIndicator(for: group)
+                            }
+                            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: draggedGroupId)
+                            .animation(.spring(response: 0.22, dampingFraction: 0.82), value: dropTargetGroupId)
+                            .onDrag {
+                                guard !group.isImplicit else { return NSItemProvider() }
+                                DispatchQueue.main.async { draggedGroupId = group.id }
+                                return NSItemProvider(object: group.id.uuidString as NSString)
+                            }
+                            .onDrop(
+                                of: [UTType.text],
+                                isTargeted: groupIsTargetedBinding(for: group)
+                            ) { _ in
+                                reorderGroup(droppingOnto: group)
+                                return true
+                            }
                     }
                 }
                 .padding(.bottom, 8)
+                // Catch-all: drop landed in the scroll area but not on any group row.
+                // Resets drag state so groups don't stay dimmed after a missed drop.
+                .onDrop(of: [UTType.text], isTargeted: nil) { _ in
+                    resetGroupDrag()
+                    return true
+                }
             }
             .scrollIndicators(.never)
 
@@ -66,11 +91,66 @@ struct SidebarView: View {
         }
         Divider()
         Button {
-            let group = WorkspaceGroup(name: "New Group")
+            let group = WorkspaceGroup(name: "NEW GROUP", isImplicit: false)
             appState.groups.append(group)
         } label: {
             Label("New Group", systemImage: "rectangle.3.group")
         }
+    }
+
+    // MARK: - Group drop indicator
+
+    @ViewBuilder
+    private func groupDropIndicator(for group: WorkspaceGroup) -> some View {
+        if dropTargetGroupId == group.id && draggedGroupId != group.id && !group.isImplicit {
+            Capsule()
+                .fill(Color.muxAccent)
+                .frame(height: 2)
+                .padding(.horizontal, 12)
+                .offset(y: 1)
+                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .leading)))
+        }
+    }
+
+    // MARK: - Group drag reorder
+
+    private func groupIsTargetedBinding(for group: WorkspaceGroup) -> Binding<Bool> {
+        Binding<Bool>(
+            get: { dropTargetGroupId == group.id },
+            set: { isTargeted in
+                withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
+                    if isTargeted && !group.isImplicit {
+                        dropTargetGroupId = group.id
+                    } else if dropTargetGroupId == group.id {
+                        dropTargetGroupId = nil
+                    }
+                }
+            }
+        )
+    }
+
+    private func resetGroupDrag() {
+        draggedGroupId = nil
+        dropTargetGroupId = nil
+    }
+
+    private func reorderGroup(droppingOnto target: WorkspaceGroup) {
+        guard
+            !target.isImplicit,
+            let draggedId = draggedGroupId,
+            draggedId != target.id,
+            let from = appState.groups.firstIndex(where: { $0.id == draggedId }),
+            let to = appState.groups.firstIndex(where: { $0.id == target.id })
+        else {
+            draggedGroupId = nil
+            dropTargetGroupId = nil
+            return
+        }
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+            appState.groups.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+        }
+        draggedGroupId = nil
+        dropTargetGroupId = nil
     }
 }
 

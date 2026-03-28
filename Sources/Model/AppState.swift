@@ -8,6 +8,8 @@ import Observation
 final class AppState {
     var groups: [WorkspaceGroup] = []
     var selectedWorkspaceId: UUID?
+    var editingWorkspaceId: UUID? = nil
+    var editingGroupId: UUID? = nil
     var showCloneSheet: Bool = false
     var cloneURL: String = ""
 
@@ -56,11 +58,7 @@ final class AppState {
     }
 
     func openWorkspace(at url: URL) {
-        let group = groups.first ?? {
-            let g = WorkspaceGroup(name: "Workspaces")
-            groups.append(g)
-            return g
-        }()
+        let group = getOrCreateDefaultGroup()
         let workspace = addWorkspace(in: group, url: url)
         selectedWorkspaceId = workspace.id
         workspace.ensureHasTab()
@@ -73,11 +71,7 @@ final class AppState {
         let cloneDir = homeURL.appendingPathComponent("Developer")
         try? FileManager.default.createDirectory(at: cloneDir, withIntermediateDirectories: true)
 
-        let group = groups.first ?? {
-            let g = WorkspaceGroup(name: "Workspaces")
-            groups.append(g)
-            return g
-        }()
+        let group = getOrCreateDefaultGroup()
 
         let repoName = urlString.split(separator: "/").last.map(String.init)?.replacingOccurrences(of: ".git", with: "") ?? "repo"
         let destURL = cloneDir.appendingPathComponent(repoName)
@@ -93,6 +87,15 @@ final class AppState {
 
         showCloneSheet = false
         cloneURL = ""
+    }
+
+    // MARK: - Helpers
+
+    private func getOrCreateDefaultGroup() -> WorkspaceGroup {
+        if let existing = groups.first { return existing }
+        let group = WorkspaceGroup(name: "Workspaces", isImplicit: true)
+        groups.append(group)
+        return group
     }
 
     // MARK: - Persistence
@@ -123,6 +126,11 @@ final class AppState {
             return
         }
         groups = savedGroups
+        // Migration: old saves have no isImplicit field (defaults to false).
+        // If every group appears non-implicit, treat the first as the implicit default.
+        if !groups.isEmpty && groups.allSatisfy({ !$0.isImplicit }) {
+            groups[0].isImplicit = true
+        }
         selectedWorkspaceId = groups.flatMap(\.workspaces).first?.id
     }
 }
