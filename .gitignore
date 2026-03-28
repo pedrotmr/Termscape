@@ -40,9 +40,8 @@ Icon
 # VS Code
 .vscode/
 
-# Large binaries / frameworks
-*.a
-*.xcframework/
+# Large binaries / frameworks (tracked via Git LFS)
+# *.a and *.xcframework tracked in .gitattributes
 
 # Sensitive / local
 *.env
