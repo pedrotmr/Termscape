@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @Environment(AppState.self) var appState
+    @State private var isAddHovered = false
 
     var body: some View {
         @Bindable var appState = appState
@@ -28,52 +29,64 @@ struct SidebarView: View {
                 .frame(height: 1)
 
             HStack(spacing: 2) {
-                SidebarIconButton(systemImage: "folder.badge.plus", help: "Open Folder as Workspace") {
-                    appState.openFolder()
-                }
-                SidebarIconButton(systemImage: "arrow.down.to.line", help: "Clone Git Repository") {
-                    appState.showCloneSheet = true
-                }
-
                 Spacer()
 
-                SidebarIconButton(systemImage: "plus", help: "New Group") {
-                    let group = WorkspaceGroup(name: "New Group")
-                    appState.groups.append(group)
+                Menu {
+                    addMenuItems
+                } label: {
+                    SidebarMenuButton(isHovered: isAddHovered)
                 }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .onHover { isAddHovered = $0 }
+                .animation(.easeInOut(duration: 0.12), value: isAddHovered)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
         }
         .background(Color.muxSidebar)
+        .contextMenu { addMenuItems }
         .sheet(isPresented: $appState.showCloneSheet) {
             CloneSheetView()
         }
     }
+
+    @ViewBuilder
+    private var addMenuItems: some View {
+        Button {
+            appState.openFolder()
+        } label: {
+            Label("Open Project", systemImage: "folder.badge.plus")
+        }
+        Button {
+            appState.showCloneSheet = true
+        } label: {
+            Label("Clone from URL", systemImage: "arrow.down.to.line")
+        }
+        Divider()
+        Button {
+            let group = WorkspaceGroup(name: "New Group")
+            appState.groups.append(group)
+        } label: {
+            Label("New Group", systemImage: "rectangle.3.group")
+        }
+    }
 }
 
-// MARK: - Footer icon button
+// MARK: - Footer menu button
 
-private struct SidebarIconButton: View {
-    let systemImage: String
-    let help: String
-    let action: () -> Void
-
-    @State private var isHovered = false
+private struct SidebarMenuButton: View {
+    let isHovered: Bool
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(isHovered ? Color.white.opacity(0.75) : Color.muxTextMuted)
-                .frame(width: 30, height: 30)
-                .background(isHovered ? Color.muxHover : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-        }
-        .buttonStyle(.plain)
-        .help(help)
-        .onHover { isHovered = $0 }
-        .animation(.easeInOut(duration: 0.12), value: isHovered)
+        Image(systemName: "plus")
+            .font(.system(size: 13, weight: .regular))
+            .foregroundStyle(isHovered ? Color.white.opacity(0.75) : Color.muxTextMuted)
+            .frame(width: 30, height: 30)
+            .background(isHovered ? Color.white.opacity(0.07) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .help("Open project, clone from URL, or create group")
     }
 }
 
