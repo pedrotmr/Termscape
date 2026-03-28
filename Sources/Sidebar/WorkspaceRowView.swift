@@ -42,6 +42,7 @@ struct WorkspaceDotColor: Identifiable {
 
 struct WorkspaceRowView: View {
     @Environment(AppState.self) var appState
+    @Environment(ThemeManager.self) var theme
     @ObservedObject var workspace: Workspace
     let group: WorkspaceGroup
 
@@ -49,6 +50,7 @@ struct WorkspaceRowView: View {
     @State private var isHovered = false
     @FocusState private var renameFieldFocused: Bool
 
+    private var t: AppTheme { theme.current }
     var isSelected: Bool { appState.selectedWorkspaceId == workspace.id }
     var isRenaming: Bool { appState.editingWorkspaceId == workspace.id }
 
@@ -84,7 +86,7 @@ struct WorkspaceRowView: View {
                 TextField("", text: $newName)
                     .textFieldStyle(.plain)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.muxText)
+                    .foregroundStyle(t.text)
                     .focused($renameFieldFocused)
                     .onSubmit { commitRename() }
                     .onExitCommand { cancelRename() }
@@ -92,10 +94,19 @@ struct WorkspaceRowView: View {
                         if !focused { commitRename() }
                     }
             } else {
-                Text(workspace.name)
-                    .font(.system(size: 13, weight: isSelected ? .medium : .regular))
-                    .foregroundStyle(isSelected ? Color.muxText : Color.white.opacity(0.65))
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(workspace.name)
+                        .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                        .foregroundStyle(isSelected ? t.text : t.textMuted)
+                        .lineLimit(1)
+
+                    if let url = workspace.rootURL {
+                        Text(url.lastPathComponent)
+                            .font(.system(size: 11))
+                            .foregroundStyle(t.textFaint)
+                            .lineLimit(1)
+                    }
+                }
             }
 
             Spacer()
@@ -116,21 +127,21 @@ struct WorkspaceRowView: View {
         Group {
             if isRenaming {
                 RoundedRectangle(cornerRadius: 7)
-                    .fill(Color.muxSelected)
+                    .fill(t.selected)
                     .overlay(
                         RoundedRectangle(cornerRadius: 7)
-                            .stroke(Color.muxAccent.opacity(0.45), lineWidth: 1)
+                            .stroke(t.accent.opacity(0.45), lineWidth: 1)
                     )
             } else if isSelected {
                 RoundedRectangle(cornerRadius: 7)
-                    .fill(Color.muxSelected)
+                    .fill(t.selected)
                     .overlay(
                         RoundedRectangle(cornerRadius: 7)
-                            .stroke(Color.white.opacity(0.09), lineWidth: 1)
+                            .stroke(t.border, lineWidth: 1)
                     )
             } else if isHovered {
                 RoundedRectangle(cornerRadius: 7)
-                    .fill(Color.muxHover)
+                    .fill(t.hover)
             } else {
                 Color.clear
             }

@@ -11,6 +11,7 @@
 		0853C77DD886FE6B77B24E5C /* WorkspaceRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179D424F8F8EBA2522DD1741 /* WorkspaceRowView.swift */; };
 		09C7482D9981D2A4F99AA56B /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56F3CD8C6E934EE6B6DC1A11 /* Workspace.swift */; };
 		0F27BD7041216C86698E0E81 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56ADE32DFCD296FA66759E13 /* AppState.swift */; };
+		107E6652E5CB154CF5D3F423 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 557435ABB630C28E2CFB08D3 /* ThemeManager.swift */; };
 		3DC5B4A5A91DD9039565B803 /* TerminalSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C796AC276A31DEFDF15620 /* TerminalSurface.swift */; };
 		45A6972BF580C40A32C1D4F1 /* CanvasScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10C00693F2FBB531E6B79E4 /* CanvasScrollView.swift */; };
 		46B97769AAB834E76AB201C9 /* GroupRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32B3B986CF6CDE08D935A49A /* GroupRowView.swift */; };
@@ -20,6 +21,7 @@
 		5BC0607738C0221829DCC557 /* CanvasDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7F98FA9892AABB45C722D54 /* CanvasDocumentView.swift */; };
 		660B10A847DCDE029A9DA616 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D82EEE21F27CA3F2F0A2F0D /* UniformTypeIdentifiers.framework */; };
 		6F756C7FEF89D905EC896C20 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 389EF48DF209D5510B358455 /* QuartzCore.framework */; };
+		82BCF1C8523E711B79A4FD03 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACBB25E2BC94AC08B8C22121 /* AppTheme.swift */; };
 		8778A8A0D40F56F48D661B23 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BB7EE887B6968209BAC56F /* SidebarView.swift */; };
 		97A79E75342D1CE7FDAE72A6 /* Bonsplit in Frameworks */ = {isa = PBXBuildFile; productRef = 2C541F18ECBA099C51E4BF3C /* Bonsplit */; };
 		98E778C516F608F534E8A1D6 /* GhosttySurfaceScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC09187425A66F7A1C3C0758 /* GhosttySurfaceScrollView.swift */; };
@@ -34,13 +36,16 @@
 		C69072D0A6FF493B59AC18BA /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D94B0C78EB77F562F2D6EC7A /* GhosttyApp.swift */; };
 		D61C12880EFFA160F82E8F9C /* WorkspaceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B797072A8D1220414A05D709 /* WorkspaceTab.swift */; };
 		F8AE196A9692B4037A9E1FCB /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C33D881B1E909E216A1250FE /* GhosttyKit.xcframework */; };
+		FA8C5A58DB375AEBD2B6683F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0135AF3472D9B04FCBB77B8C /* SettingsView.swift */; };
 		FE3FCE20DA195CC1677C68ED /* CanvasHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B11EBA02E295A4E0E275293 /* CanvasHostingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0135AF3472D9B04FCBB77B8C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		179D424F8F8EBA2522DD1741 /* WorkspaceRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRowView.swift; sourceTree = "<group>"; };
 		32B3B986CF6CDE08D935A49A /* GroupRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRowView.swift; sourceTree = "<group>"; };
 		389EF48DF209D5510B358455 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		557435ABB630C28E2CFB08D3 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		557A1B30394678A627E38914 /* MuxonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuxonApp.swift; sourceTree = "<group>"; };
 		56ADE32DFCD296FA66759E13 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		56F3CD8C6E934EE6B6DC1A11 /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
@@ -54,6 +59,7 @@
 		9D82EEE21F27CA3F2F0A2F0D /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 		9EF10FB84215C9E81A429EF8 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		A283E7C00CEA1DDFA588D479 /* PaneLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneLayoutEngine.swift; sourceTree = "<group>"; };
+		ACBB25E2BC94AC08B8C22121 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		B10C00693F2FBB531E6B79E4 /* CanvasScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasScrollView.swift; sourceTree = "<group>"; };
 		B797072A8D1220414A05D709 /* WorkspaceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTab.swift; sourceTree = "<group>"; };
 		B7F98FA9892AABB45C722D54 /* CanvasDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasDocumentView.swift; sourceTree = "<group>"; };
@@ -131,6 +137,7 @@
 				135F89629C209A03C76D3C3D /* Canvas */,
 				FBF492E01774A504D0D65B79 /* Ghostty */,
 				5D61EDAC06475A746671A596 /* Model */,
+				9C257F81443A0F2B03C9A9DE /* Settings */,
 				FBAEF72C37CDE9B6502F0E02 /* Shared */,
 				AB42FBBD39281A21009649A4 /* Sidebar */,
 				B8E9AC6CCBFEEBE22CD0B3A6 /* Workspace */,
@@ -155,6 +162,14 @@
 				0A22F1B34B1370B71DFAA4EC /* Frameworks */,
 				F202256BB424C897E6FE2670 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		9C257F81443A0F2B03C9A9DE /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				0135AF3472D9B04FCBB77B8C /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		AB42FBBD39281A21009649A4 /* Sidebar */ = {
@@ -195,7 +210,9 @@
 		FBAEF72C37CDE9B6502F0E02 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				ACBB25E2BC94AC08B8C22121 /* AppTheme.swift */,
 				6655C006E5F42978AD4493A6 /* Extensions.swift */,
+				557435ABB630C28E2CFB08D3 /* ThemeManager.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -299,6 +316,7 @@
 			files = (
 				4FD0725BBB025038B17A7995 /* AppDelegate.swift in Sources */,
 				0F27BD7041216C86698E0E81 /* AppState.swift in Sources */,
+				82BCF1C8523E711B79A4FD03 /* AppTheme.swift in Sources */,
 				5BC0607738C0221829DCC557 /* CanvasDocumentView.swift in Sources */,
 				FE3FCE20DA195CC1677C68ED /* CanvasHostingView.swift in Sources */,
 				45A6972BF580C40A32C1D4F1 /* CanvasScrollView.swift in Sources */,
@@ -310,9 +328,11 @@
 				46B97769AAB834E76AB201C9 /* GroupRowView.swift in Sources */,
 				A79094D0CDB8AA7A711F5A5C /* MuxonApp.swift in Sources */,
 				AA1708464D8495A21A95599E /* PaneLayoutEngine.swift in Sources */,
+				FA8C5A58DB375AEBD2B6683F /* SettingsView.swift in Sources */,
 				8778A8A0D40F56F48D661B23 /* SidebarView.swift in Sources */,
 				50CB6FF1CBDBBDE0B28B5F7A /* TabBarView.swift in Sources */,
 				3DC5B4A5A91DD9039565B803 /* TerminalSurface.swift in Sources */,
+				107E6652E5CB154CF5D3F423 /* ThemeManager.swift in Sources */,
 				09C7482D9981D2A4F99AA56B /* Workspace.swift in Sources */,
 				A32D9358CDB0CF1D030AC788 /* WorkspaceContainerView.swift in Sources */,
 				0853C77DD886FE6B77B24E5C /* WorkspaceRowView.swift in Sources */,

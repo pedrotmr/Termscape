@@ -4,18 +4,18 @@ import AppKit
 /// NSViewRepresentable bridge that embeds the CanvasScrollView into SwiftUI.
 struct CanvasHostingView: NSViewRepresentable {
     @ObservedObject var tab: WorkspaceTab
+    @Environment(ThemeManager.self) var theme
 
     func makeNSView(context: Context) -> CanvasScrollView {
         let canvas = CanvasScrollView(frame: .zero)
-
-        // Listen for bonsplit changes to relayout
         context.coordinator.canvas = canvas
         context.coordinator.setupObserver(for: tab)
-
         return canvas
     }
 
     func updateNSView(_ nsView: CanvasScrollView, context: Context) {
+        let t = theme.current
+        nsView.applyTheme(canvasBackground: t.canvasBackground, accentColor: t.accentNSColor)
         nsView.updateLayout(for: tab)
         context.coordinator.setupObserver(for: tab)
     }
@@ -30,7 +30,6 @@ struct CanvasHostingView: NSViewRepresentable {
         private var observerToken: NSObjectProtocol?
 
         func setupObserver(for tab: WorkspaceTab) {
-            // Remove previous observer before registering a new one to avoid duplicates.
             if let old = observerToken {
                 NotificationCenter.default.removeObserver(old)
             }

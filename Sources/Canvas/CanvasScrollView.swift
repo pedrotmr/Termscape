@@ -1,8 +1,6 @@
 import AppKit
 
 /// The horizontal-scrolling canvas that holds all terminal panes.
-/// Key behavior: panes have a minimum width and the canvas scrolls horizontally
-/// instead of squeezing panes below their minimum width.
 final class CanvasScrollView: NSScrollView {
     let documentCanvasView: CanvasDocumentView
 
@@ -22,7 +20,6 @@ final class CanvasScrollView: NSScrollView {
         autohidesScrollers = true
         drawsBackground = false
         borderType = .noBorder
-
         documentView = documentCanvasView
     }
 
@@ -32,11 +29,11 @@ final class CanvasScrollView: NSScrollView {
         documentCanvasView.update(tab: tab, viewportSize: viewportSize)
     }
 
+    func applyTheme(canvasBackground: NSColor, accentColor: NSColor) {
+        documentCanvasView.applyTheme(canvasBackground: canvasBackground, accentColor: accentColor)
+    }
+
     override func layout() {
         super.layout()
-        // Trigger relayout when the scroll view resizes
-        if let window, !window.inLiveResize {
-            // Will be triggered by the hosting view's updateNSView
-        }
     }
 }

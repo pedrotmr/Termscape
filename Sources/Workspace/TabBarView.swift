@@ -2,7 +2,10 @@ import SwiftUI
 import Bonsplit
 
 struct TabBarView: View {
+    @Environment(ThemeManager.self) var theme
     @ObservedObject var workspace: Workspace
+
+    private var t: AppTheme { theme.current }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -24,31 +27,31 @@ struct TabBarView: View {
             separator
 
             // New tab button
-            TabBarIconButton(systemImage: "plus", help: "New Tab (⌘T)") {
+            TabBarIconButton(systemImage: "plus", help: "New Tab (⌘T)", theme: t) {
                 _ = workspace.addTab()
             }
 
             separator
 
             // Split pane buttons
-            TabBarIconButton(systemImage: "square.split.2x1", help: "Split Right (⌘D)") {
+            TabBarIconButton(systemImage: "square.split.2x1", help: "Split Right (⌘D)", theme: t) {
                 NotificationCenter.default.post(name: .splitRight, object: nil)
             }
-            TabBarIconButton(systemImage: "square.split.1x2", help: "Split Down (⌘⇧D)") {
+            TabBarIconButton(systemImage: "square.split.1x2", help: "Split Down (⌘⇧D)", theme: t) {
                 NotificationCenter.default.post(name: .splitDown, object: nil)
             }
             .padding(.trailing, 6)
         }
         .frame(height: 38)
-        .background(Color.muxSurface)
+        .background(t.surface)
         .overlay(alignment: .bottom) {
-            Rectangle().fill(Color.muxBorder).frame(height: 1)
+            Rectangle().fill(t.border).frame(height: 1)
         }
     }
 
     private var separator: some View {
         Rectangle()
-            .fill(Color.muxBorder)
+            .fill(t.border)
             .frame(width: 1, height: 16)
             .padding(.horizontal, 3)
     }
@@ -57,6 +60,7 @@ struct TabBarView: View {
 // MARK: - Tab item
 
 struct TabItemView: View {
+    @Environment(ThemeManager.self) var theme
     @ObservedObject var tab: WorkspaceTab
     let isSelected: Bool
     let onSelect: () -> Void
@@ -64,25 +68,27 @@ struct TabItemView: View {
 
     @State private var isHovered = false
 
+    private var t: AppTheme { theme.current }
+
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: 5) {
                 Image(systemName: "terminal")
                     .font(.system(size: 10))
-                    .foregroundStyle(isSelected ? Color.white.opacity(0.7) : Color.muxTextFaint)
+                    .foregroundStyle(isSelected ? t.text.opacity(0.7) : t.textFaint)
 
                 Text(tab.title)
                     .font(.system(size: 12, weight: isSelected ? .medium : .regular))
-                    .foregroundStyle(isSelected ? Color.muxText : Color.muxTextMuted)
+                    .foregroundStyle(isSelected ? t.text : t.textMuted)
                     .lineLimit(1)
                     .frame(maxWidth: 110, alignment: .leading)
 
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.system(size: 8.5, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.45))
+                        .foregroundStyle(t.textMuted)
                         .frame(width: 14, height: 14)
-                        .background(Color.white.opacity(isHovered ? 0.07 : 0))
+                        .background(isHovered ? t.hover : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 3))
                 }
                 .buttonStyle(.plain)
@@ -100,7 +106,7 @@ struct TabItemView: View {
         .overlay(alignment: .bottom) {
             if isSelected {
                 RoundedRectangle(cornerRadius: 1)
-                    .fill(Color.muxAccent)
+                    .fill(t.accent)
                     .frame(height: 2)
                     .padding(.horizontal, 8)
             }
@@ -110,9 +116,9 @@ struct TabItemView: View {
     @ViewBuilder
     private var tabBackground: some View {
         if isSelected {
-            Color.white.opacity(0.07)
+            t.selected
         } else if isHovered {
-            Color.white.opacity(0.04)
+            t.hover
         } else {
             Color.clear
         }
@@ -124,6 +130,7 @@ struct TabItemView: View {
 private struct TabBarIconButton: View {
     let systemImage: String
     let help: String
+    let theme: AppTheme
     let action: () -> Void
 
     @State private var isHovered = false
@@ -132,9 +139,9 @@ private struct TabBarIconButton: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.system(size: 11, weight: .regular))
-                .foregroundStyle(isHovered ? Color.white.opacity(0.7) : Color.muxTextMuted)
+                .foregroundStyle(isHovered ? theme.text : theme.textMuted)
                 .frame(width: 28, height: 28)
-                .background(isHovered ? Color.white.opacity(0.07) : Color.clear)
+                .background(isHovered ? theme.hover : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 5))
         }
         .buttonStyle(.plain)
