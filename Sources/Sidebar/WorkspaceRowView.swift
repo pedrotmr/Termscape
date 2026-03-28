@@ -1,5 +1,45 @@
 import SwiftUI
 
+struct WorkspaceDotColor: Identifiable {
+    let id: String
+    let name: String
+    let hex: String
+
+    static let palette: [WorkspaceDotColor] = [
+        // Pinks & Purples
+        .init(id: "#70445d", name: "Acai",               hex: "#70445d"),
+        .init(id: "#e45da7", name: "Fuchsia",            hex: "#e45da7"),
+        .init(id: "#b86c7c", name: "Mauve",              hex: "#b86c7c"),
+        // Reds
+        .init(id: "#dd0531", name: "Angular Red",        hex: "#dd0531"),
+        .init(id: "#a3323b", name: "Burgundy",           hex: "#a3323b"),
+        // Browns
+        .init(id: "#49312e", name: "Coffee",             hex: "#49312e"),
+        .init(id: "#8d5449", name: "Tobacco",            hex: "#8d5449"),
+        .init(id: "#c25537", name: "Brick",              hex: "#c25537"),
+        .init(id: "#ff3d00", name: "Svelte Orange",      hex: "#ff3d00"),
+        .init(id: "#8a6c50", name: "Leopard",            hex: "#8a6c50"),
+        // Warm Neutrals & Ambers
+        .init(id: "#c6b9ab", name: "Nude",               hex: "#c6b9ab"),
+        .init(id: "#bca386", name: "Sand",               hex: "#bca386"),
+        .init(id: "#e5b575", name: "Caramel",            hex: "#e5b575"),
+        .init(id: "#e2b36f", name: "Honey",              hex: "#e2b36f"),
+        .init(id: "#f2eadc", name: "Ipanema Beige",      hex: "#f2eadc"),
+        .init(id: "#82724d", name: "Moss",               hex: "#82724d"),
+        // Yellows & Greens
+        .init(id: "#f9e64f", name: "JavaScript Yellow",  hex: "#f9e64f"),
+        .init(id: "#8d9c81", name: "Mint",               hex: "#8d9c81"),
+        .init(id: "#465243", name: "Forest",             hex: "#465243"),
+        .init(id: "#215732", name: "Node Green",         hex: "#215732"),
+        .init(id: "#42b883", name: "Vue Green",          hex: "#42b883"),
+        // Blues & Teals
+        .init(id: "#61dafb", name: "React Blue",         hex: "#61dafb"),
+        .init(id: "#337295", name: "Peacock",            hex: "#337295"),
+        .init(id: "#007fff", name: "Azure Blue",         hex: "#007fff"),
+        .init(id: "#1857a4", name: "Mandalorian Blue",   hex: "#1857a4"),
+    ]
+}
+
 struct WorkspaceRowView: View {
     @Environment(AppState.self) var appState
     @ObservedObject var workspace: Workspace
@@ -104,6 +144,23 @@ struct WorkspaceRowView: View {
             }
         }
 
+        Menu("Change Color") {
+            ForEach(WorkspaceDotColor.palette) { dotColor in
+                Button {
+                    workspace.color = dotColor.hex
+                    appState.persist()
+                } label: {
+                    Label {
+                        Text(dotColor.name)
+                    } icon: {
+                        Circle()
+                            .fill(Color(hex: dotColor.hex))
+                            .frame(width: 12, height: 12)
+                    }
+                }
+            }
+        }
+
         Divider()
 
         Button("Close Workspace", role: .destructive) {
@@ -114,6 +171,9 @@ struct WorkspaceRowView: View {
     // MARK: - Helpers
 
     private var dotColor: Color {
+        if let hex = workspace.color {
+            return Color(hex: hex)
+        }
         let palette: [Color] = [
             Color(red: 0.40, green: 0.60, blue: 1.00),  // blue
             Color(red: 0.35, green: 0.85, blue: 0.60),  // green

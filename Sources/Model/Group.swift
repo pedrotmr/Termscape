@@ -45,11 +45,13 @@ struct WorkspaceSnapshot: Codable {
     let id: UUID
     let name: String
     let rootURL: URL?
+    let color: String?
 
     @MainActor
     init(_ workspace: Workspace) {
         id = workspace.id
         name = workspace.name
         rootURL = workspace.rootURL
+        color = workspace.color
     }
 }

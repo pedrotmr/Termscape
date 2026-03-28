@@ -6,6 +6,7 @@ final class Workspace: ObservableObject, Identifiable {
     let id: UUID
     @Published var name: String
     @Published var rootURL: URL?
+    @Published var color: String?
     @Published var tabs: [WorkspaceTab] = []
     @Published var selectedTabId: UUID?
 
@@ -13,14 +14,15 @@ final class Workspace: ObservableObject, Identifiable {
         tabs.first { $0.id == selectedTabId }
     }
 
-    init(id: UUID = UUID(), name: String, rootURL: URL? = nil) {
+    init(id: UUID = UUID(), name: String, rootURL: URL? = nil, color: String? = nil) {
         self.id = id
         self.name = name
         self.rootURL = rootURL
+        self.color = color
     }
 
     convenience init(snapshot: WorkspaceSnapshot) {
-        self.init(id: snapshot.id, name: snapshot.name, rootURL: snapshot.rootURL)
+        self.init(id: snapshot.id, name: snapshot.name, rootURL: snapshot.rootURL, color: snapshot.color)
     }
 
     func addTab(title: String = "Terminal") -> WorkspaceTab {
