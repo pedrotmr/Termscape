@@ -29,12 +29,6 @@ struct WorkspaceRowView: View {
         .animation(.easeInOut(duration: 0.12), value: isHovered)
         .animation(.easeInOut(duration: 0.12), value: isSelected)
         .animation(.spring(response: 0.25, dampingFraction: 0.85), value: isRenaming)
-        // Auto-save when another row steals editingWorkspaceId
-        .onChange(of: appState.editingWorkspaceId) { _, newId in
-            if newId != workspace.id && isRenaming == false {
-                // Was renaming, now it's not — already committed via focus loss
-            }
-        }
     }
 
     // MARK: - Row content

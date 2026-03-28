@@ -45,6 +45,13 @@ struct GroupRowView: View {
                 }
             }
         }
+        // Catch-all: drop landed within the group but not on any workspace row
+        // (e.g. in a gap or on the header). Resets drag state so rows don't
+        // stay dimmed. Drops outside the sidebar cannot be caught by SwiftUI.
+        .onDrop(of: [UTType.text], isTargeted: nil) { _ in
+            resetWorkspaceDrag()
+            return true
+        }
     }
 
     // MARK: - Drop indicator
@@ -175,6 +182,11 @@ struct GroupRowView: View {
                 }
             }
         )
+    }
+
+    private func resetWorkspaceDrag() {
+        draggedWorkspaceId = nil
+        dropTargetWorkspaceId = nil
     }
 
     private func reorderWorkspace(droppingOnto target: Workspace) {

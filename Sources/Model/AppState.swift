@@ -58,11 +58,7 @@ final class AppState {
     }
 
     func openWorkspace(at url: URL) {
-        let group = groups.first ?? {
-            let g = WorkspaceGroup(name: "Workspaces", isImplicit: true)
-            groups.append(g)
-            return g
-        }()
+        let group = getOrCreateDefaultGroup()
         let workspace = addWorkspace(in: group, url: url)
         selectedWorkspaceId = workspace.id
         workspace.ensureHasTab()
@@ -75,11 +71,7 @@ final class AppState {
         let cloneDir = homeURL.appendingPathComponent("Developer")
         try? FileManager.default.createDirectory(at: cloneDir, withIntermediateDirectories: true)
 
-        let group = groups.first ?? {
-            let g = WorkspaceGroup(name: "Workspaces", isImplicit: true)
-            groups.append(g)
-            return g
-        }()
+        let group = getOrCreateDefaultGroup()
 
         let repoName = urlString.split(separator: "/").last.map(String.init)?.replacingOccurrences(of: ".git", with: "") ?? "repo"
         let destURL = cloneDir.appendingPathComponent(repoName)
@@ -95,6 +87,15 @@ final class AppState {
 
         showCloneSheet = false
         cloneURL = ""
+    }
+
+    // MARK: - Helpers
+
+    private func getOrCreateDefaultGroup() -> WorkspaceGroup {
+        if let existing = groups.first { return existing }
+        let group = WorkspaceGroup(name: "Workspaces", isImplicit: true)
+        groups.append(group)
+        return group
     }
 
     // MARK: - Persistence
