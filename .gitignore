@@ -1,0 +1,49 @@
+# Xcode
+*.xcuserstate
+*.xcworkspace/xcuserdata
+xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivefile
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+
+# Build
+build/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+*.swp
+*.swo
+
+# VS Code
+.vscode/
+
+# Large binaries / frameworks
+*.a
+*.xcframework/
+
+# Sensitive / local
+*.env
+*.pem

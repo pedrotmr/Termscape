@@ -1,0 +1,145 @@
+import SwiftUI
+import Bonsplit
+
+struct TabBarView: View {
+    @ObservedObject var workspace: Workspace
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 1) {
+                    ForEach(workspace.tabs) { tab in
+                        TabItemView(
+                            tab: tab,
+                            isSelected: workspace.selectedTabId == tab.id,
+                            onSelect: { workspace.selectedTabId = tab.id },
+                            onClose: { workspace.closeTab(tab.id) }
+                        )
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+            }
+
+            separator
+
+            // New tab button
+            TabBarIconButton(systemImage: "plus", help: "New Tab (⌘T)") {
+                _ = workspace.addTab()
+            }
+
+            separator
+
+            // Split pane buttons
+            TabBarIconButton(systemImage: "square.split.2x1", help: "Split Right (⌘D)") {
+                NotificationCenter.default.post(name: .splitRight, object: nil)
+            }
+            TabBarIconButton(systemImage: "square.split.1x2", help: "Split Down (⌘⇧D)") {
+                NotificationCenter.default.post(name: .splitDown, object: nil)
+            }
+            .padding(.trailing, 6)
+        }
+        .frame(height: 38)
+        .background(Color.muxSurface)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.muxBorder).frame(height: 1)
+        }
+    }
+
+    private var separator: some View {
+        Rectangle()
+            .fill(Color.muxBorder)
+            .frame(width: 1, height: 16)
+            .padding(.horizontal, 3)
+    }
+}
+
+// MARK: - Tab item
+
+struct TabItemView: View {
+    @ObservedObject var tab: WorkspaceTab
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onClose: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 5) {
+                Image(systemName: "terminal")
+                    .font(.system(size: 10))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.7) : Color.muxTextFaint)
+
+                Text(tab.title)
+                    .font(.system(size: 12, weight: isSelected ? .medium : .regular))
+                    .foregroundStyle(isSelected ? Color.muxText : Color.muxTextMuted)
+                    .lineLimit(1)
+                    .frame(maxWidth: 110, alignment: .leading)
+
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8.5, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.45))
+                        .frame(width: 14, height: 14)
+                        .background(Color.white.opacity(isHovered ? 0.07 : 0))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .buttonStyle(.plain)
+                .opacity((isHovered || isSelected) ? 1 : 0)
+                .help("Close Tab")
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(tabBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .animation(.easeInOut(duration: 0.12), value: isHovered)
+        .overlay(alignment: .bottom) {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Color.muxAccent)
+                    .frame(height: 2)
+                    .padding(.horizontal, 8)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var tabBackground: some View {
+        if isSelected {
+            Color.white.opacity(0.07)
+        } else if isHovered {
+            Color.white.opacity(0.04)
+        } else {
+            Color.clear
+        }
+    }
+}
+
+// MARK: - Icon button
+
+private struct TabBarIconButton: View {
+    let systemImage: String
+    let help: String
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 11, weight: .regular))
+                .foregroundStyle(isHovered ? Color.white.opacity(0.7) : Color.muxTextMuted)
+                .frame(width: 28, height: 28)
+                .background(isHovered ? Color.white.opacity(0.07) : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 5))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .onHover { isHovered = $0 }
+        .animation(.easeInOut(duration: 0.12), value: isHovered)
+    }
+}

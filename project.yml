@@ -1,0 +1,78 @@
+name: muxon
+options:
+  bundleIdPrefix: com.muxon
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+  groupSortPosition: none
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  muxon:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    info:
+      path: Info.plist
+      properties:
+        CFBundleName: muxon
+        CFBundleDisplayName: muxon
+        CFBundleIdentifier: com.muxon.app
+        CFBundleVersion: "1"
+        CFBundleShortVersionString: "0.1.0"
+        CFBundlePackageType: APPL
+        NSPrincipalClass: NSApplication
+        NSHighResolutionCapable: true
+        NSSupportsAutomaticGraphicsSwitching: true
+        LSMinimumSystemVersion: "14.0"
+        NSHumanReadableCopyright: ""
+
+    entitlements:
+      path: muxon.entitlements
+
+    settings:
+      base:
+        SWIFT_OBJC_BRIDGING_HEADER: Resources/muxon-Bridging-Header.h
+        HEADER_SEARCH_PATHS: $(SRCROOT)/Resources
+        PRODUCT_BUNDLE_IDENTIFIER: com.muxon.app
+        PRODUCT_NAME: muxon
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+        OTHER_LDFLAGS: "-lc++ -lz"
+
+    sources:
+      - path: Sources
+        excludes:
+          - "**/.DS_Store"
+
+    dependencies:
+      - framework: Resources/GhosttyKit.xcframework
+        embed: false
+      - package: Bonsplit
+        product: Bonsplit
+      - sdk: Carbon.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: IOKit.framework
+      - sdk: UniformTypeIdentifiers.framework
+
+    preBuildScripts:
+      - name: "Copy Ghostty Resources"
+        script: |
+          # Copy shell integration resources if present
+          if [ -d "${SRCROOT}/Resources/shell-integration" ]; then
+            cp -r "${SRCROOT}/Resources/shell-integration" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/" 2>/dev/null || true
+          fi
+
+packages:
+  Bonsplit:
+    path: vendor/bonsplit
