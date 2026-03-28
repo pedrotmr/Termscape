@@ -8,6 +8,8 @@ import Observation
 final class AppState {
     var groups: [WorkspaceGroup] = []
     var selectedWorkspaceId: UUID?
+    var editingWorkspaceId: UUID? = nil
+    var editingGroupId: UUID? = nil
     var showCloneSheet: Bool = false
     var cloneURL: String = ""
 
@@ -57,7 +59,7 @@ final class AppState {
 
     func openWorkspace(at url: URL) {
         let group = groups.first ?? {
-            let g = WorkspaceGroup(name: "Workspaces")
+            let g = WorkspaceGroup(name: "Workspaces", isImplicit: true)
             groups.append(g)
             return g
         }()
@@ -74,7 +76,7 @@ final class AppState {
         try? FileManager.default.createDirectory(at: cloneDir, withIntermediateDirectories: true)
 
         let group = groups.first ?? {
-            let g = WorkspaceGroup(name: "Workspaces")
+            let g = WorkspaceGroup(name: "Workspaces", isImplicit: true)
             groups.append(g)
             return g
         }()
@@ -123,6 +125,11 @@ final class AppState {
             return
         }
         groups = savedGroups
+        // Migration: old saves have no isImplicit field (defaults to false).
+        // If every group appears non-implicit, treat the first as the implicit default.
+        if !groups.isEmpty && groups.allSatisfy({ !$0.isImplicit }) {
+            groups[0].isImplicit = true
+        }
         selectedWorkspaceId = groups.flatMap(\.workspaces).first?.id
     }
 }
