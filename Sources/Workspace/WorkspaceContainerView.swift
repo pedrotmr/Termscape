@@ -46,11 +46,12 @@ struct WorkspaceContainerView: View {
     /// The surface is extracted from the source tab before Bonsplit can tear it down, then injected
     /// into the initial pane of the newly created workspace tab.
     private func movePaneToNewTab(notif: NotificationCenter.Publisher.Output) {
-        guard let surface = notif.userInfo?["surface"] as? TerminalSurface,
-              let sourceTab = notif.userInfo?["sourceTab"] as? WorkspaceTab
+        let key = Notification.Name.MoveToNewTabKey.self
+        guard let surface = notif.userInfo?[key.surface] as? TerminalSurface,
+              let sourceTab = notif.userInfo?[key.sourceTab] as? WorkspaceTab
         else { return }
 
-        let shouldCloseSource = notif.userInfo?["closeSourceTab"] as? Bool ?? false
+        let shouldCloseSource = notif.userInfo?[key.closeSourceTab] as? Bool ?? false
         if shouldCloseSource {
             workspace.closeTab(sourceTab.id)
         }

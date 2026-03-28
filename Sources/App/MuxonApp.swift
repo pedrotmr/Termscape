@@ -48,8 +48,14 @@ extension Notification.Name {
     static let newWorkspace = Notification.Name("muxon.newWorkspace")
     static let ghosttyConfigDidReload = Notification.Name("muxon.ghosttyConfigDidReload")
     /// Posted by the context menu to move the focused pane's terminal into a new workspace tab.
-    /// userInfo keys: "surface" (TerminalSurface), "sourceTab" (WorkspaceTab), "closeSourceTab" (Bool)
     static let moveToNewTab = Notification.Name("muxon.moveToNewTab")
+
+    /// Typed keys for the `moveToNewTab` notification's `userInfo` dictionary.
+    enum MoveToNewTabKey {
+        static let surface = "surface"
+        static let sourceTab = "sourceTab"
+        static let closeSourceTab = "closeSourceTab"
+    }
 }
 
 // MARK: - Content view

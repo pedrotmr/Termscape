@@ -169,7 +169,7 @@ final class CanvasDocumentView: NSView {
         item.target = self
         item.isEnabled = true
         let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
-        item.image = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?
+        item.image = NSImage(systemSymbolName: icon, accessibilityDescription: title)?
             .withSymbolConfiguration(config)
         return item
     }
@@ -191,7 +191,8 @@ final class CanvasDocumentView: NSView {
         let snapshot = tab.bonsplitController.layoutSnapshot()
         guard let focusedPaneId = snapshot.focusedPaneId,
               let pane = snapshot.panes.first(where: { $0.paneId == focusedPaneId }),
-              let tabUUID = UUID(uuidString: pane.selectedTabId ?? ""),
+              let selectedTabId = pane.selectedTabId,
+              let tabUUID = UUID(uuidString: selectedTabId),
               let surface = tab.surfaces.removeValue(forKey: tabUUID)
         else { return }
 
@@ -202,13 +203,14 @@ final class CanvasDocumentView: NSView {
             tab.bonsplitController.closePane(PaneID(id: paneUUID))
         }
 
+        let key = Notification.Name.MoveToNewTabKey.self
         NotificationCenter.default.post(
             name: .moveToNewTab,
             object: nil,
             userInfo: [
-                "surface": surface,
-                "sourceTab": tab,
-                "closeSourceTab": isSinglePane
+                key.surface: surface,
+                key.sourceTab: tab,
+                key.closeSourceTab: isSinglePane
             ]
         )
     }
@@ -222,7 +224,8 @@ final class CanvasDocumentView: NSView {
         let snapshot = tab.bonsplitController.layoutSnapshot()
         guard let focusedPaneId = snapshot.focusedPaneId,
               let pane = snapshot.panes.first(where: { $0.paneId == focusedPaneId }),
-              let tabUUID = UUID(uuidString: pane.selectedTabId ?? ""),
+              let selectedTabId = pane.selectedTabId,
+              let tabUUID = UUID(uuidString: selectedTabId),
               let surface = tab.surfaces[tabUUID]
         else { return }
         surface.sendText("\u{0C}")

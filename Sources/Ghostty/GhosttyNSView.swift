@@ -334,6 +334,9 @@ final class GhosttyNSView: NSView, NSTextInputClient {
     }
 
     override func rightMouseUp(with event: NSEvent) {
+        // Skip forwarding if onContextMenu handled the paired press — Ghostty never saw
+        // the down event so sending only the up would leave it with an unpaired release.
+        guard onContextMenu == nil else { return }
         guard let surface = terminalSurface?.surface else { return }
         let point = convert(event.locationInWindow, from: nil)
         let mods = modsFromEvent(event)
