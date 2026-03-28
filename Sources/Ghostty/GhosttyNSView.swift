@@ -12,6 +12,11 @@ final class GhosttyNSView: NSView, NSTextInputClient {
     /// CanvasDocumentView sets this to notify BonsplitController of the focused pane.
     var onFocused: (() -> Void)?
 
+    /// Called when the user right-clicks this pane.
+    /// If set, suppresses the default Ghostty right-click forwarding and lets the
+    /// caller (CanvasDocumentView) build and show a context menu instead.
+    var onContextMenu: ((NSEvent) -> Void)?
+
     private var trackingArea: NSTrackingArea?
     private var windowObserver: NSObjectProtocol?
     private var eventMonitor: Any?
@@ -313,11 +318,19 @@ final class GhosttyNSView: NSView, NSTextInputClient {
     }
 
     override func rightMouseDown(with event: NSEvent) {
-        guard let surface = terminalSurface?.surface else { return }
-        let point = convert(event.locationInWindow, from: nil)
-        let mods = modsFromEvent(event)
-        ghostty_surface_mouse_pos(surface, point.x, bounds.height - point.y, mods)
-        _ = ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_RIGHT, mods)
+        // Always focus the right-clicked pane first so any menu action targets it.
+        onFocused?()
+        window?.makeFirstResponder(self)
+
+        if let handler = onContextMenu {
+            handler(event)
+        } else {
+            guard let surface = terminalSurface?.surface else { return }
+            let point = convert(event.locationInWindow, from: nil)
+            let mods = modsFromEvent(event)
+            ghostty_surface_mouse_pos(surface, point.x, bounds.height - point.y, mods)
+            _ = ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_RIGHT, mods)
+        }
     }
 
     override func rightMouseUp(with event: NSEvent) {

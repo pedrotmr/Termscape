@@ -6,6 +6,8 @@ import Bonsplit
 final class CanvasDocumentView: NSView {
     private var hostedViews: [String: GhosttySurfaceScrollView] = [:] // paneId → view
     private let layoutEngine = PaneLayoutEngine()
+    /// Retained during a context menu interaction so the Clear action can reach the focused surface.
+    private weak var contextMenuTab: WorkspaceTab?
 
     override var isFlipped: Bool { true }
 
@@ -95,6 +97,13 @@ final class CanvasDocumentView: NSView {
                 guard let tab, let paneUUID = UUID(uuidString: paneIdStr) else { return }
                 tab.bonsplitController.focusPane(PaneID(id: paneUUID))
             }
+
+            // Wire right-click context menu
+            hostedView.surfaceView.onContextMenu = { [weak self, weak tab] event in
+                guard let self, let tab else { return }
+                self.contextMenuTab = tab
+                NSMenu.popUpContextMenu(self.buildContextMenu(isMultiPane: isMultiPane), with: event, for: self)
+            }
         }
 
         // Remove views for panes that no longer exist
@@ -134,5 +143,88 @@ final class CanvasDocumentView: NSView {
             view.layer?.borderWidth = 0.5
             view.layer?.borderColor = NSColor.white.withAlphaComponent(0.12).cgColor
         }
+    }
+
+    // MARK: - Context menu
+
+    private func buildContextMenu(isMultiPane: Bool) -> NSMenu {
+        let menu = NSMenu(title: "")
+        menu.autoenablesItems = false
+
+        menu.addItem(makeItem("Split Horizontally", icon: "rectangle.split.2x1", action: #selector(menuSplitRight(_:))))
+        menu.addItem(makeItem("Split Vertically",   icon: "rectangle.split.1x2", action: #selector(menuSplitDown(_:))))
+        menu.addItem(.separator())
+        menu.addItem(makeItem("New Tab",             icon: "plus.rectangle",      action: #selector(menuNewTab(_:))))
+        menu.addItem(makeItem("Move to New Tab",     icon: "arrow.up.right.square", action: #selector(menuMoveToNewTab(_:))))
+        menu.addItem(.separator())
+        menu.addItem(makeItem("Clear",               icon: "eraser.fill",          action: #selector(menuClear(_:))))
+        let closeTitle = isMultiPane ? "Close Pane" : "Close Tab"
+        menu.addItem(makeItem(closeTitle,            icon: "xmark",                action: #selector(menuClose(_:))))
+
+        return menu
+    }
+
+    private func makeItem(_ title: String, icon: String, action: Selector) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        item.target = self
+        item.isEnabled = true
+        let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+        item.image = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?
+            .withSymbolConfiguration(config)
+        return item
+    }
+
+    @objc private func menuSplitRight(_ sender: Any?) {
+        NotificationCenter.default.post(name: .splitRight, object: nil)
+    }
+
+    @objc private func menuSplitDown(_ sender: Any?) {
+        NotificationCenter.default.post(name: .splitDown, object: nil)
+    }
+
+    @objc private func menuNewTab(_ sender: Any?) {
+        NotificationCenter.default.post(name: .newTab, object: nil)
+    }
+
+    @objc private func menuMoveToNewTab(_ sender: Any?) {
+        guard let tab = contextMenuTab else { return }
+        let snapshot = tab.bonsplitController.layoutSnapshot()
+        guard let focusedPaneId = snapshot.focusedPaneId,
+              let pane = snapshot.panes.first(where: { $0.paneId == focusedPaneId }),
+              let tabUUID = UUID(uuidString: pane.selectedTabId ?? ""),
+              let surface = tab.surfaces.removeValue(forKey: tabUUID)
+        else { return }
+
+        // Close the source pane if it's not the only one.
+        // (For single-pane, the workspace tab itself is closed by the notification handler.)
+        let isSinglePane = tab.bonsplitController.allPaneIds.count == 1
+        if !isSinglePane, let paneUUID = UUID(uuidString: focusedPaneId) {
+            tab.bonsplitController.closePane(PaneID(id: paneUUID))
+        }
+
+        NotificationCenter.default.post(
+            name: .moveToNewTab,
+            object: nil,
+            userInfo: [
+                "surface": surface,
+                "sourceTab": tab,
+                "closeSourceTab": isSinglePane
+            ]
+        )
+    }
+
+    @objc private func menuClose(_ sender: Any?) {
+        NotificationCenter.default.post(name: .closeTab, object: nil)
+    }
+
+    @objc private func menuClear(_ sender: Any?) {
+        guard let tab = contextMenuTab else { return }
+        let snapshot = tab.bonsplitController.layoutSnapshot()
+        guard let focusedPaneId = snapshot.focusedPaneId,
+              let pane = snapshot.panes.first(where: { $0.paneId == focusedPaneId }),
+              let tabUUID = UUID(uuidString: pane.selectedTabId ?? ""),
+              let surface = tab.surfaces[tabUUID]
+        else { return }
+        surface.sendText("\u{0C}")
     }
 }
