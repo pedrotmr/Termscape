@@ -13,11 +13,14 @@ struct SidebarView: View {
     @Environment(ThemeManager.self) var theme
     @State private var showSettings = false
     @State private var draggingGroupId: UUID?
+    @State private var groupDragStartIndex: Int?
     @State private var groupDragTranslation: CGFloat = 0
     @State private var proposedGroupIndex: Int?
     @State private var groupFrames: [UUID: CGRect] = [:]
 
     private var t: AppTheme { theme.current }
+    private let slideAnimation = Animation.spring(response: 0.25, dampingFraction: 0.82)
+    private let settleAnimation = Animation.spring(response: 0.32, dampingFraction: 0.8)
 
     var body: some View {
         @Bindable var appState = appState
@@ -43,8 +46,8 @@ struct SidebarView: View {
                                 radius: 8, y: 3
                             )
                             .offset(y: groupOffset(for: group, at: index))
-                            .animation(.spring(response: 0.25, dampingFraction: 0.82), value: proposedGroupIndex)
-                            .animation(.spring(response: 0.25, dampingFraction: 0.82), value: draggingGroupId)
+                            .animation(slideAnimation, value: proposedGroupIndex)
+                            .animation(slideAnimation, value: draggingGroupId)
                             .simultaneousGesture(group.isImplicit ? nil : groupDragGesture(for: group, at: index))
                     }
                 }
@@ -114,11 +117,10 @@ struct SidebarView: View {
     // MARK: - Group offset
 
     private func groupOffset(for group: WorkspaceGroup, at index: Int) -> CGFloat {
-        guard let draggingId = draggingGroupId,
-              let proposed = proposedGroupIndex,
-              let draggedIdx = appState.groups.firstIndex(where: { $0.id == draggingId })
+        guard let draggedIdx = groupDragStartIndex,
+              let proposed = proposedGroupIndex
         else { return 0 }
-        if group.id == draggingId { return groupDragTranslation }
+        if group.id == draggingGroupId { return groupDragTranslation }
         let draggedH = groupFrames[draggingId]?.height ?? 44
         if draggedIdx < proposed {
             if index > draggedIdx && index <= proposed { return -draggedH }
@@ -133,7 +135,10 @@ struct SidebarView: View {
     private func groupDragGesture(for group: WorkspaceGroup, at startIndex: Int) -> some Gesture {
         DragGesture(minimumDistance: 3)
             .onChanged { value in
-                if draggingGroupId == nil { draggingGroupId = group.id }
+                if draggingGroupId == nil {
+                    draggingGroupId = group.id
+                    groupDragStartIndex = startIndex
+                }
                 groupDragTranslation = value.translation.height
                 guard let draggedFrame = groupFrames[group.id] else { return }
                 let cursorY = draggedFrame.midY + groupDragTranslation
@@ -144,19 +149,19 @@ struct SidebarView: View {
                     let d = abs(cursorY - f.midY)
                     if d < bestDist { bestDist = d; best = idx }
                 }
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                withAnimation(slideAnimation) {
                     proposedGroupIndex = best
                 }
             }
             .onEnded { _ in
-                if let from = appState.groups.firstIndex(where: { $0.id == draggingGroupId }),
-                   let to = proposedGroupIndex, from != to {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                if let from = groupDragStartIndex, let to = proposedGroupIndex, from != to {
+                    withAnimation(settleAnimation) {
                         appState.groups.move(fromOffsets: IndexSet(integer: from),
                                             toOffset: to > from ? to + 1 : to)
                     }
                 }
                 draggingGroupId = nil
+                groupDragStartIndex = nil
                 groupDragTranslation = 0
                 proposedGroupIndex = nil
             }

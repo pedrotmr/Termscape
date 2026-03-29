@@ -9,11 +9,14 @@ struct GroupRowView: View {
     @State private var newGroupName = ""
     @State private var isHoveringHeader = false
     @State private var draggingWorkspaceId: UUID?
+    @State private var dragStartIndex: Int?
     @State private var dragTranslation: CGFloat = 0
     @State private var proposedWorkspaceIndex: Int?
     @FocusState private var groupNameFocused: Bool
 
     private let rowH: CGFloat = 32
+    private let slideAnimation = Animation.spring(response: 0.25, dampingFraction: 0.82)
+    private let settleAnimation = Animation.spring(response: 0.32, dampingFraction: 0.8)
 
     var isRenamingGroup: Bool { appState.editingGroupId == group.id }
 
@@ -37,8 +40,8 @@ struct GroupRowView: View {
                             radius: 10, y: 4
                         )
                         .offset(y: workspaceOffset(for: workspace, at: index))
-                        .animation(.spring(response: 0.25, dampingFraction: 0.82), value: proposedWorkspaceIndex)
-                        .animation(.spring(response: 0.25, dampingFraction: 0.82), value: draggingWorkspaceId)
+                        .animation(slideAnimation, value: proposedWorkspaceIndex)
+                        .animation(slideAnimation, value: draggingWorkspaceId)
                         .simultaneousGesture(workspaceDragGesture(for: workspace, at: index))
                 }
             }
@@ -48,11 +51,10 @@ struct GroupRowView: View {
     // MARK: - Workspace offset
 
     private func workspaceOffset(for workspace: Workspace, at index: Int) -> CGFloat {
-        guard let draggingId = draggingWorkspaceId,
-              let proposed = proposedWorkspaceIndex,
-              let draggedIdx = group.workspaces.firstIndex(where: { $0.id == draggingId })
+        guard let draggedIdx = dragStartIndex,
+              let proposed = proposedWorkspaceIndex
         else { return 0 }
-        if workspace.id == draggingId { return dragTranslation }
+        if workspace.id == draggingWorkspaceId { return dragTranslation }
         if draggedIdx < proposed {
             if index > draggedIdx && index <= proposed { return -rowH }
         } else if draggedIdx > proposed {
@@ -66,23 +68,26 @@ struct GroupRowView: View {
     private func workspaceDragGesture(for workspace: Workspace, at startIndex: Int) -> some Gesture {
         DragGesture(minimumDistance: 3)
             .onChanged { value in
-                if draggingWorkspaceId == nil { draggingWorkspaceId = workspace.id }
+                if draggingWorkspaceId == nil {
+                    draggingWorkspaceId = workspace.id
+                    dragStartIndex = startIndex
+                }
                 dragTranslation = value.translation.height
                 let steps = Int(round(dragTranslation / rowH))
                 let clamped = max(0, min(group.workspaces.count - 1, startIndex + steps))
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                withAnimation(slideAnimation) {
                     proposedWorkspaceIndex = clamped
                 }
             }
             .onEnded { _ in
-                if let from = group.workspaces.firstIndex(where: { $0.id == draggingWorkspaceId }),
-                   let to = proposedWorkspaceIndex, from != to {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                if let from = dragStartIndex, let to = proposedWorkspaceIndex, from != to {
+                    withAnimation(settleAnimation) {
                         group.workspaces.move(fromOffsets: IndexSet(integer: from),
                                              toOffset: to > from ? to + 1 : to)
                     }
                 }
                 draggingWorkspaceId = nil
+                dragStartIndex = nil
                 dragTranslation = 0
                 proposedWorkspaceIndex = nil
             }
