@@ -232,7 +232,10 @@ struct WorkspaceRowView: View {
         renameFieldFocused = false
     }
 
+    private static var colorDotCache: [String: NSImage] = [:]
+
     private func colorDotNSImage(hex: String) -> NSImage {
+        if let cached = Self.colorDotCache[hex] { return cached }
         let nsColor = NSColor(Color(hex: hex))
         let size = CGSize(width: 12, height: 12)
         let image = NSImage(size: size, flipped: false) { rect in
@@ -241,6 +244,7 @@ struct WorkspaceRowView: View {
             return true
         }
         image.isTemplate = false
+        Self.colorDotCache[hex] = image
         return image
     }
 
