@@ -14,6 +14,7 @@ struct GroupRowView: View {
     @State private var isHoveringHeader = false
     @State private var hoverChevron = false
     @State private var hoverAddWorkspace = false
+    @State private var hoverRenameGroup = false
     @State private var hoverDeleteGroup = false
     @State private var draggingWorkspaceId: UUID?
     @State private var dragStartIndex: Int?
@@ -171,15 +172,36 @@ struct GroupRowView: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
-                        .simultaneousGesture(
-                            TapGesture(count: 2).onEnded { startGroupRename() }
-                        )
                     }
                     .buttonStyle(.plain)
                     .frame(maxHeight: .infinity)
                 }
 
                 HStack(spacing: 4) {
+                    if !isRenamingGroup {
+                        Button {
+                            startGroupRename()
+                        } label: {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(t.textMuted)
+                                .frame(width: 20, height: 20)
+                                .background(
+                                    (hoverRenameGroup && isHoveringHeader) ? t.selected.opacity(0.42) : t.hover
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                        }
+                        .buttonStyle(.plain)
+                        .cursor(NSCursor.arrow)
+                        .onHover { hoverRenameGroup = $0 }
+                        .sidebarHoverTooltip(
+                            "Rename group",
+                            theme: t,
+                            isPresented: $hoverRenameGroup,
+                            horizontalAnchor: .trailing
+                        )
+                    }
+
                     Button {
                         let workspace = appState.addWorkspace(in: group, url: nil)
                         workspace.ensureHasTab()
