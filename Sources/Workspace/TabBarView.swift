@@ -16,7 +16,8 @@ struct TabBarView: View {
                             tab: tab,
                             isSelected: workspace.selectedTabId == tab.id,
                             onSelect: { workspace.selectedTabId = tab.id },
-                            onClose: { workspace.closeTab(tab.id) }
+                            onClose: { workspace.closeTab(tab.id) },
+                            onTogglePin: { workspace.togglePin(tab.id) }
                         )
                     }
                 }
@@ -65,24 +66,72 @@ struct TabItemView: View {
     let isSelected: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
+    let onTogglePin: () -> Void
 
     @State private var isHovered = false
+    @State private var isRenaming = false
+    @State private var renameText = ""
+    @FocusState private var isRenameFocused: Bool
 
     private var t: AppTheme { theme.current }
 
     var body: some View {
-        Button(action: onSelect) {
-            HStack(spacing: 5) {
+        HStack(spacing: 5) {
+            if tab.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(Color.muxAccent.opacity(0.8))
+            } else {
                 Image(systemName: "terminal")
                     .font(.system(size: 10))
                     .foregroundStyle(isSelected ? t.text.opacity(0.7) : t.textFaint)
+            }
 
+            if isRenaming {
+                TextField("", text: $renameText)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.muxText)
+                    .frame(maxWidth: 110)
+                    .textFieldStyle(.plain)
+                    .focused($isRenameFocused)
+                    .onSubmit { commitRename() }
+                    .onExitCommand { cancelRename() }
+                    .onAppear {
+                        DispatchQueue.main.async {
+                            NSApp.keyWindow?.firstResponder?.tryToPerform(#selector(NSResponder.selectAll(_:)), with: nil)
+                        }
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.muxAccent.opacity(0.6), lineWidth: 1)
+                            .padding(.horizontal, -4)
+                    )
+            } else {
                 Text(tab.title)
                     .font(.system(size: 12, weight: isSelected ? .medium : .regular))
                     .foregroundStyle(isSelected ? t.text : t.textMuted)
                     .lineLimit(1)
                     .frame(maxWidth: 110, alignment: .leading)
+            }
 
+            if tab.isPinned {
+                // Pinned tabs: no close button, pin icon already shown on left
+                // Show unpin affordance on hover
+                if isHovered {
+                    Button(action: onTogglePin) {
+                        Image(systemName: "pin.slash")
+                            .font(.system(size: 8.5, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.45))
+                            .frame(width: 14, height: 14)
+                            .background(Color.white.opacity(0.07))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Unpin Tab")
+                } else {
+                    Color.clear.frame(width: 14, height: 14)
+                }
+            } else {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.system(size: 8.5, weight: .semibold))
@@ -95,12 +144,17 @@ struct TabItemView: View {
                 .opacity((isHovered || isSelected) ? 1 : 0)
                 .help("Close Tab")
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(tabBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(tabBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .contentShape(Rectangle())
+        .onTapGesture { onSelect() }
+        .simultaneousGesture(TapGesture(count: 2).onEnded {
+            renameText = tab.title
+            isRenaming = true
+        })
         .onHover { isHovered = $0 }
         .animation(.easeInOut(duration: 0.12), value: isHovered)
         .overlay(alignment: .bottom) {
@@ -110,6 +164,26 @@ struct TabItemView: View {
                     .frame(height: 2)
                     .padding(.horizontal, 8)
             }
+        }
+        .onChange(of: isRenaming) { renaming in
+            if renaming { isRenameFocused = true }
+        }
+        .onChange(of: isRenameFocused) { focused in
+            if !focused { commitRename() }
+        }
+        .contextMenu {
+            Button("Rename") {
+                renameText = tab.title
+                isRenaming = true
+            }
+            Button(tab.isPinned ? "Unpin Tab" : "Pin Tab") {
+                onTogglePin()
+            }
+            Divider()
+            Button("Close Tab", role: .destructive) {
+                onClose()
+            }
+            .disabled(tab.isPinned)
         }
     }
 
@@ -122,6 +196,19 @@ struct TabItemView: View {
         } else {
             Color.clear
         }
+    }
+
+    private func commitRename() {
+        guard isRenaming else { return }
+        let trimmed = renameText.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty {
+            tab.title = trimmed
+        }
+        isRenaming = false
+    }
+
+    private func cancelRename() {
+        isRenaming = false
     }
 }
 
