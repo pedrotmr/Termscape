@@ -4,6 +4,9 @@ import UniformTypeIdentifiers
 struct SidebarView: View {
     @Environment(AppState.self) var appState
     @Environment(ThemeManager.self) var theme
+    @State private var isAppearanceHovered = false
+    @State private var isAddHovered = false
+    @State private var showAddPopover = false
     @State private var showSettings = false
     @State private var draggedGroupId: UUID?
     @State private var dropTargetGroupId: UUID?
@@ -14,8 +17,7 @@ struct SidebarView: View {
         @Bindable var appState = appState
 
         VStack(spacing: 0) {
-            // Title bar clearance — pushes content below macOS traffic light buttons.
-            Color.clear.frame(height: 28)
+            Color.clear.frame(height: 46)
 
             ScrollView {
                 VStack(spacing: 0) {
@@ -58,25 +60,49 @@ struct SidebarView: View {
                 .frame(height: 1)
 
             HStack(spacing: 2) {
-                SidebarIconButton(systemImage: "folder.badge.plus", help: "Open Folder as Workspace", theme: t) {
-                    appState.openFolder()
-                }
-                SidebarIconButton(systemImage: "arrow.down.to.line", help: "Clone Git Repository", theme: t) {
-                    appState.showCloneSheet = true
-                }
-
                 Spacer()
 
-                SidebarIconButton(systemImage: "slider.horizontal.3", help: "Settings", theme: t) {
+                Button {
                     showSettings = true
+                } label: {
+                    SidebarIconGlyph(systemImage: "slider.horizontal.3", theme: t, isHovered: isAppearanceHovered)
                 }
-                SidebarIconButton(systemImage: "plus", help: "New Group", theme: t) {
-                    let group = WorkspaceGroup(name: "NEW GROUP", isImplicit: false)
-                    appState.groups.append(group)
+                .buttonStyle(.plain)
+                .help("Appearance")
+                .onHover { isAppearanceHovered = $0 }
+                .animation(.easeInOut(duration: 0.12), value: isAppearanceHovered)
+
+                Button {
+                    showAddPopover.toggle()
+                } label: {
+                    SidebarIconGlyph(systemImage: "plus", theme: t, isHovered: isAddHovered)
+                }
+                .buttonStyle(.plain)
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+                .help("Add")
+                .onHover { isAddHovered = $0 }
+                .animation(.easeInOut(duration: 0.12), value: isAddHovered)
+                .popover(isPresented: $showAddPopover) {
+                    AddActionsPopover(
+                        theme: t,
+                        onOpenProject: {
+                            openProjectAction()
+                            showAddPopover = false
+                        },
+                        onCloneFromURL: {
+                            cloneFromURLAction()
+                            showAddPopover = false
+                        },
+                        onNewGroup: {
+                            createGroupAction()
+                            showAddPopover = false
+                        }
+                    )
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 12)
+            .padding(.vertical, 7)
         }
         .contextMenu { addMenuItems }
         .background(t.sidebar)
@@ -91,19 +117,18 @@ struct SidebarView: View {
     @ViewBuilder
     private var addMenuItems: some View {
         Button {
-            appState.openFolder()
+            openProjectAction()
         } label: {
             Label("Open Project", systemImage: "folder.badge.plus")
         }
         Button {
-            appState.showCloneSheet = true
+            cloneFromURLAction()
         } label: {
             Label("Clone from URL", systemImage: "arrow.down.to.line")
         }
         Divider()
         Button {
-            let group = WorkspaceGroup(name: "NEW GROUP", isImplicit: false)
-            appState.groups.append(group)
+            createGroupAction()
         } label: {
             Label("New Group", systemImage: "rectangle.3.group")
         }
@@ -163,13 +188,68 @@ struct SidebarView: View {
         draggedGroupId = nil
         dropTargetGroupId = nil
     }
+
+    private func openProjectAction() {
+        appState.openFolder()
+    }
+
+    private func cloneFromURLAction() {
+        appState.showCloneSheet = true
+    }
+
+    private func createGroupAction() {
+        let group = WorkspaceGroup(name: "NEW GROUP", isImplicit: false)
+        appState.groups.append(group)
+    }
 }
 
-// MARK: - Footer icon button
+// MARK: - Footer menu button
 
-private struct SidebarIconButton: View {
+private struct SidebarIconGlyph: View {
     let systemImage: String
-    let help: String
+    let theme: AppTheme
+    let isHovered: Bool
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 13, weight: .regular))
+            .foregroundStyle(isHovered ? theme.text : theme.textMuted)
+            .frame(width: 30, height: 30)
+            .background(isHovered ? theme.hover : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private struct AddActionsPopover: View {
+    let theme: AppTheme
+    let onOpenProject: () -> Void
+    let onCloneFromURL: () -> Void
+    let onNewGroup: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            AddActionsRow(systemImage: "folder.badge.plus", title: "Open Project", theme: theme, action: onOpenProject)
+            divider
+            AddActionsRow(systemImage: "arrow.down.to.line", title: "Clone from URL", theme: theme, action: onCloneFromURL)
+            divider
+            AddActionsRow(systemImage: "rectangle.3.group", title: "New Group", theme: theme, action: onNewGroup)
+        }
+        .padding(8)
+        .frame(width: 220)
+        .background(theme.elevated)
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(theme.border)
+            .frame(height: 1)
+            .padding(.vertical, 3)
+    }
+}
+
+private struct AddActionsRow: View {
+    let systemImage: String
+    let title: String
     let theme: AppTheme
     let action: () -> Void
 
@@ -177,15 +257,20 @@ private struct SidebarIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(isHovered ? theme.text : theme.textMuted)
-                .frame(width: 30, height: 30)
-                .background(isHovered ? theme.hover : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12))
+                Text(title)
+                    .font(.system(size: 12))
+                Spacer()
+            }
+            .foregroundStyle(theme.text)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(isHovered ? theme.hover : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
-        .help(help)
         .onHover { isHovered = $0 }
         .animation(.easeInOut(duration: 0.12), value: isHovered)
     }

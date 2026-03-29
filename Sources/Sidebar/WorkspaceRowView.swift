@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct WorkspaceDotColor: Identifiable {
@@ -94,19 +95,10 @@ struct WorkspaceRowView: View {
                         if !focused { commitRename() }
                     }
             } else {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(workspace.name)
-                        .font(.system(size: 13, weight: isSelected ? .medium : .regular))
-                        .foregroundStyle(isSelected ? t.text : t.textMuted)
-                        .lineLimit(1)
-
-                    if let url = workspace.rootURL {
-                        Text(url.lastPathComponent)
-                            .font(.system(size: 11))
-                            .foregroundStyle(t.textFaint)
-                            .lineLimit(1)
-                    }
-                }
+                Text(workspace.name)
+                    .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                    .foregroundStyle(isSelected ? t.text : t.textMuted)
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -171,9 +163,7 @@ struct WorkspaceRowView: View {
                     Label {
                         Text(dotColor.name)
                     } icon: {
-                        Circle()
-                            .fill(Color(hex: dotColor.hex))
-                            .frame(width: 12, height: 12)
+                        Image(nsImage: colorDotNSImage(hex: dotColor.hex))
                     }
                 }
             }
@@ -218,6 +208,24 @@ struct WorkspaceRowView: View {
     private func cancelRename() {
         appState.editingWorkspaceId = nil
         renameFieldFocused = false
+    }
+
+    private func colorDotNSImage(hex: String) -> NSImage {
+        let sanitized = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
+        guard sanitized.count == 6, let rgb = UInt64(sanitized, radix: 16) else {
+            return NSImage()
+        }
+        let r = CGFloat((rgb & 0xFF0000) >> 16) / 255
+        let g = CGFloat((rgb & 0x00FF00) >> 8) / 255
+        let b = CGFloat(rgb & 0x0000FF) / 255
+        let size = CGSize(width: 12, height: 12)
+        let image = NSImage(size: size, flipped: false) { rect in
+            NSColor(red: r, green: g, blue: b, alpha: 1).setFill()
+            NSBezierPath(ovalIn: rect).fill()
+            return true
+        }
+        image.isTemplate = false
+        return image
     }
 
     private func moveWorkspace(to targetGroup: WorkspaceGroup) {
