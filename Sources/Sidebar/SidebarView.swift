@@ -1,12 +1,21 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+private struct GroupFrameKey: PreferenceKey {
+    static var defaultValue: [UUID: CGRect] = [:]
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
 struct SidebarView: View {
     @Environment(AppState.self) var appState
     @Environment(ThemeManager.self) var theme
     @State private var showSettings = false
-    @State private var draggedGroupId: UUID?
-    @State private var dropTargetGroupId: UUID?
+    @State private var draggingGroupId: UUID?
+    @State private var groupDragTranslation: CGFloat = 0
+    @State private var proposedGroupIndex: Int?
+    @State private var groupFrames: [UUID: CGRect] = [:]
 
     private var t: AppTheme { theme.current }
 
@@ -19,36 +28,29 @@ struct SidebarView: View {
 
             ScrollView {
                 VStack(spacing: 0) {
-                    ForEach(appState.groups) { group in
+                    ForEach(Array(appState.groups.enumerated()), id: \.element.id) { index, group in
                         GroupRowView(group: group)
-                            .opacity(draggedGroupId == group.id ? 0.38 : 1.0)
-                            .scaleEffect(draggedGroupId == group.id ? 0.97 : 1.0, anchor: .center)
-                            .overlay(alignment: .top) {
-                                groupDropIndicator(for: group)
-                            }
-                            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: draggedGroupId)
-                            .animation(.spring(response: 0.22, dampingFraction: 0.82), value: dropTargetGroupId)
-                            .onDrag {
-                                guard !group.isImplicit else { return NSItemProvider() }
-                                DispatchQueue.main.async { draggedGroupId = group.id }
-                                return NSItemProvider(object: group.id.uuidString as NSString)
-                            }
-                            .onDrop(
-                                of: [UTType.text],
-                                isTargeted: groupIsTargetedBinding(for: group)
-                            ) { _ in
-                                reorderGroup(droppingOnto: group)
-                                return true
-                            }
+                            .background(GeometryReader { geo in
+                                Color.clear.preference(
+                                    key: GroupFrameKey.self,
+                                    value: [group.id: geo.frame(in: .named("sidebarList"))]
+                                )
+                            })
+                            .zIndex(draggingGroupId == group.id ? 1 : 0)
+                            .scaleEffect(draggingGroupId == group.id ? 1.01 : 1.0, anchor: .center)
+                            .shadow(
+                                color: draggingGroupId == group.id ? .black.opacity(0.2) : .clear,
+                                radius: 8, y: 3
+                            )
+                            .offset(y: groupOffset(for: group, at: index))
+                            .animation(.spring(response: 0.25, dampingFraction: 0.82), value: proposedGroupIndex)
+                            .animation(.spring(response: 0.25, dampingFraction: 0.82), value: draggingGroupId)
+                            .simultaneousGesture(group.isImplicit ? nil : groupDragGesture(for: group, at: index))
                     }
                 }
                 .padding(.bottom, 8)
-                // Catch-all: drop landed in the scroll area but not on any group row.
-                // Resets drag state so groups don't stay dimmed after a missed drop.
-                .onDrop(of: [UTType.text], isTargeted: nil) { _ in
-                    resetGroupDrag()
-                    return true
-                }
+                .coordinateSpace(name: "sidebarList")
+                .onPreferenceChange(GroupFrameKey.self) { groupFrames = $0 }
             }
             .scrollIndicators(.never)
 
@@ -109,59 +111,55 @@ struct SidebarView: View {
         }
     }
 
-    // MARK: - Group drop indicator
+    // MARK: - Group offset
 
-    @ViewBuilder
-    private func groupDropIndicator(for group: WorkspaceGroup) -> some View {
-        if dropTargetGroupId == group.id && draggedGroupId != group.id && !group.isImplicit {
-            Capsule()
-                .fill(t.accent)
-                .frame(height: 2)
-                .padding(.horizontal, 12)
-                .offset(y: 1)
-                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .leading)))
+    private func groupOffset(for group: WorkspaceGroup, at index: Int) -> CGFloat {
+        guard let draggingId = draggingGroupId,
+              let proposed = proposedGroupIndex,
+              let draggedIdx = appState.groups.firstIndex(where: { $0.id == draggingId })
+        else { return 0 }
+        if group.id == draggingId { return groupDragTranslation }
+        let draggedH = groupFrames[draggingId]?.height ?? 44
+        if draggedIdx < proposed {
+            if index > draggedIdx && index <= proposed { return -draggedH }
+        } else if draggedIdx > proposed {
+            if index >= proposed && index < draggedIdx { return draggedH }
         }
+        return 0
     }
 
-    // MARK: - Group drag reorder
+    // MARK: - Group drag gesture
 
-    private func groupIsTargetedBinding(for group: WorkspaceGroup) -> Binding<Bool> {
-        Binding<Bool>(
-            get: { dropTargetGroupId == group.id },
-            set: { isTargeted in
-                withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
-                    if isTargeted && !group.isImplicit {
-                        dropTargetGroupId = group.id
-                    } else if dropTargetGroupId == group.id {
-                        dropTargetGroupId = nil
-                    }
+    private func groupDragGesture(for group: WorkspaceGroup, at startIndex: Int) -> some Gesture {
+        DragGesture(minimumDistance: 3)
+            .onChanged { value in
+                if draggingGroupId == nil { draggingGroupId = group.id }
+                groupDragTranslation = value.translation.height
+                guard let draggedFrame = groupFrames[group.id] else { return }
+                let cursorY = draggedFrame.midY + groupDragTranslation
+                var best = startIndex
+                var bestDist = CGFloat.infinity
+                for (idx, g) in appState.groups.enumerated() {
+                    guard g.id != group.id, let f = groupFrames[g.id] else { continue }
+                    let d = abs(cursorY - f.midY)
+                    if d < bestDist { bestDist = d; best = idx }
+                }
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                    proposedGroupIndex = best
                 }
             }
-        )
-    }
-
-    private func resetGroupDrag() {
-        draggedGroupId = nil
-        dropTargetGroupId = nil
-    }
-
-    private func reorderGroup(droppingOnto target: WorkspaceGroup) {
-        guard
-            !target.isImplicit,
-            let draggedId = draggedGroupId,
-            draggedId != target.id,
-            let from = appState.groups.firstIndex(where: { $0.id == draggedId }),
-            let to = appState.groups.firstIndex(where: { $0.id == target.id })
-        else {
-            draggedGroupId = nil
-            dropTargetGroupId = nil
-            return
-        }
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-            appState.groups.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
-        }
-        draggedGroupId = nil
-        dropTargetGroupId = nil
+            .onEnded { _ in
+                if let from = appState.groups.firstIndex(where: { $0.id == draggingGroupId }),
+                   let to = proposedGroupIndex, from != to {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                        appState.groups.move(fromOffsets: IndexSet(integer: from),
+                                            toOffset: to > from ? to + 1 : to)
+                    }
+                }
+                draggingGroupId = nil
+                groupDragTranslation = 0
+                proposedGroupIndex = nil
+            }
     }
 }
 
