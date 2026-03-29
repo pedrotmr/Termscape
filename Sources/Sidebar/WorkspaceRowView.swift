@@ -247,5 +247,6 @@ struct WorkspaceRowView: View {
     private func moveWorkspace(to targetGroup: WorkspaceGroup) {
         group.workspaces.removeAll { $0.id == workspace.id }
         targetGroup.workspaces.append(workspace)
+        appState.persist()
     }
 }
