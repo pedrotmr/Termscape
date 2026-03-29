@@ -146,14 +146,6 @@ struct WorkspaceRowView: View {
     private var contextMenuItems: some View {
         Button("Rename") { startRename() }
 
-        if appState.groups.count > 1 {
-            Menu("Move to Group") {
-                ForEach(appState.groups.filter { $0.id != group.id }) { targetGroup in
-                    Button(targetGroup.name) { moveWorkspace(to: targetGroup) }
-                }
-            }
-        }
-
         Menu("Change Color") {
             ForEach(WorkspaceDotColor.palette) { dotColor in
                 Button {
@@ -165,6 +157,34 @@ struct WorkspaceRowView: View {
                     } icon: {
                         Image(nsImage: colorDotNSImage(hex: dotColor.hex))
                     }
+                }
+            }
+        }
+
+        Divider()
+
+        let currentIndex = group.workspaces.firstIndex(where: { $0.id == workspace.id })
+
+        Button("Move Up") {
+            if let idx = currentIndex {
+                group.workspaces.move(fromOffsets: IndexSet(integer: idx), toOffset: idx - 1)
+                appState.persist()
+            }
+        }
+        .disabled(currentIndex == 0)
+
+        Button("Move Down") {
+            if let idx = currentIndex {
+                group.workspaces.move(fromOffsets: IndexSet(integer: idx), toOffset: idx + 2)
+                appState.persist()
+            }
+        }
+        .disabled(currentIndex == group.workspaces.count - 1)
+
+        if appState.groups.count > 1 {
+            Menu("Move to Group") {
+                ForEach(appState.groups.filter { $0.id != group.id }) { targetGroup in
+                    Button(targetGroup.name) { moveWorkspace(to: targetGroup) }
                 }
             }
         }
