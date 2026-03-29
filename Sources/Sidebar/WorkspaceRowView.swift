@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct WorkspaceDotColor: Identifiable {
@@ -94,19 +95,10 @@ struct WorkspaceRowView: View {
                         if !focused { commitRename() }
                     }
             } else {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(workspace.name)
-                        .font(.system(size: 13, weight: isSelected ? .medium : .regular))
-                        .foregroundStyle(isSelected ? t.text : t.textMuted)
-                        .lineLimit(1)
-
-                    if let url = workspace.rootURL {
-                        Text(url.lastPathComponent)
-                            .font(.system(size: 11))
-                            .foregroundStyle(t.textFaint)
-                            .lineLimit(1)
-                    }
-                }
+                Text(workspace.name)
+                    .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                    .foregroundStyle(isSelected ? t.text : t.textMuted)
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -154,14 +146,6 @@ struct WorkspaceRowView: View {
     private var contextMenuItems: some View {
         Button("Rename") { startRename() }
 
-        if appState.groups.count > 1 {
-            Menu("Move to Group") {
-                ForEach(appState.groups.filter { $0.id != group.id }) { targetGroup in
-                    Button(targetGroup.name) { moveWorkspace(to: targetGroup) }
-                }
-            }
-        }
-
         Menu("Change Color") {
             ForEach(WorkspaceDotColor.palette) { dotColor in
                 Button {
@@ -171,10 +155,38 @@ struct WorkspaceRowView: View {
                     Label {
                         Text(dotColor.name)
                     } icon: {
-                        Circle()
-                            .fill(Color(hex: dotColor.hex))
-                            .frame(width: 12, height: 12)
+                        Image(nsImage: colorDotNSImage(hex: dotColor.hex))
                     }
+                }
+            }
+        }
+
+        Divider()
+
+        let currentIndex = group.workspaces.firstIndex(where: { $0.id == workspace.id })
+        let isFirstWorkspace = currentIndex.map { $0 == 0 } ?? true
+        let isLastWorkspace = currentIndex.map { $0 == group.workspaces.count - 1 } ?? true
+
+        Button("Move Up") {
+            if let idx = currentIndex, idx > 0 {
+                group.workspaces.swapAt(idx, idx - 1)
+                appState.persist()
+            }
+        }
+        .disabled(isFirstWorkspace)
+
+        Button("Move Down") {
+            if let idx = currentIndex, idx < group.workspaces.count - 1 {
+                group.workspaces.swapAt(idx, idx + 1)
+                appState.persist()
+            }
+        }
+        .disabled(isLastWorkspace)
+
+        if appState.groups.count > 1 {
+            Menu("Move to Group") {
+                ForEach(appState.groups.filter { $0.id != group.id }) { targetGroup in
+                    Button(targetGroup.name) { moveWorkspace(to: targetGroup) }
                 }
             }
         }
@@ -220,8 +232,25 @@ struct WorkspaceRowView: View {
         renameFieldFocused = false
     }
 
+    private static var colorDotCache: [String: NSImage] = [:]
+
+    private func colorDotNSImage(hex: String) -> NSImage {
+        if let cached = Self.colorDotCache[hex] { return cached }
+        let nsColor = NSColor(Color(hex: hex))
+        let size = CGSize(width: 12, height: 12)
+        let image = NSImage(size: size, flipped: false) { rect in
+            nsColor.setFill()
+            NSBezierPath(ovalIn: rect).fill()
+            return true
+        }
+        image.isTemplate = false
+        Self.colorDotCache[hex] = image
+        return image
+    }
+
     private func moveWorkspace(to targetGroup: WorkspaceGroup) {
         group.workspaces.removeAll { $0.id == workspace.id }
         targetGroup.workspaces.append(workspace)
+        appState.persist()
     }
 }
