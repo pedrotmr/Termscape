@@ -15,8 +15,9 @@ struct CanvasHostingView: NSViewRepresentable {
 
     func updateNSView(_ nsView: CanvasScrollView, context: Context) {
         let t = theme.current
+        nsView.hostedTab = tab
         nsView.applyTheme(canvasBackground: t.canvasBackground, accentColor: t.accentNSColor)
-        nsView.updateLayout(for: tab)
+        nsView.updateLayout(for: tab, options: [])
         context.coordinator.setupObserver(for: tab)
     }
 
@@ -39,7 +40,7 @@ struct CanvasHostingView: NSViewRepresentable {
                 queue: .main
             ) { [weak self] _ in
                 guard let self, let canvas = self.canvas else { return }
-                canvas.updateLayout(for: tab)
+                canvas.updateLayout(for: tab, options: .scrollFocusedPaneIntoView)
             }
         }
 
