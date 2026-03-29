@@ -20,6 +20,8 @@ struct SidebarView: View {
     @State private var groupDragTranslation: CGFloat = 0
     @State private var proposedGroupIndex: Int?
     @State private var groupFrames: [UUID: CGRect] = [:]
+    /// When set, the matching group's header collapse action is skipped (e.g. after a reorder drag).
+    @State private var groupIdToSuppressHeaderCollapse: UUID?
 
     private static let newGroupName = "NEW GROUP"
     private var t: AppTheme { theme.current }
@@ -35,7 +37,10 @@ struct SidebarView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     ForEach(Array(appState.groups.enumerated()), id: \.element.id) { index, group in
-                        GroupRowView(group: group)
+                        GroupRowView(
+                            group: group,
+                            suppressHeaderCollapse: groupIdToSuppressHeaderCollapse == group.id
+                        )
                             .background(GeometryReader { geo in
                                 Color.clear.preference(
                                     key: GroupFrameKey.self,
@@ -59,6 +64,7 @@ struct SidebarView: View {
                 .onPreferenceChange(GroupFrameKey.self) { groupFrames = $0 }
             }
             .scrollIndicators(.never)
+            .scrollClipDisabled(true)
 
             // Footer
             Rectangle()
@@ -159,6 +165,9 @@ struct SidebarView: View {
                     groupDragStartIndex = startIndex
                 }
                 groupDragTranslation = value.translation.height
+                if abs(value.translation.height) > 5 {
+                    groupIdToSuppressHeaderCollapse = group.id
+                }
                 guard let draggedFrame = groupFrames[group.id] else { return }
                 let cursorY = draggedFrame.midY + groupDragTranslation
                 var best = startIndex
@@ -183,6 +192,9 @@ struct SidebarView: View {
                 groupDragStartIndex = nil
                 groupDragTranslation = 0
                 proposedGroupIndex = nil
+                DispatchQueue.main.async {
+                    groupIdToSuppressHeaderCollapse = nil
+                }
             }
     }
 

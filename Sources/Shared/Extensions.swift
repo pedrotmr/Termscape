@@ -74,3 +74,61 @@ extension NSColor {
         return String(format: "#%02x%02x%02x", r, g, b)
     }
 }
+
+// MARK: - Sidebar hover tooltips
+
+/// Horizontal placement so labels stay inside narrow sidebars (avoids clipping at the leading/trailing edges).
+enum SidebarTooltipHorizontalAnchor {
+    /// Align tooltip’s leading edge to the control’s leading edge (extends to the right).
+    case leading
+    /// Align tooltip’s trailing edge to the control’s trailing edge (extends to the left).
+    case trailing
+}
+
+struct SidebarHoverTooltipModifier: ViewModifier {
+    let text: String
+    let theme: AppTheme
+    @Binding var isPresented: Bool
+    var horizontalAnchor: SidebarTooltipHorizontalAnchor
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: horizontalAnchor == .leading ? .topLeading : .topTrailing) {
+                if isPresented {
+                    Text(text)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(theme.text)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(theme.elevated)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(theme.border.opacity(0.9), lineWidth: 1)
+                                )
+                        )
+                        .fixedSize()
+                        .shadow(color: .black.opacity(0.45), radius: 8, y: 2)
+                        .offset(y: -36)
+                        .allowsHitTesting(false)
+                }
+            }
+    }
+}
+
+extension View {
+    func sidebarHoverTooltip(
+        _ text: String,
+        theme: AppTheme,
+        isPresented: Binding<Bool>,
+        horizontalAnchor: SidebarTooltipHorizontalAnchor = .leading
+    ) -> some View {
+        modifier(SidebarHoverTooltipModifier(
+            text: text,
+            theme: theme,
+            isPresented: isPresented,
+            horizontalAnchor: horizontalAnchor
+        ))
+    }
+}
