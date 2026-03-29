@@ -3,11 +3,13 @@ import SwiftUI
 @main
 struct MuxonApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @State private var themeManager = ThemeManager()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(appDelegate.appState)
+                .environment(themeManager)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1200, height: 750)
@@ -62,6 +64,7 @@ extension Notification.Name {
 
 struct ContentView: View {
     @Environment(AppState.self) var appState
+    @Environment(ThemeManager.self) var theme
     @State private var sidebarWidth: CGFloat = 240
 
     var body: some View {
@@ -69,10 +72,8 @@ struct ContentView: View {
             SidebarView()
                 .frame(width: sidebarWidth)
 
-            // Draggable resize handle
             SidebarDivider(sidebarWidth: $sidebarWidth)
 
-            // Main content — starts flush with top of window (no gap)
             Group {
                 if let workspace = appState.selectedWorkspace {
                     WorkspaceContainerView(workspace: workspace)
@@ -83,8 +84,6 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: 700, minHeight: 400)
-        // Fill the whole window including behind the title bar.
-        // Sidebar adds its own top clearance for traffic light buttons.
         .ignoresSafeArea()
     }
 }
@@ -92,6 +91,7 @@ struct ContentView: View {
 // MARK: - Sidebar resize divider
 
 private struct SidebarDivider: View {
+    @Environment(ThemeManager.self) var theme
     @Binding var sidebarWidth: CGFloat
     @State private var isHovered = false
 
@@ -100,9 +100,9 @@ private struct SidebarDivider: View {
 
     var body: some View {
         Rectangle()
-            .fill(isHovered ? Color.muxAccent.opacity(0.5) : Color.muxBorder)
+            .fill(isHovered ? theme.current.accent.opacity(0.5) : theme.current.border)
             .frame(width: 1)
-            .contentShape(Rectangle().inset(by: -4))  // wider hit area
+            .contentShape(Rectangle().inset(by: -4))
             .onHover { isHovered = $0 }
             .animation(.easeInOut(duration: 0.15), value: isHovered)
             .gesture(
@@ -120,39 +120,41 @@ private struct SidebarDivider: View {
 
 struct EmptyWorkspaceView: View {
     @Environment(AppState.self) var appState
+    @Environment(ThemeManager.self) var theme
 
     @State private var isHoveringOpen = false
     @State private var isHoveringClone = false
 
+    private var t: AppTheme { theme.current }
+
     var body: some View {
         ZStack {
-            Color(red: 0.043, green: 0.043, blue: 0.051)
-                .ignoresSafeArea()
+            t.surface.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
 
                 ZStack {
                     Circle()
-                        .fill(Color.white.opacity(0.04))
+                        .fill(t.hover)
                         .frame(width: 72, height: 72)
                     Circle()
-                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                        .stroke(t.border, lineWidth: 1)
                         .frame(width: 72, height: 72)
                     Image(systemName: "terminal")
                         .font(.system(size: 28, weight: .thin))
-                        .foregroundStyle(Color.white.opacity(0.3))
+                        .foregroundStyle(t.textFaint)
                 }
                 .padding(.bottom, 20)
 
                 Text("No workspace open")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.55))
+                    .foregroundStyle(t.text)
                     .padding(.bottom, 6)
 
                 Text("Open a folder or clone a repository to get started")
                     .font(.system(size: 12))
-                    .foregroundStyle(Color.white.opacity(0.28))
+                    .foregroundStyle(t.textMuted)
                     .multilineTextAlignment(.center)
                     .padding(.bottom, 28)
 
@@ -172,7 +174,7 @@ struct EmptyWorkspaceView: View {
 
                 Text("Use the sidebar to manage workspaces")
                     .font(.system(size: 11))
-                    .foregroundStyle(Color.white.opacity(0.18))
+                    .foregroundStyle(t.textFaint)
                     .padding(.bottom, 24)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -185,15 +187,13 @@ struct EmptyWorkspaceView: View {
                 Image(systemName: icon).font(.system(size: 12))
                 Text(label).font(.system(size: 13))
             }
-            .foregroundStyle(isHovered ? Color.muxText : Color.white.opacity(0.55))
+            .foregroundStyle(isHovered ? t.text : t.textMuted)
             .padding(.horizontal, 16)
             .padding(.vertical, 9)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isHovered ? Color.white.opacity(0.09) : Color.white.opacity(0.05))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-                        isHovered ? Color.white.opacity(0.12) : Color.white.opacity(0.07), lineWidth: 1
-                    ))
+                    .fill(isHovered ? t.selected : t.hover)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(t.border, lineWidth: 1))
             )
         }
         .buttonStyle(.plain)
@@ -210,7 +210,6 @@ extension CGFloat {
 }
 
 extension View {
-    /// Sets the mouse cursor for a view.
     func cursor(_ cursor: NSCursor) -> some View {
         onHover { inside in
             if inside { cursor.push() } else { NSCursor.pop() }

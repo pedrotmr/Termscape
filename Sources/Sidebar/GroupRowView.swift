@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct GroupRowView: View {
     @Environment(AppState.self) var appState
+    @Environment(ThemeManager.self) var theme
     @Bindable var group: WorkspaceGroup
 
     @State private var newGroupName = ""
@@ -12,6 +13,8 @@ struct GroupRowView: View {
     @FocusState private var groupNameFocused: Bool
 
     var isRenamingGroup: Bool { appState.editingGroupId == group.id }
+
+    private var t: AppTheme { theme.current }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -60,7 +63,7 @@ struct GroupRowView: View {
     private func dropIndicator(for workspace: Workspace) -> some View {
         if dropTargetWorkspaceId == workspace.id && draggedWorkspaceId != workspace.id {
             Capsule()
-                .fill(Color.muxAccent)
+                .fill(t.accent)
                 .frame(height: 2)
                 .padding(.horizontal, 12)
                 .offset(y: 1)
@@ -79,7 +82,7 @@ struct GroupRowView: View {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Color.muxTextFaint)
+                    .foregroundStyle(t.textFaint)
                     .rotationEffect(.degrees(group.isCollapsed ? 0 : 90))
                     .frame(width: 14, height: 14)
             }
@@ -92,7 +95,7 @@ struct GroupRowView: View {
                 ))
                     .textFieldStyle(.plain)
                     .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(Color.muxTextMuted)
+                    .foregroundStyle(t.textMuted)
                     .tracking(0.5)
                     .focused($groupNameFocused)
                     .onSubmit { commitGroupRename() }
@@ -103,7 +106,7 @@ struct GroupRowView: View {
             } else {
                 Text(group.name.uppercased())
                     .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(Color.muxTextFaint)
+                    .foregroundStyle(t.textFaint)
                     .tracking(0.5)
                     .lineLimit(1)
                     .simultaneousGesture(
@@ -113,6 +116,7 @@ struct GroupRowView: View {
 
             Spacer()
 
+            // Add workspace button
             Button {
                 let workspace = appState.addWorkspace(in: group, url: nil)
                 workspace.ensureHasTab()
@@ -120,9 +124,9 @@ struct GroupRowView: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.muxTextMuted)
+                    .foregroundStyle(t.textMuted)
                     .frame(width: 20, height: 20)
-                    .background(Color.white.opacity(0.06))
+                    .background(t.hover)
                     .clipShape(RoundedRectangle(cornerRadius: 4))
             }
             .buttonStyle(.plain)

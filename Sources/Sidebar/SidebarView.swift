@@ -3,15 +3,19 @@ import UniformTypeIdentifiers
 
 struct SidebarView: View {
     @Environment(AppState.self) var appState
-    @State private var isAddHovered = false
+    @Environment(ThemeManager.self) var theme
+    @State private var showSettings = false
     @State private var draggedGroupId: UUID?
     @State private var dropTargetGroupId: UUID?
+
+    private var t: AppTheme { theme.current }
 
     var body: some View {
         @Bindable var appState = appState
 
         VStack(spacing: 0) {
-            Color.clear.frame(height: 46)
+            // Title bar clearance — pushes content below macOS traffic light buttons.
+            Color.clear.frame(height: 28)
 
             ScrollView {
                 VStack(spacing: 0) {
@@ -50,30 +54,37 @@ struct SidebarView: View {
 
             // Footer
             Rectangle()
-                .fill(Color.muxBorder)
+                .fill(t.border)
                 .frame(height: 1)
 
             HStack(spacing: 2) {
+                SidebarIconButton(systemImage: "folder.badge.plus", help: "Open Folder as Workspace", theme: t) {
+                    appState.openFolder()
+                }
+                SidebarIconButton(systemImage: "arrow.down.to.line", help: "Clone Git Repository", theme: t) {
+                    appState.showCloneSheet = true
+                }
+
                 Spacer()
 
-                Menu {
-                    addMenuItems
-                } label: {
-                    SidebarMenuButton(isHovered: isAddHovered)
+                SidebarIconButton(systemImage: "slider.horizontal.3", help: "Settings", theme: t) {
+                    showSettings = true
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .onHover { isAddHovered = $0 }
-                .animation(.easeInOut(duration: 0.12), value: isAddHovered)
+                SidebarIconButton(systemImage: "plus", help: "New Group", theme: t) {
+                    let group = WorkspaceGroup(name: "NEW GROUP", isImplicit: false)
+                    appState.groups.append(group)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
         }
-        .background(Color.muxSidebar)
         .contextMenu { addMenuItems }
+        .background(t.sidebar)
         .sheet(isPresented: $appState.showCloneSheet) {
             CloneSheetView()
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
         }
     }
 
@@ -104,7 +115,7 @@ struct SidebarView: View {
     private func groupDropIndicator(for group: WorkspaceGroup) -> some View {
         if dropTargetGroupId == group.id && draggedGroupId != group.id && !group.isImplicit {
             Capsule()
-                .fill(Color.muxAccent)
+                .fill(t.accent)
                 .frame(height: 2)
                 .padding(.horizontal, 12)
                 .offset(y: 1)
@@ -154,19 +165,29 @@ struct SidebarView: View {
     }
 }
 
-// MARK: - Footer menu button
+// MARK: - Footer icon button
 
-private struct SidebarMenuButton: View {
-    let isHovered: Bool
+private struct SidebarIconButton: View {
+    let systemImage: String
+    let help: String
+    let theme: AppTheme
+    let action: () -> Void
+
+    @State private var isHovered = false
 
     var body: some View {
-        Image(systemName: "plus")
-            .font(.system(size: 13, weight: .regular))
-            .foregroundStyle(isHovered ? Color.white.opacity(0.75) : Color.muxTextMuted)
-            .frame(width: 30, height: 30)
-            .background(isHovered ? Color.white.opacity(0.07) : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .help("Open project, clone from URL, or create group")
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(isHovered ? theme.text : theme.textMuted)
+                .frame(width: 30, height: 30)
+                .background(isHovered ? theme.hover : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .onHover { isHovered = $0 }
+        .animation(.easeInOut(duration: 0.12), value: isHovered)
     }
 }
 
@@ -174,7 +195,10 @@ private struct SidebarMenuButton: View {
 
 struct CloneSheetView: View {
     @Environment(AppState.self) var appState
+    @Environment(ThemeManager.self) var theme
     @FocusState private var isFocused: Bool
+
+    private var t: AppTheme { theme.current }
 
     var body: some View {
         @Bindable var appState = appState
@@ -184,10 +208,10 @@ struct CloneSheetView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text("Clone Repository")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.muxText)
+                    .foregroundStyle(t.text)
                 Text("Paste a git URL to clone into a new workspace")
                     .font(.system(size: 12))
-                    .foregroundStyle(Color.muxTextMuted)
+                    .foregroundStyle(t.textMuted)
             }
             .padding(.bottom, 20)
 
@@ -195,21 +219,21 @@ struct CloneSheetView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Repository URL")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.muxTextFaint)
+                    .foregroundStyle(t.textFaint)
 
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white.opacity(0.05))
+                        .fill(t.isDark ? Color.white.opacity(0.05) : Color.black.opacity(0.04))
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(
-                            isFocused ? Color.muxAccent.opacity(0.55) : Color.muxBorder,
+                            isFocused ? t.accent.opacity(0.55) : t.border,
                             lineWidth: 1
                         )
 
                     TextField("https://github.com/owner/repo.git", text: $appState.cloneURL)
                         .textFieldStyle(.plain)
                         .font(.system(size: 13))
-                        .foregroundStyle(Color.muxText)
+                        .foregroundStyle(t.text)
                         .focused($isFocused)
                         .onSubmit { clone() }
                         .padding(.horizontal, 10)
@@ -239,7 +263,7 @@ struct CloneSheetView: View {
         }
         .padding(24)
         .frame(width: 420)
-        .background(Color.muxElevated)
+        .background(t.elevated)
         .onAppear { isFocused = true }
     }
 
