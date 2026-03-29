@@ -117,11 +117,12 @@ struct SidebarView: View {
     // MARK: - Group offset
 
     private func groupOffset(for group: WorkspaceGroup, at index: Int) -> CGFloat {
-        guard let draggedIdx = groupDragStartIndex,
+        guard let draggingId = draggingGroupId,
+              let draggedIdx = groupDragStartIndex,
               let proposed = proposedGroupIndex
         else { return 0 }
-        if group.id == draggingGroupId { return groupDragTranslation }
-        let draggedH = groupFrames[draggingGroupId]?.height ?? 44
+        if group.id == draggingId { return groupDragTranslation }
+        let draggedH = groupFrames[draggingId]?.height ?? 44
         if draggedIdx < proposed {
             if index > draggedIdx && index <= proposed { return -draggedH }
         } else if draggedIdx > proposed {
