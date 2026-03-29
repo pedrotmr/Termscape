@@ -121,7 +121,7 @@ struct SidebarView: View {
               let proposed = proposedGroupIndex
         else { return 0 }
         if group.id == draggingGroupId { return groupDragTranslation }
-        let draggedH = groupFrames[draggingId]?.height ?? 44
+        let draggedH = groupFrames[draggingGroupId]?.height ?? 44
         if draggedIdx < proposed {
             if index > draggedIdx && index <= proposed { return -draggedH }
         } else if draggedIdx > proposed {
