@@ -4,6 +4,7 @@ import Bonsplit
 struct TabBarView: View {
     @Environment(ThemeManager.self) var theme
     @ObservedObject var workspace: Workspace
+    @State private var editingTabId: UUID?
 
     private var t: AppTheme { theme.current }
 
@@ -15,6 +16,7 @@ struct TabBarView: View {
                         TabItemView(
                             tab: tab,
                             isSelected: workspace.selectedTabId == tab.id,
+                            editingTabId: $editingTabId,
                             onSelect: { workspace.selectedTabId = tab.id },
                             onClose: { workspace.closeTab(tab.id) },
                             onTogglePin: { workspace.togglePin(tab.id) }
@@ -64,23 +66,24 @@ struct TabItemView: View {
     @Environment(ThemeManager.self) var theme
     @ObservedObject var tab: WorkspaceTab
     let isSelected: Bool
+    @Binding var editingTabId: UUID?
     let onSelect: () -> Void
     let onClose: () -> Void
     let onTogglePin: () -> Void
 
     @State private var isHovered = false
-    @State private var isRenaming = false
     @State private var renameText = ""
     @FocusState private var isRenameFocused: Bool
 
     private var t: AppTheme { theme.current }
+    private var isRenaming: Bool { editingTabId == tab.id }
 
     var body: some View {
         HStack(spacing: 5) {
             if tab.isPinned {
                 Image(systemName: "pin.fill")
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(Color.muxAccent.opacity(0.8))
+                    .foregroundStyle(t.accent.opacity(0.8))
             } else {
                 Image(systemName: "terminal")
                     .font(.system(size: 10))
@@ -90,20 +93,15 @@ struct TabItemView: View {
             if isRenaming {
                 TextField("", text: $renameText)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.muxText)
+                    .foregroundStyle(t.text)
                     .frame(maxWidth: 110)
                     .textFieldStyle(.plain)
                     .focused($isRenameFocused)
                     .onSubmit { commitRename() }
                     .onExitCommand { cancelRename() }
-                    .onAppear {
-                        DispatchQueue.main.async {
-                            NSApp.keyWindow?.firstResponder?.tryToPerform(#selector(NSResponder.selectAll(_:)), with: nil)
-                        }
-                    }
                     .overlay(
                         RoundedRectangle(cornerRadius: 4)
-                            .stroke(Color.muxAccent.opacity(0.6), lineWidth: 1)
+                            .stroke(t.accent.opacity(0.6), lineWidth: 1)
                             .padding(.horizontal, -4)
                     )
             } else {
@@ -152,8 +150,7 @@ struct TabItemView: View {
         .contentShape(Rectangle())
         .onTapGesture { onSelect() }
         .simultaneousGesture(TapGesture(count: 2).onEnded {
-            renameText = tab.title
-            isRenaming = true
+            beginRename()
         })
         .onHover { isHovered = $0 }
         .animation(.easeInOut(duration: 0.12), value: isHovered)
@@ -166,15 +163,19 @@ struct TabItemView: View {
             }
         }
         .onChange(of: isRenaming) { renaming in
-            if renaming { isRenameFocused = true }
+            if renaming {
+                isRenameFocused = true
+                DispatchQueue.main.async {
+                    NSApp.keyWindow?.firstResponder?.tryToPerform(#selector(NSResponder.selectAll(_:)), with: nil)
+                }
+            }
         }
         .onChange(of: isRenameFocused) { focused in
             if !focused { commitRename() }
         }
         .contextMenu {
             Button("Rename") {
-                renameText = tab.title
-                isRenaming = true
+                beginRename()
             }
             Button(tab.isPinned ? "Unpin Tab" : "Pin Tab") {
                 onTogglePin()
@@ -204,11 +205,16 @@ struct TabItemView: View {
         if !trimmed.isEmpty {
             tab.title = trimmed
         }
-        isRenaming = false
+        editingTabId = nil
     }
 
     private func cancelRename() {
-        isRenaming = false
+        editingTabId = nil
+    }
+
+    private func beginRename() {
+        renameText = tab.title
+        editingTabId = tab.id
     }
 }
 
