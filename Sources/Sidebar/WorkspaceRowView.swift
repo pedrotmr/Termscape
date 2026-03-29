@@ -42,6 +42,9 @@ struct WorkspaceDotColor: Identifiable {
 }
 
 struct WorkspaceRowView: View {
+    /// Vertical extent of one workspace row in the sidebar list (including outer padding). Kept in sync with `GroupRowView` drag offsets.
+    static let sidebarSlotHeight: CGFloat = 38
+
     @Environment(AppState.self) var appState
     @Environment(ThemeManager.self) var theme
     @ObservedObject var workspace: Workspace
@@ -49,6 +52,7 @@ struct WorkspaceRowView: View {
 
     @State private var newName = ""
     @State private var isHovered = false
+    @State private var hoverCloseWorkspace = false
     @FocusState private var renameFieldFocused: Bool
 
     private var t: AppTheme { theme.current }
@@ -56,14 +60,41 @@ struct WorkspaceRowView: View {
     var isRenaming: Bool { appState.editingWorkspaceId == workspace.id }
 
     var body: some View {
-        Button {
-            appState.selectWorkspace(workspace.id)
-        } label: {
-            rowContent
+        ZStack(alignment: .trailing) {
+            Button {
+                appState.selectWorkspace(workspace.id)
+            } label: {
+                rowContent
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isHovered && !isRenaming {
+                Button {
+                    appState.removeWorkspace(workspace, from: group)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(t.textMuted)
+                        .frame(width: 20, height: 20)
+                        .background(hoverCloseWorkspace ? t.selected.opacity(0.42) : t.hover)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                .buttonStyle(.plain)
+                .onHover { hoverCloseWorkspace = $0 }
+                .sidebarHoverTooltip(
+                    "Close workspace",
+                    theme: t,
+                    isPresented: $hoverCloseWorkspace,
+                    horizontalAnchor: .trailing
+                )
+                .padding(.trailing, 10)
+                .transition(.opacity)
+            }
         }
-        .buttonStyle(.plain)
         .padding(.horizontal, 8)
-        .padding(.vertical, 1)
+        .padding(.vertical, 4)
         .contextMenu { contextMenuItems }
         .onHover { isHovered = $0 }
         .simultaneousGesture(
@@ -92,7 +123,11 @@ struct WorkspaceRowView: View {
                     .onSubmit { commitRename() }
                     .onExitCommand { cancelRename() }
                     .onChange(of: renameFieldFocused) { _, focused in
-                        if !focused { commitRename() }
+                        guard !focused else { return }
+                        DispatchQueue.main.async {
+                            guard appState.editingWorkspaceId == workspace.id else { return }
+                            commitRename()
+                        }
                     }
             } else {
                 Text(workspace.name)
@@ -101,9 +136,10 @@ struct WorkspaceRowView: View {
                     .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 10)
+        .padding(.leading, 10)
+        .padding(.trailing, 10 + ((isHovered && !isRenaming) ? 26 : 0))
         .padding(.vertical, 7)
         .background(rowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 7))
@@ -221,6 +257,7 @@ struct WorkspaceRowView: View {
     }
 
     private func commitRename() {
+        guard appState.editingWorkspaceId == workspace.id else { return }
         let trimmed = newName.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty { workspace.name = trimmed }
         appState.editingWorkspaceId = nil

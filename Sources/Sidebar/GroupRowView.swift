@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -6,17 +7,24 @@ struct GroupRowView: View {
     @Environment(ThemeManager.self) var theme
     @Bindable var group: WorkspaceGroup
 
+    /// When true, ignore the next collapse toggle (after a group reorder drag).
+    var suppressHeaderCollapse: Bool = false
+
     @State private var newGroupName = ""
     @State private var isHoveringHeader = false
+    @State private var hoverChevron = false
+    @State private var hoverAddWorkspace = false
+    @State private var hoverDeleteGroup = false
     @State private var draggingWorkspaceId: UUID?
     @State private var dragStartIndex: Int?
     @State private var dragTranslation: CGFloat = 0
     @State private var proposedWorkspaceIndex: Int?
     @FocusState private var groupNameFocused: Bool
 
-    private let rowH: CGFloat = 32
+    private var rowH: CGFloat { WorkspaceRowView.sidebarSlotHeight }
     private let slideAnimation = Animation.spring(response: 0.25, dampingFraction: 0.82)
     private let settleAnimation = Animation.spring(response: 0.32, dampingFraction: 0.8)
+    private let collapseToggleAnimation = Animation.easeInOut(duration: 0.2)
 
     var isRenamingGroup: Bool { appState.editingGroupId == group.id }
 
@@ -26,24 +34,27 @@ struct GroupRowView: View {
         VStack(spacing: 0) {
             if !group.isImplicit {
                 groupHeader
-                    .onHover { isHoveringHeader = $0 }
                     .animation(.easeInOut(duration: 0.12), value: isHoveringHeader)
             }
 
             if !group.isCollapsed {
-                ForEach(Array(group.workspaces.enumerated()), id: \.element.id) { index, workspace in
-                    WorkspaceRowView(workspace: workspace, group: group)
-                        .zIndex(draggingWorkspaceId == workspace.id ? 1 : 0)
-                        .scaleEffect(draggingWorkspaceId == workspace.id ? 1.02 : 1.0, anchor: .center)
-                        .shadow(
-                            color: draggingWorkspaceId == workspace.id ? .black.opacity(0.25) : .clear,
-                            radius: 10, y: 4
-                        )
-                        .offset(y: workspaceOffset(for: workspace, at: index))
-                        .animation(slideAnimation, value: proposedWorkspaceIndex)
-                        .animation(slideAnimation, value: draggingWorkspaceId)
-                        .simultaneousGesture(workspaceDragGesture(for: workspace, at: index))
+                VStack(spacing: 0) {
+                    ForEach(Array(group.workspaces.enumerated()), id: \.element.id) { index, workspace in
+                        WorkspaceRowView(workspace: workspace, group: group)
+                            .zIndex(draggingWorkspaceId == workspace.id ? 1 : 0)
+                            .scaleEffect(draggingWorkspaceId == workspace.id ? 1.02 : 1.0, anchor: .center)
+                            .shadow(
+                                color: draggingWorkspaceId == workspace.id ? .black.opacity(0.25) : .clear,
+                                radius: 10, y: 4
+                            )
+                            .offset(y: workspaceOffset(for: workspace, at: index))
+                            .animation(slideAnimation, value: proposedWorkspaceIndex)
+                            .animation(slideAnimation, value: draggingWorkspaceId)
+                            .simultaneousGesture(workspaceDragGesture(for: workspace, at: index))
+                    }
                 }
+                .clipped()
+                .transition(.opacity)
             }
         }
     }
@@ -96,70 +107,141 @@ struct GroupRowView: View {
     // MARK: - Header
 
     private var groupHeader: some View {
-        HStack(spacing: 6) {
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                    group.isCollapsed.toggle()
-                }
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(t.textFaint)
-                    .rotationEffect(.degrees(group.isCollapsed ? 0 : 90))
-                    .frame(width: 14, height: 14)
-            }
-            .buttonStyle(.plain)
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isHoveringHeader ? t.hover : Color.clear)
+                .animation(.easeInOut(duration: 0.12), value: isHoveringHeader)
 
-            if isRenamingGroup {
-                TextField("", text: Binding(
-                    get: { newGroupName },
-                    set: { newGroupName = $0.uppercased() }
-                ))
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(t.textMuted)
-                    .tracking(0.5)
-                    .focused($groupNameFocused)
-                    .onSubmit { commitGroupRename() }
-                    .onExitCommand { cancelGroupRename() }
-                    .onChange(of: groupNameFocused) { _, focused in
-                        if !focused { commitGroupRename() }
+            HStack(alignment: .center, spacing: 6) {
+                if isRenamingGroup {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(t.textFaint)
+                        .rotationEffect(.degrees(group.isCollapsed ? 0 : 90))
+                        .frame(width: 20, height: 20)
+
+                    TextField("", text: Binding(
+                        get: { newGroupName },
+                        set: { newGroupName = $0.uppercased() }
+                    ))
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundStyle(t.textMuted)
+                        .tracking(0.5)
+                        .focused($groupNameFocused)
+                        .onSubmit { commitGroupRename() }
+                        .onExitCommand { cancelGroupRename() }
+                        .onChange(of: groupNameFocused) { _, focused in
+                            guard !focused else { return }
+                            DispatchQueue.main.async {
+                                guard appState.editingGroupId == group.id else { return }
+                                commitGroupRename()
+                            }
+                        }
+
+                    Spacer(minLength: 0)
+                } else {
+                    Button {
+                        guard !suppressHeaderCollapse else { return }
+                        withAnimation(collapseToggleAnimation) {
+                            group.isCollapsed.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(t.textFaint)
+                                .rotationEffect(.degrees(group.isCollapsed ? 0 : 90))
+                                .frame(width: 20, height: 20)
+                                .background(
+                                    hoverChevron ? t.selected.opacity(0.35) : Color.clear
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .onHover { hoverChevron = $0 }
+
+                            Text(group.name.uppercased())
+                                .font(.system(size: 10.5, weight: .semibold))
+                                .foregroundStyle(t.textFaint)
+                                .tracking(0.5)
+                                .lineLimit(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .multilineTextAlignment(.leading)
+
+                            Spacer(minLength: 0)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .simultaneousGesture(
+                            TapGesture(count: 2).onEnded { startGroupRename() }
+                        )
                     }
-            } else {
-                Text(group.name.uppercased())
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(t.textFaint)
-                    .tracking(0.5)
-                    .lineLimit(1)
-                    .simultaneousGesture(
-                        TapGesture(count: 2).onEnded { startGroupRename() }
+                    .buttonStyle(.plain)
+                    .frame(maxHeight: .infinity)
+                }
+
+                HStack(spacing: 4) {
+                    Button {
+                        let workspace = appState.addWorkspace(in: group, url: nil)
+                        workspace.ensureHasTab()
+                        appState.selectedWorkspaceId = workspace.id
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(t.textMuted)
+                            .frame(width: 20, height: 20)
+                            .background(
+                                (hoverAddWorkspace && isHoveringHeader) ? t.selected.opacity(0.42) : t.hover
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    .buttonStyle(.plain)
+                    .cursor(NSCursor.arrow)
+                    .onHover { hoverAddWorkspace = $0 }
+                    .sidebarHoverTooltip(
+                        "New workspace",
+                        theme: t,
+                        isPresented: $hoverAddWorkspace,
+                        horizontalAnchor: .trailing
                     )
-            }
 
-            Spacer()
-
-            // Add workspace button
-            Button {
-                let workspace = appState.addWorkspace(in: group, url: nil)
-                workspace.ensureHasTab()
-                appState.selectedWorkspaceId = workspace.id
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(t.textMuted)
-                    .frame(width: 20, height: 20)
-                    .background(t.hover)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    Button {
+                        appState.groups.removeAll { $0.id == group.id }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(t.textMuted)
+                            .frame(width: 20, height: 20)
+                            .background(
+                                (hoverDeleteGroup && isHoveringHeader) ? t.selected.opacity(0.42) : t.hover
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    .buttonStyle(.plain)
+                    .cursor(NSCursor.arrow)
+                    .onHover { hoverDeleteGroup = $0 }
+                    .sidebarHoverTooltip(
+                        "Delete group",
+                        theme: t,
+                        isPresented: $hoverDeleteGroup,
+                        horizontalAnchor: .trailing
+                    )
+                }
+                .frame(height: 24)
+                .frame(maxHeight: .infinity)
+                .opacity(isHoveringHeader ? 1 : 0)
+                .allowsHitTesting(isHoveringHeader)
             }
-            .buttonStyle(.plain)
-            .help("Add Workspace")
-            .opacity(isHoveringHeader ? 1 : 0)
-            .allowsHitTesting(isHoveringHeader)
+            .frame(minHeight: 28)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 16)
-        .padding(.bottom, 5)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
         .contentShape(Rectangle())
+        .onHover { isHoveringHeader = $0 }
+        .cursor(NSCursor.openHand)
+        .padding(.top, 16)
+        .padding(.bottom, 0)
         .contextMenu {
             Button("Rename Group") { startGroupRename() }
             Divider()
@@ -182,6 +264,7 @@ struct GroupRowView: View {
     }
 
     private func commitGroupRename() {
+        guard appState.editingGroupId == group.id else { return }
         let trimmed = newGroupName.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty { group.name = trimmed.uppercased() }
         appState.editingGroupId = nil
