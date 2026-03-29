@@ -53,11 +53,9 @@ final class Workspace: ObservableObject, Identifiable {
         let tab = tabs[index]
         tab.isPinned.toggle()
 
-        if tab.isPinned {
-            tabs.remove(at: index)
-            let insertAt = tabs.firstIndex(where: { !$0.isPinned }) ?? tabs.count
-            tabs.insert(tab, at: insertAt)
-        }
+        tabs.remove(at: index)
+        let insertAt = tabs.firstIndex(where: { !$0.isPinned }) ?? tabs.count
+        tabs.insert(tab, at: insertAt)
     }
 
     func moveTab(from sourceId: UUID, to destinationId: UUID) {
@@ -70,8 +68,8 @@ final class Workspace: ObservableObject, Identifiable {
         let destTab = tabs[to]
         guard movingTab.isPinned == destTab.isPinned else { return }
 
-        tabs.move(fromOffsets: IndexSet(integer: from),
-                  toOffset: to < from ? to : to + 1)
+        let tab = tabs.remove(at: from)
+        tabs.insert(tab, at: to)
     }
 
     func ensureHasTab() {
