@@ -137,7 +137,9 @@ final class CanvasDocumentView: NSView {
         menu.addItem(makeItem("Split Vertically",   icon: "rectangle.split.1x2", action: #selector(menuSplitDown(_:))))
         menu.addItem(.separator())
         menu.addItem(makeItem("New Tab",             icon: "plus.rectangle",      action: #selector(menuNewTab(_:))))
-        menu.addItem(makeItem("Move to New Tab",     icon: "arrow.up.right.square", action: #selector(menuMoveToNewTab(_:))))
+        if isMultiPane {
+            menu.addItem(makeItem("Move to New Tab", icon: "arrow.up.right.square", action: #selector(menuMoveToNewTab(_:))))
+        }
         menu.addItem(.separator())
         let clearItem = makeItem("Clear", icon: "eraser.fill", action: #selector(menuClear(_:)))
         clearItem.keyEquivalent = "k"

@@ -449,6 +449,8 @@ struct TabBarView: View {
         let canCloseOthers = pane.tabs.enumerated().contains { itemIndex, item in
             itemIndex != index && !item.isPinned
         }
+        let canMoveTabOutOfPane = pane.tabs.count > 1
+
         return TabContextMenuState(
             isPinned: tab.isPinned,
             isUnread: tab.showsNotificationBadge,
@@ -458,8 +460,10 @@ struct TabBarView: View {
             canCloseToLeft: canCloseToLeft,
             canCloseToRight: canCloseToRight,
             canCloseOthers: canCloseOthers,
-            canMoveToLeftPane: controller.adjacentPane(to: pane.id, direction: .left) != nil,
-            canMoveToRightPane: controller.adjacentPane(to: pane.id, direction: .right) != nil,
+            canMoveToLeftPane: canMoveTabOutOfPane
+                && controller.adjacentPane(to: pane.id, direction: .left) != nil,
+            canMoveToRightPane: canMoveTabOutOfPane
+                && controller.adjacentPane(to: pane.id, direction: .right) != nil,
             isZoomed: splitViewController.zoomedPaneId == pane.id,
             hasSplits: splitViewController.rootNode.allPaneIds.count > 1,
             shortcuts: controller.contextMenuShortcuts

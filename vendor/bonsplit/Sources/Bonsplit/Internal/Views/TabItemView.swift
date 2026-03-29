@@ -340,7 +340,9 @@ struct TabItemView: View {
         contextButton("Close Other Tabs", action: .closeOthers)
             .disabled(!contextMenuState.canCloseOthers)
 
-        contextButton("Move Tab…", action: .move)
+        if contextMenuState.hasSplits {
+            contextButton("Move Tab…", action: .move)
+        }
 
         if contextMenuState.isTerminal {
             localizedContextButton(
