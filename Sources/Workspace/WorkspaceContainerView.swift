@@ -19,7 +19,8 @@ struct WorkspaceContainerView: View {
                         if tab.bonsplitController.allPaneIds.count > 1,
                            let focusedPaneId = tab.bonsplitController.focusedPaneId {
                             tab.bonsplitController.closePane(focusedPaneId)
-                        } else if let tabId = workspace.selectedTabId {
+                        } else if let tabId = workspace.selectedTabId,
+                                  !(workspace.selectedTab?.isPinned ?? false) {
                             workspace.closeTab(tabId)
                         }
                     }

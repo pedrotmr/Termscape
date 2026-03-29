@@ -6,6 +6,7 @@ import Bonsplit
 final class WorkspaceTab: ObservableObject, Identifiable {
     let id: UUID
     @Published var title: String
+    @Published var isPinned: Bool = false
     let workspaceId: UUID
 
     /// BonsplitController manages the split tree for this tab.
