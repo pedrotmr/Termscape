@@ -164,22 +164,24 @@ struct WorkspaceRowView: View {
         Divider()
 
         let currentIndex = group.workspaces.firstIndex(where: { $0.id == workspace.id })
+        let isFirstWorkspace = currentIndex.map { $0 == 0 } ?? true
+        let isLastWorkspace = currentIndex.map { $0 == group.workspaces.count - 1 } ?? true
 
         Button("Move Up") {
-            if let idx = currentIndex {
-                group.workspaces.move(fromOffsets: IndexSet(integer: idx), toOffset: idx - 1)
+            if let idx = currentIndex, idx > 0 {
+                group.workspaces.swapAt(idx, idx - 1)
                 appState.persist()
             }
         }
-        .disabled(currentIndex == 0)
+        .disabled(isFirstWorkspace)
 
         Button("Move Down") {
-            if let idx = currentIndex {
-                group.workspaces.move(fromOffsets: IndexSet(integer: idx), toOffset: idx + 2)
+            if let idx = currentIndex, idx < group.workspaces.count - 1 {
+                group.workspaces.swapAt(idx, idx + 1)
                 appState.persist()
             }
         }
-        .disabled(currentIndex == group.workspaces.count - 1)
+        .disabled(isLastWorkspace)
 
         if appState.groups.count > 1 {
             Menu("Move to Group") {
