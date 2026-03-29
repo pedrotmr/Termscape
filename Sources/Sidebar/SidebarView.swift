@@ -198,19 +198,6 @@ struct SidebarView: View {
         let group = WorkspaceGroup(name: Self.newGroupName, isImplicit: false)
         appState.groups.append(group)
     }
-
-    private func openProjectAction() {
-        appState.openFolder()
-    }
-
-    private func cloneFromURLAction() {
-        appState.showCloneSheet = true
-    }
-
-    private func createGroupAction() {
-        let group = WorkspaceGroup(name: Self.newGroupName, isImplicit: false)
-        appState.groups.append(group)
-    }
 }
 
 // MARK: - Footer menu button
