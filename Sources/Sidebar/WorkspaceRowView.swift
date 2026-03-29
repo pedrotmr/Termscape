@@ -45,6 +45,11 @@ struct WorkspaceRowView: View {
     /// Vertical extent of one workspace row in the sidebar list (including outer padding). Kept in sync with `GroupRowView` drag offsets.
     static let sidebarSlotHeight: CGFloat = 38
 
+    private static let closeButtonWidth: CGFloat = 20
+    private static let closeButtonLeadingGap: CGFloat = 6
+    /// Extra trailing inset when the hover close control is visible (`closeButtonWidth` + gap to the label).
+    private static var hoveredCloseReserveWidth: CGFloat { closeButtonWidth + closeButtonLeadingGap }
+
     @Environment(AppState.self) var appState
     @Environment(ThemeManager.self) var theme
     @ObservedObject var workspace: Workspace
@@ -139,7 +144,7 @@ struct WorkspaceRowView: View {
             Spacer(minLength: 0)
         }
         .padding(.leading, 10)
-        .padding(.trailing, 10 + ((isHovered && !isRenaming) ? 26 : 0))
+        .padding(.trailing, 10 + ((isHovered && !isRenaming) ? Self.hoveredCloseReserveWidth : 0))
         .padding(.vertical, 7)
         .background(rowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 7))
