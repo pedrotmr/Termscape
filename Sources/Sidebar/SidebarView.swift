@@ -11,6 +11,7 @@ struct SidebarView: View {
     @State private var draggedGroupId: UUID?
     @State private var dropTargetGroupId: UUID?
 
+    private static let newGroupName = "NEW GROUP"
     private var t: AppTheme { theme.current }
 
     var body: some View {
@@ -86,18 +87,10 @@ struct SidebarView: View {
                 .popover(isPresented: $showAddPopover) {
                     AddActionsPopover(
                         theme: t,
-                        onOpenProject: {
-                            openProjectAction()
-                            showAddPopover = false
-                        },
-                        onCloneFromURL: {
-                            cloneFromURLAction()
-                            showAddPopover = false
-                        },
-                        onNewGroup: {
-                            createGroupAction()
-                            showAddPopover = false
-                        }
+                        isPresented: $showAddPopover,
+                        onOpenProject: openProjectAction,
+                        onCloneFromURL: cloneFromURLAction,
+                        onNewGroup: createGroupAction
                     )
                 }
             }
@@ -198,7 +191,7 @@ struct SidebarView: View {
     }
 
     private func createGroupAction() {
-        let group = WorkspaceGroup(name: "NEW GROUP", isImplicit: false)
+        let group = WorkspaceGroup(name: Self.newGroupName, isImplicit: false)
         appState.groups.append(group)
     }
 }
@@ -222,17 +215,25 @@ private struct SidebarIconGlyph: View {
 
 private struct AddActionsPopover: View {
     let theme: AppTheme
+    @Binding var isPresented: Bool
     let onOpenProject: () -> Void
     let onCloneFromURL: () -> Void
     let onNewGroup: () -> Void
 
+    private func actionWrapper(_ action: @escaping () -> Void) -> () -> Void {
+        {
+            action()
+            isPresented = false
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            AddActionsRow(systemImage: "folder.badge.plus", title: "Open Project", theme: theme, action: onOpenProject)
+            AddActionsRow(systemImage: "folder.badge.plus", title: "Open Project", theme: theme, action: actionWrapper(onOpenProject))
             divider
-            AddActionsRow(systemImage: "arrow.down.to.line", title: "Clone from URL", theme: theme, action: onCloneFromURL)
+            AddActionsRow(systemImage: "arrow.down.to.line", title: "Clone from URL", theme: theme, action: actionWrapper(onCloneFromURL))
             divider
-            AddActionsRow(systemImage: "rectangle.3.group", title: "New Group", theme: theme, action: onNewGroup)
+            AddActionsRow(systemImage: "rectangle.3.group", title: "New Group", theme: theme, action: actionWrapper(onNewGroup))
         }
         .padding(8)
         .frame(width: 220)
