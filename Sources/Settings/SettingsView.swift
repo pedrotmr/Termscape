@@ -38,6 +38,12 @@ struct SettingsView: View {
             Divider()
                 .overlay(t.border)
 
+            // Terminal color override toggle
+            terminalOverrideRow
+
+            Divider()
+                .overlay(t.border)
+
             // Theme grid — scrollable to handle many themes
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVGrid(
@@ -68,6 +74,31 @@ struct SettingsView: View {
         .frame(width: 620)
         .background(t.elevated)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: Terminal override row
+
+    @ViewBuilder
+    private var terminalOverrideRow: some View {
+        @Bindable var theme = theme
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Override terminal colors")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(t.text)
+                Text("Applies background, text, cursor, and ANSI palette to match the selected theme. Font, keybindings, and all other Ghostty settings are preserved.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(t.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Toggle("", isOn: $theme.overridesTerminalColors)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .tint(t.accent)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 14)
     }
 }
 
