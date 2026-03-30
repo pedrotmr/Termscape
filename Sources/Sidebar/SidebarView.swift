@@ -24,6 +24,7 @@ struct SidebarView: View {
     @State private var groupIdToSuppressHeaderCollapse: UUID?
 
     private static let newGroupName = "NEW GROUP"
+    private static let groupDragCollapseSuppressionThreshold: CGFloat = 5
     private var t: AppTheme { theme.current }
     private let slideAnimation = Animation.spring(response: 0.25, dampingFraction: 0.82)
     private let settleAnimation = Animation.spring(response: 0.32, dampingFraction: 0.8)
@@ -165,7 +166,7 @@ struct SidebarView: View {
                     groupDragStartIndex = startIndex
                 }
                 groupDragTranslation = value.translation.height
-                if abs(value.translation.height) > 5 {
+                if abs(value.translation.height) > Self.groupDragCollapseSuppressionThreshold {
                     groupIdToSuppressHeaderCollapse = group.id
                 }
                 guard let draggedFrame = groupFrames[group.id] else { return }

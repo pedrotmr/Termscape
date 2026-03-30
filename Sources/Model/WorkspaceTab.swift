@@ -27,7 +27,7 @@ final class WorkspaceTab: ObservableObject, Identifiable {
         var config = BonsplitConfiguration()
         config.allowSplits = true
         config.autoCloseEmptyPanes = true
-        config.appearance.minimumPaneWidth = 400
+        config.appearance.minimumPaneWidth = 600
         config.appearance.minimumPaneHeight = 200
         self.bonsplitController = BonsplitController(configuration: config)
 

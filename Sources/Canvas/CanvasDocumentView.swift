@@ -14,6 +14,9 @@ final class CanvasDocumentView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+        // Manual frame defines canvas size for NSScrollView; avoid autoresizing that pins width to the clip view.
+        translatesAutoresizingMaskIntoConstraints = false
+        autoresizingMask = []
         // Default to tobacco theme canvas bg; overwritten via applyTheme on first render
         layer?.backgroundColor = NSColor(red: 0.125, green: 0.118, blue: 0.110, alpha: 1).cgColor
     }
@@ -37,8 +40,10 @@ final class CanvasDocumentView: NSView {
 
     // MARK: - Layout update
 
-    func update(tab: WorkspaceTab, viewportSize: CGSize) {
-        guard viewportSize.width > 0 && viewportSize.height > 0 else { return }
+    /// Lays out terminal panes. Returns the focused pane’s frame in this document view’s coordinates (for scroll-to-visible).
+    @discardableResult
+    func update(tab: WorkspaceTab, viewportSize: CGSize) -> CGRect? {
+        guard viewportSize.width > 0 && viewportSize.height > 0 else { return nil }
 
         let tree = tab.bonsplitController.treeSnapshot()
         let canvasWidth = layoutEngine.requiredCanvasWidth(for: tree, viewportWidth: viewportSize.width)
@@ -49,18 +54,34 @@ final class CanvasDocumentView: NSView {
 
         let snapshot = tab.bonsplitController.layoutSnapshot()
         let isMultiPane = snapshot.panes.count > 1
+        let columnSpans = layoutEngine.leafColumnSpans(from: tree)
+        let totalColumns = CGFloat(layoutEngine.columnCount(from: tree))
+        let columnWidth = canvasWidth / max(totalColumns, 1)
 
         var activePaneIds = Set<String>()
+        var focusedRect: CGRect?
 
         for pane in snapshot.panes {
             activePaneIds.insert(pane.paneId)
 
-            let rawFrame = CGRect(
-                x: pane.frame.x,
-                y: pane.frame.y,
-                width: pane.frame.width,
-                height: pane.frame.height
-            )
+            let rawFrame: CGRect
+            if let span = columnSpans[pane.paneId] {
+                let x = CGFloat(span.colStart) * columnWidth
+                let w = CGFloat(span.colSpan) * columnWidth
+                rawFrame = CGRect(
+                    x: x,
+                    y: pane.frame.y,
+                    width: w,
+                    height: pane.frame.height
+                )
+            } else {
+                rawFrame = CGRect(
+                    x: pane.frame.x,
+                    y: pane.frame.y,
+                    width: pane.frame.width,
+                    height: pane.frame.height
+                )
+            }
 
             let isFocused = pane.paneId == snapshot.focusedPaneId
 
@@ -100,6 +121,10 @@ final class CanvasDocumentView: NSView {
                 self.contextMenuTab = tab
                 NSMenu.popUpContextMenu(self.buildContextMenu(isMultiPane: isMultiPane), with: event, for: self)
             }
+
+            if isFocused {
+                focusedRect = rawFrame
+            }
         }
 
         let removed = Set(hostedViews.keys).subtracting(activePaneIds)
@@ -107,6 +132,8 @@ final class CanvasDocumentView: NSView {
             hostedViews[paneId]?.removeFromSuperview()
             hostedViews.removeValue(forKey: paneId)
         }
+
+        return focusedRect
     }
 
     // MARK: - Helpers

@@ -16,6 +16,7 @@ struct GroupRowView: View {
     @State private var hoverAddWorkspace = false
     @State private var hoverRenameGroup = false
     @State private var hoverDeleteGroup = false
+    @State private var showDeleteGroupConfirmation = false
     @State private var draggingWorkspaceId: UUID?
     @State private var dragStartIndex: Int?
     @State private var dragTranslation: CGFloat = 0
@@ -227,7 +228,7 @@ struct GroupRowView: View {
                     )
 
                     Button {
-                        appState.groups.removeAll { $0.id == group.id }
+                        showDeleteGroupConfirmation = true
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 9, weight: .semibold))
@@ -264,11 +265,23 @@ struct GroupRowView: View {
         .cursor(NSCursor.openHand)
         .padding(.top, 16)
         .padding(.bottom, 0)
+        .confirmationDialog(
+            "Delete “\(group.name)”?",
+            isPresented: $showDeleteGroupConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Group", role: .destructive) {
+                appState.groups.removeAll { $0.id == group.id }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes the group and all workspaces inside it.")
+        }
         .contextMenu {
             Button("Rename Group") { startGroupRename() }
             Divider()
             Button("Delete Group", role: .destructive) {
-                appState.groups.removeAll { $0.id == group.id }
+                showDeleteGroupConfirmation = true
             }
         }
         .onChange(of: isRenamingGroup) { _, renaming in
