@@ -36,11 +36,9 @@ struct PaneLayoutEngine {
     func leafColumnSpans(from tree: ExternalTreeNode) -> [String: (colStart: Int, colSpan: Int)] {
         let total = columnCount(from: tree)
         let tuples = leafColumnSpansRecursive(tree, colStart: 0, colSpan: total)
-        var dict: [String: (colStart: Int, colSpan: Int)] = [:]
-        for (id, start, span) in tuples {
-            dict[id] = (start, span)
-        }
-        return dict
+        return Dictionary(
+            uniqueKeysWithValues: tuples.map { ($0.paneId, ($0.colStart, $0.colSpan)) }
+        )
     }
 
     private func leafColumnSpansRecursive(
