@@ -96,8 +96,8 @@ final class TerminalSurface: Identifiable {
             envVars.append(ghostty_env_var_s(key: k, value: v))
         }
 
-        addEnv("MUXON_SURFACE_ID", id.uuidString)
-        addEnv("MUXON_WORKSPACE_ID", workspaceId.uuidString)
+        addEnv("TERMSCAPE_SURFACE_ID", id.uuidString)
+        addEnv("TERMSCAPE_WORKSPACE_ID", workspaceId.uuidString)
 
         if !envVars.isEmpty {
             envVars.withUnsafeMutableBufferPointer { buf in

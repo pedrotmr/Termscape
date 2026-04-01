@@ -1,6 +1,6 @@
-name: muxon
+name: Termscape
 options:
-  bundleIdPrefix: com.muxon
+  bundleIdPrefix: com.termscape
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "16.0"
@@ -16,16 +16,16 @@ settings:
     DEVELOPMENT_TEAM: ""
 
 targets:
-  muxon:
+  Termscape:
     type: application
     platform: macOS
     deploymentTarget: "14.0"
     info:
       path: Info.plist
       properties:
-        CFBundleName: muxon
-        CFBundleDisplayName: muxon
-        CFBundleIdentifier: com.muxon.app
+        CFBundleName: Termscape
+        CFBundleDisplayName: Termscape
+        CFBundleIdentifier: com.termscape.app
         CFBundleVersion: "1"
         CFBundleShortVersionString: "0.1.0"
         CFBundlePackageType: APPL
@@ -36,14 +36,14 @@ targets:
         NSHumanReadableCopyright: ""
 
     entitlements:
-      path: muxon.entitlements
+      path: termscape.entitlements
 
     settings:
       base:
-        SWIFT_OBJC_BRIDGING_HEADER: Resources/muxon-Bridging-Header.h
+        SWIFT_OBJC_BRIDGING_HEADER: Resources/termscape-Bridging-Header.h
         HEADER_SEARCH_PATHS: $(SRCROOT)/Resources
-        PRODUCT_BUNDLE_IDENTIFIER: com.muxon.app
-        PRODUCT_NAME: muxon
+        PRODUCT_BUNDLE_IDENTIFIER: com.termscape.app
+        PRODUCT_NAME: Termscape
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
         OTHER_LDFLAGS: "-lc++ -lz"
@@ -76,3 +76,9 @@ targets:
 packages:
   Bonsplit:
     path: vendor/bonsplit
+
+schemes:
+  Termscape:
+    build:
+      targets:
+        Termscape: all

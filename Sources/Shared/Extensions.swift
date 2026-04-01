@@ -4,7 +4,7 @@ import SwiftUI
 
 // MARK: - Button styles
 
-struct MuxonPrimaryButtonStyle: ButtonStyle {
+struct TermscapePrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(ThemeManager.self) private var theme
 
@@ -20,7 +20,7 @@ struct MuxonPrimaryButtonStyle: ButtonStyle {
     }
 }
 
-struct MuxonSecondaryButtonStyle: ButtonStyle {
+struct TermscapeSecondaryButtonStyle: ButtonStyle {
     @Environment(ThemeManager.self) private var theme
     @State private var isHovered = false
 

@@ -1,0 +1,557 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0394BACD77F75200F5A9509A /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DE1B6A129784A486481CDF45 /* QuartzCore.framework */; };
+		071EFC7EAF6E69A812304318 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3C6290AEA74AE75AC7B213D /* AppState.swift */; };
+		14274E56A429DD44CEC3B341 /* GhosttySurfaceScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6236364EBF9FBCBABD6B4991 /* GhosttySurfaceScrollView.swift */; };
+		1B4251E280A7B06DA91D0D0F /* WorkspaceContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEEB21FE82C91F1001D7F142 /* WorkspaceContainerView.swift */; };
+		20AD851BECEA64D016ED2C4B /* WorkspaceRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A515485939A32E03853D1B61 /* WorkspaceRowView.swift */; };
+		21B459A147B0561A73B95462 /* TermscapeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C332B2614A4DA5CF398B0077 /* TermscapeApp.swift */; };
+		37E6BDB8DB7856661C6970DC /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB19A51E82EF41BDEBE2E6E /* SidebarView.swift */; };
+		51A89FD719288759DE80C8A6 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B30FED21AA1C9FB54E59D51A /* GhosttyKit.xcframework */; };
+		59618C3590FF7C9BB3AA8EC9 /* GhosttyThemeWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */; };
+		5B596766AE9C1C70A0554AB0 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EC9B81CDEA8E4836331A2E6D /* UniformTypeIdentifiers.framework */; };
+		5EA1FFBCADB08DD49CA55BB4 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DF437AE72351424B0EFEDBFD /* Metal.framework */; };
+		647725629CEF0E055944A951 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F0718C3F7D167C201BB85AF9 /* MetalKit.framework */; };
+		7B10CB53D1B2501FDEC7601A /* CanvasScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612B700BB644C942EA3F2EB3 /* CanvasScrollView.swift */; };
+		7D6081722E151B340D1D4103 /* GhosttyNSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F188918092D5460D7741715F /* GhosttyNSView.swift */; };
+		82AB12FA9FDF7A82442EA627 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */; };
+		8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D13644947346C5C3B6824FE /* GhosttyApp.swift */; };
+		91A95B45D79D5332ABCDBFE7 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40BBEA2DF39DEE65354CC615 /* Carbon.framework */; };
+		A281C9EF6A66477745FE7D94 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDB98A780A647FB766C3C871 /* IOKit.framework */; };
+		A455E4D9B7AC72FDF38F977B /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D7D60369E322A18AEA2A1F /* ThemeManager.swift */; };
+		A56FDF195CBDFD989D590227 /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6154D233FD80A8532C48D13B /* Group.swift */; };
+		B045B96BAB54CC6AB1E08598 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FDDA40E9167FCA2B07A49D /* AppDelegate.swift */; };
+		B184EB64AECBEAB1A3D595B7 /* Bonsplit in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB81227AC7007DCFCCC0E17 /* Bonsplit */; };
+		B5496ECAF40081BD5375BCB1 /* CanvasHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9A490C0C4E8F18D189614E /* CanvasHostingView.swift */; };
+		C48E523E7A43B6C64861501A /* GroupRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AF240872C7EB5781E7A324 /* GroupRowView.swift */; };
+		C547CF5EA1325ED1A2135184 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBED15E036B70096FCF5B1A8 /* TabBarView.swift */; };
+		D05705721001037CB61371FD /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1874CAFE46683ABFBF03FA05 /* AppTheme.swift */; };
+		D1539D08FA0D2B2546105F03 /* WorkspaceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A265BCC5F2838C098FFAE4DF /* WorkspaceTab.swift */; };
+		D3F9DF29D650B72780F0F094 /* TerminalSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = A978683BBD9E259E5D3F7546 /* TerminalSurface.swift */; };
+		D65C5CCAA7A8E8F657636424 /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261561B96E12B36929EF6FA5 /* Workspace.swift */; };
+		DB05AB6321B71628FA374250 /* PaneLayoutEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */; };
+		F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5A15956DECE42BC68D182 /* Extensions.swift */; };
+		F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1874CAFE46683ABFBF03FA05 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		261561B96E12B36929EF6FA5 /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
+		3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyThemeWriter.swift; sourceTree = "<group>"; };
+		40BBEA2DF39DEE65354CC615 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
+		50AF240872C7EB5781E7A324 /* GroupRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRowView.swift; sourceTree = "<group>"; };
+		5B1A23E64C268162427581A8 /* bonsplit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = bonsplit; path = vendor/bonsplit; sourceTree = SOURCE_ROOT; };
+		612B700BB644C942EA3F2EB3 /* CanvasScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasScrollView.swift; sourceTree = "<group>"; };
+		6154D233FD80A8532C48D13B /* Group.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
+		6236364EBF9FBCBABD6B4991 /* GhosttySurfaceScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttySurfaceScrollView.swift; sourceTree = "<group>"; };
+		6D13644947346C5C3B6824FE /* GhosttyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyApp.swift; sourceTree = "<group>"; };
+		71FDDA40E9167FCA2B07A49D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		74D7D60369E322A18AEA2A1F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		8CCACB7F0513F9521697FA12 /* Termscape.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termscape.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A265BCC5F2838C098FFAE4DF /* WorkspaceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTab.swift; sourceTree = "<group>"; };
+		A3C6290AEA74AE75AC7B213D /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		A515485939A32E03853D1B61 /* WorkspaceRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRowView.swift; sourceTree = "<group>"; };
+		A978683BBD9E259E5D3F7546 /* TerminalSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurface.swift; sourceTree = "<group>"; };
+		B30FED21AA1C9FB54E59D51A /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = GhosttyKit.xcframework; path = Resources/GhosttyKit.xcframework; sourceTree = "<group>"; };
+		B3D5A15956DECE42BC68D182 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		BDB19A51E82EF41BDEBE2E6E /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		C332B2614A4DA5CF398B0077 /* TermscapeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermscapeApp.swift; sourceTree = "<group>"; };
+		CBED15E036B70096FCF5B1A8 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
+		CC9A490C0C4E8F18D189614E /* CanvasHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasHostingView.swift; sourceTree = "<group>"; };
+		CEEB21FE82C91F1001D7F142 /* WorkspaceContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceContainerView.swift; sourceTree = "<group>"; };
+		DE1B6A129784A486481CDF45 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		DF437AE72351424B0EFEDBFD /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		EC9B81CDEA8E4836331A2E6D /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
+		ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneLayoutEngine.swift; sourceTree = "<group>"; };
+		EDB98A780A647FB766C3C871 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		F0718C3F7D167C201BB85AF9 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		F188918092D5460D7741715F /* GhosttyNSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyNSView.swift; sourceTree = "<group>"; };
+		F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasDocumentView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9DE0FC1F64FCF7D63B464D71 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				51A89FD719288759DE80C8A6 /* GhosttyKit.xcframework in Frameworks */,
+				B184EB64AECBEAB1A3D595B7 /* Bonsplit in Frameworks */,
+				91A95B45D79D5332ABCDBFE7 /* Carbon.framework in Frameworks */,
+				5EA1FFBCADB08DD49CA55BB4 /* Metal.framework in Frameworks */,
+				647725629CEF0E055944A951 /* MetalKit.framework in Frameworks */,
+				0394BACD77F75200F5A9509A /* QuartzCore.framework in Frameworks */,
+				A281C9EF6A66477745FE7D94 /* IOKit.framework in Frameworks */,
+				5B596766AE9C1C70A0554AB0 /* UniformTypeIdentifiers.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3E5A5EDBE7CEB9E82DC86E17 /* Ghostty */ = {
+			isa = PBXGroup;
+			children = (
+				6D13644947346C5C3B6824FE /* GhosttyApp.swift */,
+				F188918092D5460D7741715F /* GhosttyNSView.swift */,
+				6236364EBF9FBCBABD6B4991 /* GhosttySurfaceScrollView.swift */,
+				35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */,
+				A978683BBD9E259E5D3F7546 /* TerminalSurface.swift */,
+			);
+			path = Ghostty;
+			sourceTree = "<group>";
+		};
+		475B6F8C1239BE3FA7B91A29 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8CCACB7F0513F9521697FA12 /* Termscape.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		516EC5E7CD9E6C1D48EE92A0 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				CEC52450D30A600055DE6004 /* App */,
+				E62C744F57052191974364A7 /* Canvas */,
+				3E5A5EDBE7CEB9E82DC86E17 /* Ghostty */,
+				F0544DB374E15EA8F2D25D52 /* Model */,
+				922FA80F045DB9BDEB076283 /* Settings */,
+				57832FA691F3346DAB0BB3B0 /* Shared */,
+				C0B944989ABA2BEDC359E0A3 /* Sidebar */,
+				5F63323DD48578127C279D41 /* Workspace */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		57832FA691F3346DAB0BB3B0 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				1874CAFE46683ABFBF03FA05 /* AppTheme.swift */,
+				B3D5A15956DECE42BC68D182 /* Extensions.swift */,
+				74D7D60369E322A18AEA2A1F /* ThemeManager.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		5F63323DD48578127C279D41 /* Workspace */ = {
+			isa = PBXGroup;
+			children = (
+				CBED15E036B70096FCF5B1A8 /* TabBarView.swift */,
+				CEEB21FE82C91F1001D7F142 /* WorkspaceContainerView.swift */,
+			);
+			path = Workspace;
+			sourceTree = "<group>";
+		};
+		8A507A3643C09F5AD3D498E2 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				40BBEA2DF39DEE65354CC615 /* Carbon.framework */,
+				B30FED21AA1C9FB54E59D51A /* GhosttyKit.xcframework */,
+				EDB98A780A647FB766C3C871 /* IOKit.framework */,
+				DF437AE72351424B0EFEDBFD /* Metal.framework */,
+				F0718C3F7D167C201BB85AF9 /* MetalKit.framework */,
+				DE1B6A129784A486481CDF45 /* QuartzCore.framework */,
+				EC9B81CDEA8E4836331A2E6D /* UniformTypeIdentifiers.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		8D710F55184AF80078CC3192 = {
+			isa = PBXGroup;
+			children = (
+				EAB51A3EF89724D77E81B463 /* Packages */,
+				516EC5E7CD9E6C1D48EE92A0 /* Sources */,
+				8A507A3643C09F5AD3D498E2 /* Frameworks */,
+				475B6F8C1239BE3FA7B91A29 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		922FA80F045DB9BDEB076283 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		C0B944989ABA2BEDC359E0A3 /* Sidebar */ = {
+			isa = PBXGroup;
+			children = (
+				50AF240872C7EB5781E7A324 /* GroupRowView.swift */,
+				BDB19A51E82EF41BDEBE2E6E /* SidebarView.swift */,
+				A515485939A32E03853D1B61 /* WorkspaceRowView.swift */,
+			);
+			path = Sidebar;
+			sourceTree = "<group>";
+		};
+		CEC52450D30A600055DE6004 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				71FDDA40E9167FCA2B07A49D /* AppDelegate.swift */,
+				C332B2614A4DA5CF398B0077 /* TermscapeApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		E62C744F57052191974364A7 /* Canvas */ = {
+			isa = PBXGroup;
+			children = (
+				F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */,
+				CC9A490C0C4E8F18D189614E /* CanvasHostingView.swift */,
+				612B700BB644C942EA3F2EB3 /* CanvasScrollView.swift */,
+				ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */,
+			);
+			path = Canvas;
+			sourceTree = "<group>";
+		};
+		EAB51A3EF89724D77E81B463 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				5B1A23E64C268162427581A8 /* bonsplit */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		F0544DB374E15EA8F2D25D52 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				A3C6290AEA74AE75AC7B213D /* AppState.swift */,
+				6154D233FD80A8532C48D13B /* Group.swift */,
+				261561B96E12B36929EF6FA5 /* Workspace.swift */,
+				A265BCC5F2838C098FFAE4DF /* WorkspaceTab.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		17B95977CB7C98B397E3B2CF /* Termscape */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EF772DA426560183BC47BEBD /* Build configuration list for PBXNativeTarget "Termscape" */;
+			buildPhases = (
+				D7E82A1BC37F7F9EF4909124 /* Copy Ghostty Resources */,
+				FC96B910328FF9EE83DA2379 /* Sources */,
+				9DE0FC1F64FCF7D63B464D71 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Termscape;
+			packageProductDependencies = (
+				7CB81227AC7007DCFCCC0E17 /* Bonsplit */,
+			);
+			productName = Termscape;
+			productReference = 8CCACB7F0513F9521697FA12 /* Termscape.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0AA290F4011BE244FCDC589E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					17B95977CB7C98B397E3B2CF = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 0E606E1B1F40C5CE23A2B8B2 /* Build configuration list for PBXProject "Termscape" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 8D710F55184AF80078CC3192;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E7AB9363876B2D8FB7C0A94B /* XCLocalSwiftPackageReference "vendor/bonsplit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 475B6F8C1239BE3FA7B91A29 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				17B95977CB7C98B397E3B2CF /* Termscape */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D7E82A1BC37F7F9EF4909124 /* Copy Ghostty Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Ghostty Resources";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy shell integration resources if present\nif [ -d \"${SRCROOT}/Resources/shell-integration\" ]; then\n  cp -r \"${SRCROOT}/Resources/shell-integration\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/\" 2>/dev/null || true\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		FC96B910328FF9EE83DA2379 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B045B96BAB54CC6AB1E08598 /* AppDelegate.swift in Sources */,
+				071EFC7EAF6E69A812304318 /* AppState.swift in Sources */,
+				D05705721001037CB61371FD /* AppTheme.swift in Sources */,
+				F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */,
+				B5496ECAF40081BD5375BCB1 /* CanvasHostingView.swift in Sources */,
+				7B10CB53D1B2501FDEC7601A /* CanvasScrollView.swift in Sources */,
+				F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */,
+				8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */,
+				7D6081722E151B340D1D4103 /* GhosttyNSView.swift in Sources */,
+				14274E56A429DD44CEC3B341 /* GhosttySurfaceScrollView.swift in Sources */,
+				59618C3590FF7C9BB3AA8EC9 /* GhosttyThemeWriter.swift in Sources */,
+				A56FDF195CBDFD989D590227 /* Group.swift in Sources */,
+				C48E523E7A43B6C64861501A /* GroupRowView.swift in Sources */,
+				DB05AB6321B71628FA374250 /* PaneLayoutEngine.swift in Sources */,
+				82AB12FA9FDF7A82442EA627 /* SettingsView.swift in Sources */,
+				37E6BDB8DB7856661C6970DC /* SidebarView.swift in Sources */,
+				C547CF5EA1325ED1A2135184 /* TabBarView.swift in Sources */,
+				D3F9DF29D650B72780F0F094 /* TerminalSurface.swift in Sources */,
+				21B459A147B0561A73B95462 /* TermscapeApp.swift in Sources */,
+				A455E4D9B7AC72FDF38F977B /* ThemeManager.swift in Sources */,
+				D65C5CCAA7A8E8F657636424 /* Workspace.swift in Sources */,
+				1B4251E280A7B06DA91D0D0F /* WorkspaceContainerView.swift in Sources */,
+				20AD851BECEA64D016ED2C4B /* WorkspaceRowView.swift in Sources */,
+				D1539D08FA0D2B2546105F03 /* WorkspaceTab.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		197BF01B57D38E879C423248 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = termscape.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Resources\"",
+				);
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Resources";
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = "-lc++ -lz";
+				PRODUCT_BUNDLE_IDENTIFIER = com.termscape.app;
+				PRODUCT_NAME = Termscape;
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Resources/termscape-Bridging-Header.h";
+			};
+			name = Release;
+		};
+		730196C099CAA9C6EA366817 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.10;
+			};
+			name = Release;
+		};
+		76EFED9937710FA06C5EE005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.10;
+			};
+			name = Debug;
+		};
+		E908B17DB79274983396919B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = termscape.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Resources\"",
+				);
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Resources";
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = "-lc++ -lz";
+				PRODUCT_BUNDLE_IDENTIFIER = com.termscape.app;
+				PRODUCT_NAME = Termscape;
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Resources/termscape-Bridging-Header.h";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0E606E1B1F40C5CE23A2B8B2 /* Build configuration list for PBXProject "Termscape" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				76EFED9937710FA06C5EE005 /* Debug */,
+				730196C099CAA9C6EA366817 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EF772DA426560183BC47BEBD /* Build configuration list for PBXNativeTarget "Termscape" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E908B17DB79274983396919B /* Debug */,
+				197BF01B57D38E879C423248 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		E7AB9363876B2D8FB7C0A94B /* XCLocalSwiftPackageReference "vendor/bonsplit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = vendor/bonsplit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7CB81227AC7007DCFCCC0E17 /* Bonsplit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Bonsplit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 0AA290F4011BE244FCDC589E /* Project object */;
+}

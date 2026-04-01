@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct MuxonApp: App {
+struct TermscapeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var themeManager = ThemeManager()
 
@@ -43,14 +43,14 @@ struct MuxonApp: App {
 }
 
 extension Notification.Name {
-    static let newTab = Notification.Name("muxon.newTab")
-    static let closeTab = Notification.Name("muxon.closeTab")
-    static let splitRight = Notification.Name("muxon.splitRight")
-    static let splitDown = Notification.Name("muxon.splitDown")
-    static let newWorkspace = Notification.Name("muxon.newWorkspace")
-    static let ghosttyConfigDidReload = Notification.Name("muxon.ghosttyConfigDidReload")
+    static let newTab = Notification.Name("termscape.newTab")
+    static let closeTab = Notification.Name("termscape.closeTab")
+    static let splitRight = Notification.Name("termscape.splitRight")
+    static let splitDown = Notification.Name("termscape.splitDown")
+    static let newWorkspace = Notification.Name("termscape.newWorkspace")
+    static let ghosttyConfigDidReload = Notification.Name("termscape.ghosttyConfigDidReload")
     /// Posted by the context menu to move the focused pane's terminal into a new workspace tab.
-    static let moveToNewTab = Notification.Name("muxon.moveToNewTab")
+    static let moveToNewTab = Notification.Name("termscape.moveToNewTab")
 
     /// Typed keys for the `moveToNewTab` notification's `userInfo` dictionary.
     enum MoveToNewTabKey {

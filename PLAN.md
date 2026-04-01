@@ -1,4 +1,4 @@
-# Muxon — Product & Technical Plan
+# Termscape — Product & Technical Plan
 
 ## What We're Building
 
@@ -8,15 +8,15 @@ A next-generation macOS terminal workspace manager with a spatial canvas concept
 
 ## Product Decisions (locked)
 
-| Decision | Choice |
-|---|---|
-| Platform | macOS 14+ native |
-| Language | Swift + SwiftUI + AppKit |
-| Terminal rendering | Ghostty (libghostty), GPU-accelerated via Metal |
-| Split system | Bonsplit (vendor submodule) |
-| Canvas behavior | Custom NSScrollView, horizontal scroll when panes exceed viewport |
-| Sidebar groups | Named collapsible sections, drag to reorder |
-| Workspace opening | Folder picker (NSOpenPanel) or git clone URL |
+| Decision           | Choice                                                            |
+| ------------------ | ----------------------------------------------------------------- |
+| Platform           | macOS 14+ native                                                  |
+| Language           | Swift + SwiftUI + AppKit                                          |
+| Terminal rendering | Ghostty (libghostty), GPU-accelerated via Metal                   |
+| Split system       | Bonsplit (vendor submodule)                                       |
+| Canvas behavior    | Custom NSScrollView, horizontal scroll when panes exceed viewport |
+| Sidebar groups     | Named collapsible sections, drag to reorder                       |
+| Workspace opening  | Folder picker (NSOpenPanel) or git clone URL                      |
 
 ---
 
@@ -96,12 +96,12 @@ Terminal surfaces (Metal-backed NSViews) live in `CanvasDocumentView`, outside S
 ## Project Structure
 
 ```
-muxon/
+Termscape/
 ├── project.yml                          # XcodeGen spec
 ├── PLAN.md                              # This file
 ├── Sources/
 │   ├── App/
-│   │   ├── MuxonApp.swift
+│   │   ├── TermscapeApp.swift
 │   │   └── AppDelegate.swift
 │   ├── Ghostty/
 │   │   ├── GhosttyApp.swift             # ghostty_app_t singleton
@@ -131,7 +131,7 @@ muxon/
 │   └── bonsplit/                        # Git submodule
 └── Resources/
     ├── GhosttyKit.xcframework
-    ├── muxon-Bridging-Header.h
+    ├── termscape-Bridging-Header.h
     └── shell-integration/
 ```
 
@@ -140,6 +140,7 @@ muxon/
 ## Build Phases
 
 ### Phase 1 — Single working terminal
+
 Goal: App launches, sidebar shows, click workspace → working shell
 
 1. Xcode project setup (XcodeGen)
@@ -148,31 +149,35 @@ Goal: App launches, sidebar shows, click workspace → working shell
 4. AppState + Group + Workspace models (hardcoded for now)
 5. SidebarView + HSplitView layout
 6. WorkspaceContainerView with one full-size terminal
-**Milestone: working shell appears**
+   **Milestone: working shell appears**
 
 ### Phase 2 — Tabs
+
 1. WorkspaceTab + BonsplitController (one pane)
 2. TabBarView wired to tab creation/switching/closing
 3. Each tab = independent TerminalSurface
-**Milestone: multiple independent tabs**
+   **Milestone: multiple independent tabs**
 
 ### Phase 3 — Spatial canvas + splits
+
 1. PaneLayoutEngine (canvas width computation)
 2. CanvasScrollView + CanvasDocumentView
 3. Wire Cmd+D / Cmd+Shift+D → splitPane()
 4. Divider drag → divider position update
 5. BonsplitDelegate → canvas relayout
-**Milestone: splits work + horizontal scroll when overflow**
+   **Milestone: splits work + horizontal scroll when overflow**
 
 ### Phase 4 — Workspace management
+
 1. openFolder() via NSOpenPanel
 2. cloneRepo() via git clone terminal
 3. Group collapsing + drag reorder
 4. Workspace context menu (rename, close, move to group)
 5. Persist workspace list to JSON
-**Milestone: full sidebar workflow**
+   **Milestone: full sidebar workflow**
 
 ### Phase 5 — Polish
+
 - Keyboard shortcuts, window title, app icon, error handling
 
 ---
@@ -182,6 +187,7 @@ Goal: App launches, sidebar shows, click workspace → working shell
 `/Users/pedrotmr/Developer/_temp_/cmux` — use as reference, not a port.
 
 Key files to adapt:
+
 - `Sources/GhosttyTerminalView.swift` → GhosttyApp + TerminalSurface + GhosttyNSView
 - `Sources/Panels/TerminalPanel.swift` → TerminalSurface lifecycle
 - `vendor/bonsplit/Sources/Bonsplit/Public/BonsplitController.swift` → split API

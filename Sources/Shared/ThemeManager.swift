@@ -6,14 +6,14 @@ final class ThemeManager {
 
     var current: AppTheme {
         didSet {
-            UserDefaults.standard.set(current.id, forKey: "muxon.selectedThemeId")
+            UserDefaults.standard.set(current.id, forKey: "termscape.selectedThemeId")
             applyTerminalThemeIfEnabled()
         }
     }
 
     var overridesTerminalColors: Bool {
         didSet {
-            UserDefaults.standard.set(overridesTerminalColors, forKey: "muxon.overridesTerminalColors")
+            UserDefaults.standard.set(overridesTerminalColors, forKey: "termscape.overridesTerminalColors")
             if overridesTerminalColors {
                 applyTerminalThemeIfEnabled()
             } else {
@@ -23,8 +23,8 @@ final class ThemeManager {
     }
 
     init() {
-        let savedId = UserDefaults.standard.string(forKey: "muxon.selectedThemeId")
-        let overrides = UserDefaults.standard.object(forKey: "muxon.overridesTerminalColors") as? Bool ?? true
+        let savedId = UserDefaults.standard.string(forKey: "termscape.selectedThemeId")
+        let overrides = UserDefaults.standard.object(forKey: "termscape.overridesTerminalColors") as? Bool ?? true
         self.current = AppTheme.all.first { $0.id == savedId } ?? .tobacco
         self.overridesTerminalColors = overrides
         applyTerminalThemeIfEnabled()

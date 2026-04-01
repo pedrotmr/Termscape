@@ -361,14 +361,14 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         let x = Double(event.scrollingDeltaX)
         let y = Double(event.scrollingDeltaY)
 
-        // Route predominantly horizontal (or Shift+vertical) scroll to the muxon canvas so it can pan
+        // Route predominantly horizontal (or Shift+vertical) scroll to the termscape canvas so it can pan
         // when the document is wider than the viewport. Otherwise the inner terminal eats all deltas.
         let dx = CGFloat(x)
         let dy = CGFloat(y)
         let horizontalPrimary = abs(dx) >= abs(dy) && abs(dx) > 0.01
         let shiftVertical = event.modifierFlags.contains(.shift) && abs(dy) > 0.01 && !horizontalPrimary
 
-        if let canvas = enclosingMuxonCanvasScrollView(),
+        if let canvas = enclosingTermscapeCanvasScrollView(),
            canvas.documentCanvasView.frame.width > canvas.documentVisibleRect.width + 0.5 {
             // Negate so Shift+scroll down pans left (matches typical macOS horizontal-scroll expectation).
             if horizontalPrimary {
@@ -385,7 +385,7 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         ghostty_surface_mouse_scroll(surface, x, y, ghostty_input_scroll_mods_t(mods.rawValue))
     }
 
-    private func enclosingMuxonCanvasScrollView() -> CanvasScrollView? {
+    private func enclosingTermscapeCanvasScrollView() -> CanvasScrollView? {
         var view: NSView? = self
         while let v = view {
             if let canvas = v as? CanvasScrollView { return canvas }

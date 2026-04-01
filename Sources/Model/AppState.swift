@@ -104,7 +104,7 @@ final class AppState {
         guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             return nil
         }
-        let dir = appSupport.appendingPathComponent("muxon")
+        let dir = appSupport.appendingPathComponent("termscape")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("workspaces.json")
     }

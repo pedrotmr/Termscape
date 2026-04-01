@@ -2,8 +2,8 @@ import Foundation
 
 /// Writes a Ghostty color config fragment and reloads the running Ghostty app.
 ///
-/// Strategy: on theme change, Muxon writes terminal colors to
-/// ~/.config/ghostty/muxon-theme, then creates a fresh config that layers:
+/// Strategy: on theme change, Termscape writes terminal colors to
+/// ~/.config/ghostty/termscape-theme, then creates a fresh config that layers:
 ///   1. Default files (user's ~/.config/ghostty/config) — preserves font, keybinds, etc.
 ///   2. Our theme fragment — overrides only colors
 ///
@@ -13,7 +13,7 @@ enum GhosttyThemeWriter {
 
     private static let themeFileURL: URL = FileManager.default
         .homeDirectoryForCurrentUser
-        .appendingPathComponent(".config/ghostty/muxon-theme")
+        .appendingPathComponent(".config/ghostty/termscape-theme")
 
     // MARK: - Public API
 
@@ -40,7 +40,7 @@ enum GhosttyThemeWriter {
 
     private static func buildConfig(_ t: TerminalTheme) -> String {
         var lines: [String] = [
-            "# Muxon managed — do not edit manually",
+            "# Termscape managed — do not edit manually",
             "",
             "background = \(t.background)",
             "foreground = \(t.foreground)",

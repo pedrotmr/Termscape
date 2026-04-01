@@ -53,5 +53,5 @@ struct CanvasHostingView: NSViewRepresentable {
 }
 
 extension Notification.Name {
-    static let bonsplitLayoutDidChange = Notification.Name("muxon.bonsplitLayoutDidChange")
+    static let bonsplitLayoutDidChange = Notification.Name("termscape.bonsplitLayoutDidChange")
 }

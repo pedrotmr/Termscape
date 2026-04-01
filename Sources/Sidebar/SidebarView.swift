@@ -354,14 +354,14 @@ struct CloneSheetView: View {
                     appState.cloneURL = ""
                 }
                 .keyboardShortcut(.cancelAction)
-                .buttonStyle(MuxonSecondaryButtonStyle())
+                .buttonStyle(TermscapeSecondaryButtonStyle())
 
                 Spacer()
 
                 Button("Clone") { clone() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(appState.cloneURL.isEmpty)
-                    .buttonStyle(MuxonPrimaryButtonStyle())
+                    .buttonStyle(TermscapePrimaryButtonStyle())
             }
         }
         .padding(24)
