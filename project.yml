@@ -9,6 +9,7 @@ options:
 
 settings:
   base:
+    EXCLUDED_ARCHS[sdk=macosx*]: x86_64
     SWIFT_VERSION: "5.10"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     ENABLE_HARDENED_RUNTIME: YES
@@ -52,6 +53,7 @@ targets:
       - path: Sources
         excludes:
           - "**/.DS_Store"
+      - path: Resources/Assets.xcassets
 
     dependencies:
       - framework: Resources/GhosttyKit.xcframework

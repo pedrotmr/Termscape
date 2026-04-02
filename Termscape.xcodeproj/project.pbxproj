@@ -14,6 +14,7 @@
 		20AD851BECEA64D016ED2C4B /* WorkspaceRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A515485939A32E03853D1B61 /* WorkspaceRowView.swift */; };
 		21B459A147B0561A73B95462 /* TermscapeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C332B2614A4DA5CF398B0077 /* TermscapeApp.swift */; };
 		37E6BDB8DB7856661C6970DC /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB19A51E82EF41BDEBE2E6E /* SidebarView.swift */; };
+		500CC535722229B8A4D4FC97 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2E620B88920BF3FEC0CF27BF /* Assets.xcassets */; };
 		51A89FD719288759DE80C8A6 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B30FED21AA1C9FB54E59D51A /* GhosttyKit.xcframework */; };
 		59618C3590FF7C9BB3AA8EC9 /* GhosttyThemeWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */; };
 		5B596766AE9C1C70A0554AB0 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EC9B81CDEA8E4836331A2E6D /* UniformTypeIdentifiers.framework */; };
@@ -44,6 +45,7 @@
 /* Begin PBXFileReference section */
 		1874CAFE46683ABFBF03FA05 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		261561B96E12B36929EF6FA5 /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
+		2E620B88920BF3FEC0CF27BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyThemeWriter.swift; sourceTree = "<group>"; };
 		40BBEA2DF39DEE65354CC615 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
@@ -96,6 +98,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		389D67107D4B7BC3AC3D5CB2 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2E620B88920BF3FEC0CF27BF /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		3E5A5EDBE7CEB9E82DC86E17 /* Ghostty */ = {
 			isa = PBXGroup;
 			children = (
@@ -168,6 +178,7 @@
 			isa = PBXGroup;
 			children = (
 				EAB51A3EF89724D77E81B463 /* Packages */,
+				389D67107D4B7BC3AC3D5CB2 /* Resources */,
 				516EC5E7CD9E6C1D48EE92A0 /* Sources */,
 				8A507A3643C09F5AD3D498E2 /* Frameworks */,
 				475B6F8C1239BE3FA7B91A29 /* Products */,
@@ -240,6 +251,7 @@
 			buildPhases = (
 				D7E82A1BC37F7F9EF4909124 /* Copy Ghostty Resources */,
 				FC96B910328FF9EE83DA2379 /* Sources */,
+				F3513E7A389F072FAA0BB8F0 /* Resources */,
 				9DE0FC1F64FCF7D63B464D71 /* Frameworks */,
 			);
 			buildRules = (
@@ -290,6 +302,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F3513E7A389F072FAA0BB8F0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				500CC535722229B8A4D4FC97 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		D7E82A1BC37F7F9EF4909124 /* Copy Ghostty Resources */ = {
@@ -409,6 +432,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				"EXCLUDED_ARCHS[sdk=macosx*]" = x86_64;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -468,6 +492,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				"EXCLUDED_ARCHS[sdk=macosx*]" = x86_64;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
