@@ -20,6 +20,10 @@
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/pedrotmr/termscape/releases/latest/download/appcast-preview.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>UvYTyKdoFBP2Sjg8XqioRhjri5DyesnVevvANMfaTQg=</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>NSHighResolutionCapable</key>

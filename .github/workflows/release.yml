@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select release mode
+        id: mode
+        run: |
+          if [[ -n "${{ secrets.APPLE_ID }}" && -n "${{ secrets.APPLE_TEAM_ID }}" && -n "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" && -n "${{ secrets.DEV_ID_CERT_BASE64 }}" && -n "${{ secrets.DEV_ID_CERT_PASSWORD }}" ]]; then
+            echo "release_mode=production" >> "$GITHUB_OUTPUT"
+            echo "appcast_filename=appcast.xml" >> "$GITHUB_OUTPUT"
+            echo "feed_url=https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_mode=preview" >> "$GITHUB_OUTPUT"
+            echo "appcast_filename=appcast-preview.xml" >> "$GITHUB_OUTPUT"
+            echo "feed_url=https://github.com/${{ github.repository }}/releases/latest/download/appcast-preview.xml" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Import Developer ID certificate
+        if: steps.mode.outputs.release_mode == 'production'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.DEV_ID_CERT_BASE64 }}
+          p12-password: ${{ secrets.DEV_ID_CERT_PASSWORD }}
+
+      - name: Build archive
+        env:
+          RELEASE_MODE: ${{ steps.mode.outputs.release_mode }}
+          APPCAST_FILENAME: ${{ steps.mode.outputs.appcast_filename }}
+          SPARKLE_FEED_URL: ${{ vars.SPARKLE_FEED_URL || steps.mode.outputs.feed_url }}
+          SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY || secrets.SPARKLE_PUBLIC_KEY }}
+        run: Scripts/release/build.sh
+
+      - name: Package artifacts
+        env:
+          RELEASE_MODE: ${{ steps.mode.outputs.release_mode }}
+          APPCAST_FILENAME: ${{ steps.mode.outputs.appcast_filename }}
+        run: Scripts/release/package.sh
+
+      - name: Notarize (production only)
+        env:
+          RELEASE_MODE: ${{ steps.mode.outputs.release_mode }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: Scripts/release/notarize.sh
+
+      - name: Generate appcast
+        env:
+          RELEASE_MODE: ${{ steps.mode.outputs.release_mode }}
+          APPCAST_FILENAME: ${{ steps.mode.outputs.appcast_filename }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          SPARKLE_DOWNLOAD_URL_PREFIX: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}
+          SPARKLE_RELEASE_NOTES_URL_PREFIX: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+        run: Scripts/release/appcast.sh
+
+      - name: Stage publish assets
+        env:
+          RELEASE_MODE: ${{ steps.mode.outputs.release_mode }}
+          APPCAST_FILENAME: ${{ steps.mode.outputs.appcast_filename }}
+        run: Scripts/release/publish.sh
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: false
+          files: |
+            build/release/dist/*.zip
+            build/release/dist/*.dmg
+            build/release/dist/${{ steps.mode.outputs.appcast_filename }}

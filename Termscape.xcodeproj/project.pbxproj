@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0394BACD77F75200F5A9509A /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DE1B6A129784A486481CDF45 /* QuartzCore.framework */; };
+		04F6E0A7ABEA08C3ADE169E6 /* AppUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF576AD4FE79205F70B7DD8 /* AppUpdater.swift */; };
 		071EFC7EAF6E69A812304318 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3C6290AEA74AE75AC7B213D /* AppState.swift */; };
 		14274E56A429DD44CEC3B341 /* GhosttySurfaceScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6236364EBF9FBCBABD6B4991 /* GhosttySurfaceScrollView.swift */; };
 		1B4251E280A7B06DA91D0D0F /* WorkspaceContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEEB21FE82C91F1001D7F142 /* WorkspaceContainerView.swift */; };
@@ -35,6 +36,7 @@
 		C547CF5EA1325ED1A2135184 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBED15E036B70096FCF5B1A8 /* TabBarView.swift */; };
 		D05705721001037CB61371FD /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1874CAFE46683ABFBF03FA05 /* AppTheme.swift */; };
 		D1539D08FA0D2B2546105F03 /* WorkspaceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A265BCC5F2838C098FFAE4DF /* WorkspaceTab.swift */; };
+		D2C87E9B8914DE2E6F293321 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = C9C96117123970F9F7214BE3 /* Sparkle */; };
 		D3F9DF29D650B72780F0F094 /* TerminalSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = A978683BBD9E259E5D3F7546 /* TerminalSurface.swift */; };
 		D65C5CCAA7A8E8F657636424 /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261561B96E12B36929EF6FA5 /* Workspace.swift */; };
 		DB05AB6321B71628FA374250 /* PaneLayoutEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */; };
@@ -50,6 +52,7 @@
 		35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyThemeWriter.swift; sourceTree = "<group>"; };
 		40BBEA2DF39DEE65354CC615 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		50AF240872C7EB5781E7A324 /* GroupRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRowView.swift; sourceTree = "<group>"; };
+		5AF576AD4FE79205F70B7DD8 /* AppUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdater.swift; sourceTree = "<group>"; };
 		5B1A23E64C268162427581A8 /* bonsplit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = bonsplit; path = vendor/bonsplit; sourceTree = SOURCE_ROOT; };
 		612B700BB644C942EA3F2EB3 /* CanvasScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasScrollView.swift; sourceTree = "<group>"; };
 		6154D233FD80A8532C48D13B /* Group.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
@@ -86,6 +89,7 @@
 			files = (
 				51A89FD719288759DE80C8A6 /* GhosttyKit.xcframework in Frameworks */,
 				B184EB64AECBEAB1A3D595B7 /* Bonsplit in Frameworks */,
+				D2C87E9B8914DE2E6F293321 /* Sparkle in Frameworks */,
 				91A95B45D79D5332ABCDBFE7 /* Carbon.framework in Frameworks */,
 				5EA1FFBCADB08DD49CA55BB4 /* Metal.framework in Frameworks */,
 				647725629CEF0E055944A951 /* MetalKit.framework in Frameworks */,
@@ -207,6 +211,7 @@
 			isa = PBXGroup;
 			children = (
 				71FDDA40E9167FCA2B07A49D /* AppDelegate.swift */,
+				5AF576AD4FE79205F70B7DD8 /* AppUpdater.swift */,
 				C332B2614A4DA5CF398B0077 /* TermscapeApp.swift */,
 			);
 			path = App;
@@ -261,6 +266,7 @@
 			name = Termscape;
 			packageProductDependencies = (
 				7CB81227AC7007DCFCCC0E17 /* Bonsplit */,
+				C9C96117123970F9F7214BE3 /* Sparkle */,
 			);
 			productName = Termscape;
 			productReference = 8CCACB7F0513F9521697FA12 /* Termscape.app */;
@@ -291,6 +297,7 @@
 			mainGroup = 8D710F55184AF80078CC3192;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				0D6D00A9E8F351253DD2B53A /* XCRemoteSwiftPackageReference "Sparkle" */,
 				E7AB9363876B2D8FB7C0A94B /* XCLocalSwiftPackageReference "vendor/bonsplit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -343,6 +350,7 @@
 				B045B96BAB54CC6AB1E08598 /* AppDelegate.swift in Sources */,
 				071EFC7EAF6E69A812304318 /* AppState.swift in Sources */,
 				D05705721001037CB61371FD /* AppTheme.swift in Sources */,
+				04F6E0A7ABEA08C3ADE169E6 /* AppUpdater.swift in Sources */,
 				F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */,
 				B5496ECAF40081BD5375BCB1 /* CanvasHostingView.swift in Sources */,
 				7B10CB53D1B2501FDEC7601A /* CanvasScrollView.swift in Sources */,
@@ -571,10 +579,26 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		0D6D00A9E8F351253DD2B53A /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		7CB81227AC7007DCFCCC0E17 /* Bonsplit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Bonsplit;
+		};
+		C9C96117123970F9F7214BE3 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0D6D00A9E8F351253DD2B53A /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

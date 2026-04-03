@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct TermscapeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var appUpdater = AppUpdater()
     @State private var themeManager = ThemeManager()
 
     var body: some Scene {
@@ -14,6 +15,13 @@ struct TermscapeApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1200, height: 750)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates...") {
+                    appUpdater.checkForUpdates()
+                }
+                .disabled(!appUpdater.canCheckForUpdates)
+            }
+
             CommandGroup(replacing: .newItem) { }
             CommandMenu("Terminal") {
                 Button("New Tab") {
