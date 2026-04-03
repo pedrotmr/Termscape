@@ -27,7 +27,7 @@ build_generate_appcast() {
     -scheme generate_appcast \
     -configuration Release \
     -derivedDataPath "$TOOLS_DIR/derived" \
-    build >/dev/null
+    build
 
   cp "$TOOLS_DIR/derived/Build/Products/Release/generate_appcast" "$tool_path"
   chmod +x "$tool_path"
