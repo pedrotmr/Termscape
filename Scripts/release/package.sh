@@ -27,7 +27,7 @@ hdiutil create \
   -srcfolder "$DMG_STAGE_DIR" \
   -ov \
   -format UDZO \
-  "$DMG_PATH" >/dev/null
+  "$DMG_PATH"
 
 log "created $ZIP_PATH"
 log "created $DMG_PATH"
