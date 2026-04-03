@@ -19,7 +19,7 @@ build_generate_appcast() {
   local sparkle_checkout="$TOOLS_DIR/Sparkle"
   rm -rf "$sparkle_checkout"
   log "cloning Sparkle sources for generate_appcast"
-  git clone --depth 1 https://github.com/sparkle-project/Sparkle.git "$sparkle_checkout" >/dev/null
+  git clone --depth 1 https://github.com/sparkle-project/Sparkle.git "$sparkle_checkout"
 
   log "building generate_appcast"
   xcodebuild \
