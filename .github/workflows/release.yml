@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Resolve release tag
         id: ctx
@@ -44,6 +44,11 @@ jobs:
         with:
           ref: refs/tags/${{ steps.ctx.outputs.release_tag }}
           fetch-depth: 0
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
 
       - name: Select release mode
         id: mode
