@@ -44,6 +44,7 @@ jobs:
         with:
           ref: refs/tags/${{ steps.ctx.outputs.release_tag }}
           fetch-depth: 0
+          lfs: true
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
