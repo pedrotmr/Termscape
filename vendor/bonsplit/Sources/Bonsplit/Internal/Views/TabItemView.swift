@@ -379,13 +379,17 @@ struct TabItemView: View {
         if contextMenuState.hasSplits {
             contextButton(
                 contextMenuState.isZoomed ? "Exit Zoom" : "Zoom Pane",
-                action: .toggleZoom
+                action: .toggleZoom,
+                systemImage: contextMenuState.isZoomed
+                    ? "arrow.down.right.and.arrow.up.left"
+                    : "arrow.up.left.and.arrow.down.right"
             )
         }
 
         contextButton(
             contextMenuState.isPinned ? "Unpin Tab" : "Pin Tab",
-            action: .togglePin
+            action: .togglePin,
+            systemImage: contextMenuState.isPinned ? "pin.slash" : "pin"
         )
 
         if contextMenuState.isUnread {
@@ -398,15 +402,24 @@ struct TabItemView: View {
     }
 
     @ViewBuilder
-    private func contextButton(_ title: String, action: TabContextAction) -> some View {
+    private func contextButton(
+        _ title: String,
+        action: TabContextAction,
+        systemImage: String? = nil
+    ) -> some View {
+        let symbol = systemImage ?? action.defaultContextMenuSystemImage
         if let shortcut = contextMenuState.shortcuts[action] {
-            Button(title) {
+            Button {
                 onContextAction(action)
+            } label: {
+                Label(title, systemImage: symbol)
             }
             .keyboardShortcut(shortcut)
         } else {
-            Button(title) {
+            Button {
                 onContextAction(action)
+            } label: {
+                Label(title, systemImage: symbol)
             }
         }
     }
@@ -415,11 +428,13 @@ struct TabItemView: View {
     private func localizedContextButton(
         _ titleKey: String,
         defaultValue: String,
-        action: TabContextAction
+        action: TabContextAction,
+        systemImage: String? = nil
     ) -> some View {
         contextButton(
             Bundle.module.localizedString(forKey: titleKey, value: defaultValue, table: nil),
-            action: action
+            action: action,
+            systemImage: systemImage
         )
     }
 
@@ -636,5 +651,28 @@ private struct MiddleClickMonitorView: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {
         context.coordinator.view = nsView
         context.coordinator.onMiddleClick = onMiddleClick
+    }
+}
+
+extension TabContextAction {
+    fileprivate var defaultContextMenuSystemImage: String {
+        switch self {
+        case .rename: "pencil"
+        case .clearName: "text.badge.xmark"
+        case .closeToLeft: "arrow.left.to.line"
+        case .closeToRight: "arrow.right.to.line"
+        case .closeOthers: "rectangle.on.rectangle.slash"
+        case .move: "arrow.up.and.down.and.arrow.left.and.right"
+        case .moveToLeftPane: "arrow.left.square"
+        case .moveToRightPane: "arrow.right.square"
+        case .newTerminalToRight: "terminal"
+        case .newBrowserToRight: "globe"
+        case .reload: "arrow.clockwise"
+        case .duplicate: "doc.on.doc"
+        case .togglePin: "pin"
+        case .markAsRead: "envelope.open"
+        case .markAsUnread: "envelope.badge"
+        case .toggleZoom: "arrow.up.left.and.arrow.down.right"
+        }
     }
 }
