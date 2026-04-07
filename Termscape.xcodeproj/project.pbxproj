@@ -390,9 +390,13 @@
 				);
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/Resources";
 				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Termscape;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				OTHER_LDFLAGS = "-lc++ -lz";
+				OTHER_LDFLAGS = (
+					"-lc++",
+					"-lz",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.termscape.app;
 				PRODUCT_NAME = Termscape;
 				SDKROOT = macosx;
@@ -539,9 +543,13 @@
 				);
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/Resources";
 				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Termscape;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				OTHER_LDFLAGS = "-lc++ -lz";
+				OTHER_LDFLAGS = (
+					"-lc++",
+					"-lz",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.termscape.app;
 				PRODUCT_NAME = Termscape;
 				SDKROOT = macosx;
