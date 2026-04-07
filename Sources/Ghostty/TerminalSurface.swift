@@ -68,10 +68,15 @@ final class TerminalSurface: Identifiable {
         surfaceConfig.scale_factor = scale
         surfaceConfig.context = GHOSTTY_SURFACE_CONTEXT_WINDOW
 
-        // Set working directory
+        // Keep this C string alive until ghostty_surface_new consumes it.
+        var workingDirectoryCString: UnsafeMutablePointer<CChar>?
         if let wd = workingDirectory {
-            wd.withCString { ptr in
-                surfaceConfig.working_directory = ptr
+            workingDirectoryCString = strdup(wd)
+            surfaceConfig.working_directory = UnsafePointer(workingDirectoryCString)
+        }
+        defer {
+            if let ptr = workingDirectoryCString {
+                free(ptr)
             }
         }
 
