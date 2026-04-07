@@ -83,7 +83,6 @@ final class AppState {
 
         let repoName = urlString.split(separator: "/").last.map(String.init)?.replacingOccurrences(of: ".git", with: "") ?? "repo"
         let destURL = cloneDir.appendingPathComponent(repoName).standardizedFileURL
-        try? FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: true)
 
         let workspace = addWorkspace(in: group, url: destURL, name: repoName)
         selectedWorkspaceId = workspace.id
