@@ -5,6 +5,7 @@ set -euo pipefail
 source "$(dirname "$0")/common.sh"
 
 require_cmd xcodebuild
+require_cmd curl
 ensure_dirs
 
 [[ -f "$ZIP_PATH" ]] || fail "zip archive not found at $ZIP_PATH; run package.sh first"
@@ -70,6 +71,19 @@ else
 fi
 
 cp "$APPCAST_ARCHIVES_DIR/$APPCAST_FILENAME" "$APPCAST_PATH"
+
+mapfile -t enclosure_urls < <(sed -n 's/.*enclosure url="\([^"]*\)".*/\1/p' "$APPCAST_PATH")
+[[ "${#enclosure_urls[@]}" -gt 0 ]] || fail "generated appcast has no enclosure URLs"
+
+for enclosure_url in "${enclosure_urls[@]}"; do
+  if [[ -n "${GITHUB_REF_NAME:-}" && "$enclosure_url" == *"/releases/download/"* ]]; then
+    [[ "$enclosure_url" == *"/releases/download/${GITHUB_REF_NAME}/"* ]] \
+      || fail "appcast enclosure URL missing release tag path (${GITHUB_REF_NAME}): $enclosure_url"
+  fi
+
+  http_code=$(curl -sS -L -o /dev/null -w '%{http_code}' "$enclosure_url" || true)
+  [[ "$http_code" == "200" ]] || fail "appcast enclosure URL is not downloadable (HTTP $http_code): $enclosure_url"
+done
 
 log "appcast generated at $APPCAST_PATH"
 write_github_output "appcast_path" "$APPCAST_PATH"
