@@ -67,3 +67,36 @@ write_github_output() {
 ensure_dirs() {
   mkdir -p "$RELEASE_DIR" "$DIST_DIR" "$TOOLS_DIR" "$APPCAST_ARCHIVES_DIR"
 }
+
+# Before xcodebuild: set CFBundleShortVersionString / CFBundleVersion from the git tag so Sparkle
+# and GitHub release tags stay aligned (source Info.plist can stay at a dev default).
+sync_info_plist_version_from_tag() {
+  [[ "${RELEASE_SKIP_VERSION_SYNC:-}" == "1" ]] && return 0
+  [[ -z "${GITHUB_REF_NAME:-}" ]] && return 0
+  # Require v1.x style tags (v + digit), e.g. v1.2.3 or v1.0
+  [[ "$GITHUB_REF_NAME" =~ ^v[0-9] ]] || return 0
+
+  require_cmd /usr/libexec/PlistBuddy
+
+  local short=$VERSION_TAG
+  local build
+
+  if [[ -n "${GITHUB_RUN_NUMBER:-}" ]]; then
+    build="$GITHUB_RUN_NUMBER"
+  else
+    build=$(git -C "$ROOT_DIR" rev-list --count HEAD 2>/dev/null || true)
+    if [[ -z "$build" ]]; then
+      build=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$ROOT_DIR/Info.plist" 2>/dev/null || echo "1")
+    fi
+  fi
+
+  log "syncing Info.plist versions from tag (Sparkle): CFBundleShortVersionString=$short CFBundleVersion=$build (tag=$GITHUB_REF_NAME)"
+
+  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $short" "$ROOT_DIR/Info.plist" \
+    || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $short" "$ROOT_DIR/Info.plist"
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$ROOT_DIR/Info.plist" \
+    || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $build" "$ROOT_DIR/Info.plist"
+
+  write_github_output "cf_bundle_short_version_string" "$short"
+  write_github_output "cf_bundle_version" "$build"
+}

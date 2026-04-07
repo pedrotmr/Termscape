@@ -10,6 +10,9 @@ require_cmd codesign
 ensure_dirs
 
 log "building archive for ${APP_NAME} (${VERSION_TAG}) in ${RELEASE_MODE} mode"
+
+sync_info_plist_version_from_tag
+
 rm -rf "$ARCHIVE_PATH"
 
 build_args=(
