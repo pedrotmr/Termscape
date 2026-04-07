@@ -185,9 +185,13 @@ struct WorkspaceRowView: View {
 
     @ViewBuilder
     private var contextMenuItems: some View {
-        Button("Rename") { startRename() }
+        Button {
+            startRename()
+        } label: {
+            Label("Rename", systemImage: "pencil")
+        }
 
-        Menu("Change Color") {
+        Menu {
             ForEach(WorkspaceDotColor.palette) { dotColor in
                 Button {
                     workspace.color = dotColor.hex
@@ -200,6 +204,8 @@ struct WorkspaceRowView: View {
                     }
                 }
             }
+        } label: {
+            Label("Change Color", systemImage: "paintpalette")
         }
 
         Divider()
@@ -208,34 +214,46 @@ struct WorkspaceRowView: View {
         let isFirstWorkspace = currentIndex.map { $0 == 0 } ?? true
         let isLastWorkspace = currentIndex.map { $0 == group.workspaces.count - 1 } ?? true
 
-        Button("Move Up") {
+        Button {
             if let idx = currentIndex, idx > 0 {
                 group.workspaces.swapAt(idx, idx - 1)
                 appState.persist()
             }
+        } label: {
+            Label("Move Up", systemImage: "arrow.up")
         }
         .disabled(isFirstWorkspace)
 
-        Button("Move Down") {
+        Button {
             if let idx = currentIndex, idx < group.workspaces.count - 1 {
                 group.workspaces.swapAt(idx, idx + 1)
                 appState.persist()
             }
+        } label: {
+            Label("Move Down", systemImage: "arrow.down")
         }
         .disabled(isLastWorkspace)
 
         if appState.groups.count > 1 {
-            Menu("Move to Group") {
+            Menu {
                 ForEach(appState.groups.filter { $0.id != group.id }) { targetGroup in
-                    Button(targetGroup.name) { moveWorkspace(to: targetGroup) }
+                    Button {
+                        moveWorkspace(to: targetGroup)
+                    } label: {
+                        Label(targetGroup.name, systemImage: "folder")
+                    }
                 }
+            } label: {
+                Label("Move to Group", systemImage: "folder.badge.arrow.right")
             }
         }
 
         Divider()
 
-        Button("Close Workspace", role: .destructive) {
+        Button(role: .destructive) {
             appState.removeWorkspace(workspace, from: group)
+        } label: {
+            Label("Close Workspace", systemImage: "xmark.rectangle")
         }
     }
 

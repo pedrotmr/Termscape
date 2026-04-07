@@ -174,15 +174,24 @@ struct TabItemView: View {
             if !focused { commitRename() }
         }
         .contextMenu {
-            Button("Rename") {
+            Button {
                 beginRename()
+            } label: {
+                Label("Rename", systemImage: "pencil")
             }
-            Button(tab.isPinned ? "Unpin Tab" : "Pin Tab") {
+            Button {
                 onTogglePin()
+            } label: {
+                Label(
+                    tab.isPinned ? "Unpin Tab" : "Pin Tab",
+                    systemImage: tab.isPinned ? "pin.slash" : "pin"
+                )
             }
             Divider()
-            Button("Close Tab", role: .destructive) {
+            Button(role: .destructive) {
                 onClose()
+            } label: {
+                Label("Close Tab", systemImage: "xmark")
             }
             .disabled(tab.isPinned)
         }

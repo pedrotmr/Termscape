@@ -278,10 +278,16 @@ struct GroupRowView: View {
             Text("This removes the group and all workspaces inside it.")
         }
         .contextMenu {
-            Button("Rename Group") { startGroupRename() }
+            Button {
+                startGroupRename()
+            } label: {
+                Label("Rename Group", systemImage: "pencil")
+            }
             Divider()
-            Button("Delete Group", role: .destructive) {
+            Button(role: .destructive) {
                 showDeleteGroupConfirmation = true
+            } label: {
+                Label("Delete Group", systemImage: "trash")
             }
         }
         .onChange(of: isRenamingGroup) { _, renaming in
