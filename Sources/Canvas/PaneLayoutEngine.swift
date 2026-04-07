@@ -1,62 +1,58 @@
 import AppKit
 import Bonsplit
 
-/// Computes the canvas width needed to maintain minimum pane widths.
-/// Works with Bonsplit's LayoutSnapshot to get absolute pane frames.
+/// Computes minimum canvas size from the split tree and Bonsplit divider ratios
+/// so every pane can satisfy minimum width/height after layout.
 struct PaneLayoutEngine {
     let minPaneWidth: CGFloat
+    let minPaneHeight: CGFloat
 
-    init(minPaneWidth: CGFloat = 600) {
+    init(minPaneWidth: CGFloat = 600, minPaneHeight: CGFloat = 200) {
         self.minPaneWidth = minPaneWidth
+        self.minPaneHeight = minPaneHeight
     }
 
-    /// Count the number of horizontal columns in the split tree.
-    /// This determines how wide the canvas needs to be.
-    func columnCount(from tree: ExternalTreeNode) -> Int {
-        switch tree {
+    /// Minimum document width so horizontal splits respect `minPaneWidth` at current divider positions.
+    func requiredCanvasWidth(for tree: ExternalTreeNode, viewportWidth: CGFloat) -> CGFloat {
+        let needed = minSubtreeWidth(tree)
+        return max(needed, viewportWidth)
+    }
+
+    /// Minimum document height so vertical splits respect `minPaneHeight` at current divider positions.
+    func requiredCanvasHeight(for tree: ExternalTreeNode, viewportHeight: CGFloat) -> CGFloat {
+        let needed = minSubtreeHeight(tree)
+        return max(needed, viewportHeight)
+    }
+
+    private func minSubtreeWidth(_ node: ExternalTreeNode) -> CGFloat {
+        switch node {
         case .pane:
-            return 1
+            return minPaneWidth
         case .split(let s) where s.orientation == "horizontal":
-            return columnCount(from: s.first) + columnCount(from: s.second)
+            let p = CGFloat(s.dividerPosition)
+            let pSafe = min(max(p, 0.001), 0.999)
+            let oneMinus = 1 - pSafe
+            let leftMin = minSubtreeWidth(s.first)
+            let rightMin = minSubtreeWidth(s.second)
+            return max(leftMin / pSafe, rightMin / oneMinus)
         case .split(let s):
-            // Vertical split: panes stack, same column count as the widest child
-            return max(columnCount(from: s.first), columnCount(from: s.second))
+            return max(minSubtreeWidth(s.first), minSubtreeWidth(s.second))
         }
     }
 
-    /// Compute the canvas width required to fit all columns at minimum pane width.
-    func requiredCanvasWidth(for tree: ExternalTreeNode, viewportWidth: CGFloat) -> CGFloat {
-        let columns = columnCount(from: tree)
-        let minRequired = CGFloat(columns) * minPaneWidth
-        return max(minRequired, viewportWidth)
-    }
-
-    /// Horizontal column span per leaf pane for the spatial canvas.
-    /// Bonsplit stores nested splits with divider ratios (e.g. repeated 0.5 → 50%, 25%, 12.5%…); we ignore those for x/width and use equal columns instead.
-    func leafColumnSpans(from tree: ExternalTreeNode) -> [String: (colStart: Int, colSpan: Int)] {
-        let total = columnCount(from: tree)
-        let tuples = leafColumnSpansRecursive(tree, colStart: 0, colSpan: total)
-        return Dictionary(
-            uniqueKeysWithValues: tuples.map { ($0.paneId, ($0.colStart, $0.colSpan)) }
-        )
-    }
-
-    private func leafColumnSpansRecursive(
-        _ node: ExternalTreeNode,
-        colStart: Int,
-        colSpan: Int
-    ) -> [(paneId: String, colStart: Int, colSpan: Int)] {
+    private func minSubtreeHeight(_ node: ExternalTreeNode) -> CGFloat {
         switch node {
-        case .pane(let p):
-            return [(p.id, colStart, colSpan)]
-        case .split(let s) where s.orientation == "horizontal":
-            let leftCols = columnCount(from: s.first)
-            let rightCols = columnCount(from: s.second)
-            return leafColumnSpansRecursive(s.first, colStart: colStart, colSpan: leftCols)
-                + leafColumnSpansRecursive(s.second, colStart: colStart + leftCols, colSpan: rightCols)
+        case .pane:
+            return minPaneHeight
+        case .split(let s) where s.orientation == "vertical":
+            let p = CGFloat(s.dividerPosition)
+            let pSafe = min(max(p, 0.001), 0.999)
+            let oneMinus = 1 - pSafe
+            let topMin = minSubtreeHeight(s.first)
+            let bottomMin = minSubtreeHeight(s.second)
+            return max(topMin / pSafe, bottomMin / oneMinus)
         case .split(let s):
-            return leafColumnSpansRecursive(s.first, colStart: colStart, colSpan: colSpan)
-                + leafColumnSpansRecursive(s.second, colStart: colStart, colSpan: colSpan)
+            return max(minSubtreeHeight(s.first), minSubtreeHeight(s.second))
         }
     }
 }

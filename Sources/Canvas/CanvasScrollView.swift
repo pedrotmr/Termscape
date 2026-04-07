@@ -26,8 +26,9 @@ final class CanvasScrollView: NSScrollView {
 
     private func setupScrollView() {
         hasHorizontalScroller = true
-        hasVerticalScroller = false
+        hasVerticalScroller = true
         horizontalScrollElasticity = .automatic
+        verticalScrollElasticity = .automatic
         scrollerStyle = .legacy
         autohidesScrollers = true
         drawsBackground = false
@@ -41,14 +42,19 @@ final class CanvasScrollView: NSScrollView {
 
         let focusRect = documentCanvasView.update(tab: tab, viewportSize: viewportSize)
 
-        let docWidth = documentCanvasView.frame.width
-        let visWidth = documentVisibleRect.width
-        let horizontalOverflow = docWidth > visWidth + 0.5
+        let docSize = documentCanvasView.frame.size
+        let visSize = documentVisibleRect.size
+        let horizontalOverflow = docSize.width > visSize.width + 0.5
+        let verticalOverflow = docSize.height > visSize.height + 0.5
+        let anyOverflow = horizontalOverflow || verticalOverflow
 
-        // Keep the horizontal scroller visible when content is wider than the viewport.
-        autohidesScrollers = !horizontalOverflow
+        // Keep scrollers visible when content exceeds the viewport in either axis.
+        autohidesScrollers = !anyOverflow
         if horizontalOverflow {
             horizontalScroller?.isHidden = false
+        }
+        if verticalOverflow {
+            verticalScroller?.isHidden = false
         }
 
         tile()
@@ -76,8 +82,9 @@ final class CanvasScrollView: NSScrollView {
     private func scrollFocusedPaneIfNeeded(focusRect: CGRect) {
         let visible = documentVisibleRect
         let margin: CGFloat = 16
-        let needsScroll = focusRect.minX < visible.minX + margin || focusRect.maxX > visible.maxX - margin
-        guard needsScroll else { return }
+        let needsH = focusRect.minX < visible.minX + margin || focusRect.maxX > visible.maxX - margin
+        let needsV = focusRect.minY < visible.minY + margin || focusRect.maxY > visible.maxY - margin
+        guard needsH || needsV else { return }
         _ = contentView.scrollToVisible(focusRect.insetBy(dx: -margin, dy: -margin))
         reflectScrolledClipView(contentView)
     }

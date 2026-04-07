@@ -40,6 +40,7 @@
 		D3F9DF29D650B72780F0F094 /* TerminalSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = A978683BBD9E259E5D3F7546 /* TerminalSurface.swift */; };
 		D65C5CCAA7A8E8F657636424 /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261561B96E12B36929EF6FA5 /* Workspace.swift */; };
 		DB05AB6321B71628FA374250 /* PaneLayoutEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */; };
+		E1C2D3E45F60718293A4B5C6 /* CanvasSplitDividerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2C3D4E56F708293A4B5C6D7 /* CanvasSplitDividerView.swift */; };
 		F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5A15956DECE42BC68D182 /* Extensions.swift */; };
 		F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */; };
 /* End PBXBuildFile section */
@@ -76,6 +77,7 @@
 		DF437AE72351424B0EFEDBFD /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		EC9B81CDEA8E4836331A2E6D /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 		ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneLayoutEngine.swift; sourceTree = "<group>"; };
+		F2C3D4E56F708293A4B5C6D7 /* CanvasSplitDividerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasSplitDividerView.swift; sourceTree = "<group>"; };
 		EDB98A780A647FB766C3C871 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		F0718C3F7D167C201BB85AF9 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		F188918092D5460D7741715F /* GhosttyNSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyNSView.swift; sourceTree = "<group>"; };
@@ -221,6 +223,7 @@
 			isa = PBXGroup;
 			children = (
 				F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */,
+				F2C3D4E56F708293A4B5C6D7 /* CanvasSplitDividerView.swift */,
 				CC9A490C0C4E8F18D189614E /* CanvasHostingView.swift */,
 				612B700BB644C942EA3F2EB3 /* CanvasScrollView.swift */,
 				ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */,
@@ -352,6 +355,7 @@
 				D05705721001037CB61371FD /* AppTheme.swift in Sources */,
 				04F6E0A7ABEA08C3ADE169E6 /* AppUpdater.swift in Sources */,
 				F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */,
+				E1C2D3E45F60718293A4B5C6 /* CanvasSplitDividerView.swift in Sources */,
 				B5496ECAF40081BD5375BCB1 /* CanvasHostingView.swift in Sources */,
 				7B10CB53D1B2501FDEC7601A /* CanvasScrollView.swift in Sources */,
 				F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */,

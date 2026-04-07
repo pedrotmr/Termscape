@@ -4,7 +4,7 @@ import Bonsplit
 /// NSView that positions terminal surface views absolutely based on the Bonsplit layout.
 final class CanvasDocumentView: NSView {
     private var hostedViews: [String: GhosttySurfaceScrollView] = [:]
-    private let layoutEngine = PaneLayoutEngine()
+    private var dividerViews: [UUID: CanvasSplitDividerView] = [:]
     /// Retained during a context menu interaction so the Clear action can reach the focused surface.
     private weak var contextMenuTab: WorkspaceTab?
     private var currentAccentColor: NSColor = NSColor(red: 0.337, green: 0.400, blue: 0.957, alpha: 0.85)
@@ -46,17 +46,21 @@ final class CanvasDocumentView: NSView {
         guard viewportSize.width > 0 && viewportSize.height > 0 else { return nil }
 
         let tree = tab.bonsplitController.treeSnapshot()
+        let appearance = tab.bonsplitController.configuration.appearance
+        let layoutEngine = PaneLayoutEngine(
+            minPaneWidth: appearance.minimumPaneWidth,
+            minPaneHeight: appearance.minimumPaneHeight
+        )
+
         let canvasWidth = layoutEngine.requiredCanvasWidth(for: tree, viewportWidth: viewportSize.width)
-        let canvasSize = CGSize(width: canvasWidth, height: viewportSize.height)
+        let canvasHeight = layoutEngine.requiredCanvasHeight(for: tree, viewportHeight: viewportSize.height)
+        let canvasSize = CGSize(width: canvasWidth, height: canvasHeight)
 
         frame = CGRect(origin: .zero, size: canvasSize)
         tab.bonsplitController.setContainerFrame(CGRect(origin: .zero, size: canvasSize))
 
         let snapshot = tab.bonsplitController.layoutSnapshot()
         let isMultiPane = snapshot.panes.count > 1
-        let columnSpans = layoutEngine.leafColumnSpans(from: tree)
-        let totalColumns = CGFloat(layoutEngine.columnCount(from: tree))
-        let columnWidth = canvasWidth / max(totalColumns, 1)
 
         var activePaneIds = Set<String>()
         var focusedRect: CGRect?
@@ -64,24 +68,12 @@ final class CanvasDocumentView: NSView {
         for pane in snapshot.panes {
             activePaneIds.insert(pane.paneId)
 
-            let rawFrame: CGRect
-            if let span = columnSpans[pane.paneId] {
-                let x = CGFloat(span.colStart) * columnWidth
-                let w = CGFloat(span.colSpan) * columnWidth
-                rawFrame = CGRect(
-                    x: x,
-                    y: pane.frame.y,
-                    width: w,
-                    height: pane.frame.height
-                )
-            } else {
-                rawFrame = CGRect(
-                    x: pane.frame.x,
-                    y: pane.frame.y,
-                    width: pane.frame.width,
-                    height: pane.frame.height
-                )
-            }
+            let rawFrame = CGRect(
+                x: CGFloat(pane.frame.x),
+                y: CGFloat(pane.frame.y),
+                width: CGFloat(pane.frame.width),
+                height: CGFloat(pane.frame.height)
+            )
 
             let isFocused = pane.paneId == snapshot.focusedPaneId
 
@@ -133,7 +125,116 @@ final class CanvasDocumentView: NSView {
             hostedViews.removeValue(forKey: paneId)
         }
 
+        layoutSplitDividers(tree: tree, snapshot: snapshot, tab: tab, appearance: appearance)
+
+        // Dividers must stay above pane content so drags hit the splitter, not the terminal.
+        for divider in dividerViews.values {
+            addSubview(divider)
+        }
+
         return focusedRect
+    }
+
+    private func layoutSplitDividers(
+        tree: ExternalTreeNode,
+        snapshot: LayoutSnapshot,
+        tab: WorkspaceTab,
+        appearance: BonsplitConfiguration.Appearance
+    ) {
+        let layouts = collectSplitDividerLayouts(node: tree, snapshot: snapshot)
+        var active = Set<UUID>()
+        let minW = appearance.minimumPaneWidth
+        let minH = appearance.minimumPaneHeight
+
+        for item in layouts {
+            active.insert(item.id)
+            let divider: CanvasSplitDividerView
+            if let existing = dividerViews[item.id] {
+                divider = existing
+            } else {
+                divider = CanvasSplitDividerView()
+                dividerViews[item.id] = divider
+                addSubview(divider)
+            }
+            divider.configure(
+                splitId: item.id,
+                orientation: item.orientation,
+                region: item.region,
+                minPaneWidth: minW,
+                minPaneHeight: minH,
+                tab: tab
+            )
+            divider.frame = item.frame
+        }
+
+        let stale = Set(dividerViews.keys).subtracting(active)
+        for id in stale {
+            dividerViews[id]?.removeFromSuperview()
+            dividerViews.removeValue(forKey: id)
+        }
+    }
+
+    private func collectSplitDividerLayouts(
+        node: ExternalTreeNode,
+        snapshot: LayoutSnapshot
+    ) -> [(id: UUID, orientation: SplitOrientation, frame: CGRect, region: CGRect)] {
+        switch node {
+        case .pane:
+            return []
+        case .split(let s):
+            var out = collectSplitDividerLayouts(node: s.first, snapshot: snapshot)
+            out.append(contentsOf: collectSplitDividerLayouts(node: s.second, snapshot: snapshot))
+
+            let firstLeaves = leafPaneIds(from: s.first)
+            let secondLeaves = leafPaneIds(from: s.second)
+            guard let firstUnion = unionFrames(forLeaves: firstLeaves, snapshot: snapshot),
+                  let secondUnion = unionFrames(forLeaves: secondLeaves, snapshot: snapshot),
+                  let splitId = UUID(uuidString: s.id) else { return out }
+
+            let splitRegion = firstUnion.union(secondUnion)
+            let orientation: SplitOrientation = s.orientation == "horizontal" ? .horizontal : .vertical
+            let hitThickness: CGFloat = 6
+
+            let dividerFrame: CGRect
+            if orientation == .horizontal {
+                let boundary = (firstUnion.maxX + secondUnion.minX) * 0.5
+                dividerFrame = CGRect(
+                    x: boundary - hitThickness * 0.5,
+                    y: splitRegion.minY,
+                    width: hitThickness,
+                    height: splitRegion.height
+                )
+            } else {
+                let boundary = (firstUnion.maxY + secondUnion.minY) * 0.5
+                dividerFrame = CGRect(
+                    x: splitRegion.minX,
+                    y: boundary - hitThickness * 0.5,
+                    width: splitRegion.width,
+                    height: hitThickness
+                )
+            }
+
+            out.append((id: splitId, orientation: orientation, frame: dividerFrame, region: splitRegion))
+            return out
+        }
+    }
+
+    private func leafPaneIds(from node: ExternalTreeNode) -> [String] {
+        switch node {
+        case .pane(let p):
+            return [p.id]
+        case .split(let s):
+            return leafPaneIds(from: s.first) + leafPaneIds(from: s.second)
+        }
+    }
+
+    private func unionFrames(forLeaves ids: [String], snapshot: LayoutSnapshot) -> CGRect? {
+        let rects = ids.compactMap { paneId -> CGRect? in
+            guard let g = snapshot.panes.first(where: { $0.paneId == paneId }) else { return nil }
+            return CGRect(x: CGFloat(g.frame.x), y: CGFloat(g.frame.y), width: CGFloat(g.frame.width), height: CGFloat(g.frame.height))
+        }
+        guard let first = rects.first else { return nil }
+        return rects.dropFirst().reduce(first) { $0.union($1) }
     }
 
     // MARK: - Helpers

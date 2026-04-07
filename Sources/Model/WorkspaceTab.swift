@@ -110,4 +110,9 @@ extension WorkspaceTab: BonsplitDelegate {
     func splitTabBar(_ controller: BonsplitController, didChangeGeometry snapshot: LayoutSnapshot) {
         notifyLayoutChanged()
     }
+
+    /// Allow the canvas to follow Bonsplit divider drags in real time (debounced inside Bonsplit).
+    func splitTabBar(_ controller: BonsplitController, shouldNotifyDuringDrag: Bool) -> Bool {
+        true
+    }
 }
