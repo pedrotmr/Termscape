@@ -17,14 +17,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Load persisted workspaces
         appState.load()
 
-        // Create a default workspace if none exist
-        if appState.groups.isEmpty {
-            let group = WorkspaceGroup(name: "Workspaces")
-            appState.groups.append(group)
-            let workspace = appState.addWorkspace(in: group, url: nil)
-            appState.selectedWorkspaceId = workspace.id
-            workspace.ensureHasTab()
-        }
+        // Ensure startup has an active workspace when no saved workspaces exist.
+        appState.ensureStartupWorkspaceIfNeeded()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

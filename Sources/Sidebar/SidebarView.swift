@@ -100,6 +100,7 @@ struct SidebarView: View {
                     AddActionsPopover(
                         theme: t,
                         isPresented: $showAddPopover,
+                        onOpenWorkspace: openWorkspaceAction,
                         onOpenProject: openProjectAction,
                         onCloneFromURL: cloneFromURLAction,
                         onNewGroup: createGroupAction
@@ -121,6 +122,11 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var addMenuItems: some View {
+        Button {
+            openWorkspaceAction()
+        } label: {
+            Label("Open Workspace", systemImage: "plus.square.on.square")
+        }
         Button {
             openProjectAction()
         } label: {
@@ -199,6 +205,10 @@ struct SidebarView: View {
             }
     }
 
+    private func openWorkspaceAction() {
+        appState.openWorkspace()
+    }
+
     private func openProjectAction() {
         appState.openFolder()
     }
@@ -233,6 +243,7 @@ private struct SidebarIconGlyph: View {
 private struct AddActionsPopover: View {
     let theme: AppTheme
     @Binding var isPresented: Bool
+    let onOpenWorkspace: () -> Void
     let onOpenProject: () -> Void
     let onCloneFromURL: () -> Void
     let onNewGroup: () -> Void
@@ -246,6 +257,8 @@ private struct AddActionsPopover: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            AddActionsRow(systemImage: "plus.square.on.square", title: "Open Workspace", theme: theme, action: actionWrapper(onOpenWorkspace))
+            divider
             AddActionsRow(systemImage: "folder.badge.plus", title: "Open Project", theme: theme, action: actionWrapper(onOpenProject))
             divider
             AddActionsRow(systemImage: "arrow.down.to.line", title: "Clone from URL", theme: theme, action: actionWrapper(onCloneFromURL))

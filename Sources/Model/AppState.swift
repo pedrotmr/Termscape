@@ -20,8 +20,9 @@ final class AppState {
     // MARK: - Workspace management
 
     func addWorkspace(in group: WorkspaceGroup, url: URL?, name: String? = nil) -> Workspace {
-        let workspaceName = name ?? url?.lastPathComponent ?? "New Workspace"
-        let workspace = Workspace(name: workspaceName, rootURL: url)
+        let rootURL = url ?? defaultWorkspaceRootURL()
+        let workspaceName = name ?? defaultWorkspaceName(for: rootURL)
+        let workspace = Workspace(name: workspaceName, rootURL: rootURL)
         group.workspaces.append(workspace)
         return workspace
     }
@@ -57,9 +58,16 @@ final class AppState {
         }
     }
 
+    func openWorkspace() {
+        let group = getOrCreateDefaultGroup()
+        let workspace = addWorkspace(in: group, url: nil)
+        selectedWorkspaceId = workspace.id
+        workspace.ensureHasTab()
+    }
+
     func openWorkspace(at url: URL) {
         let group = getOrCreateDefaultGroup()
-        let workspace = addWorkspace(in: group, url: url)
+        let workspace = addWorkspace(in: group, url: url.standardizedFileURL)
         selectedWorkspaceId = workspace.id
         workspace.ensureHasTab()
     }
@@ -74,7 +82,7 @@ final class AppState {
         let group = getOrCreateDefaultGroup()
 
         let repoName = urlString.split(separator: "/").last.map(String.init)?.replacingOccurrences(of: ".git", with: "") ?? "repo"
-        let destURL = cloneDir.appendingPathComponent(repoName)
+        let destURL = cloneDir.appendingPathComponent(repoName).standardizedFileURL
 
         let workspace = addWorkspace(in: group, url: destURL, name: repoName)
         selectedWorkspaceId = workspace.id
@@ -91,11 +99,48 @@ final class AppState {
 
     // MARK: - Helpers
 
+    func ensureStartupWorkspaceIfNeeded() {
+        let workspaces = groups.flatMap(\.workspaces)
+        if workspaces.isEmpty {
+            let group = getOrCreateDefaultGroup()
+            let workspace = addWorkspace(in: group, url: nil)
+            selectedWorkspaceId = workspace.id
+            workspace.ensureHasTab()
+            return
+        }
+
+        if selectedWorkspace == nil, let firstWorkspace = workspaces.first {
+            selectWorkspace(firstWorkspace.id)
+        }
+    }
+
     private func getOrCreateDefaultGroup() -> WorkspaceGroup {
         if let existing = groups.first { return existing }
         let group = WorkspaceGroup(name: "Workspaces", isImplicit: true)
         groups.append(group)
         return group
+    }
+
+    private func defaultWorkspaceName(for url: URL) -> String {
+        let folderName = url.lastPathComponent
+        if !folderName.isEmpty { return folderName }
+        return url.path
+    }
+
+    private func defaultWorkspaceRootURL() -> URL {
+        let fileManager = FileManager.default
+        let homeURL = fileManager.homeDirectoryForCurrentUser.standardizedFileURL
+        let cwdPath = fileManager.currentDirectoryPath
+
+        guard !cwdPath.isEmpty, cwdPath != "/" else { return homeURL }
+
+        let cwdURL = URL(fileURLWithPath: cwdPath, isDirectory: true).standardizedFileURL
+        var isDirectory = ObjCBool(false)
+        guard fileManager.fileExists(atPath: cwdURL.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            return homeURL
+        }
+
+        return cwdURL
     }
 
     // MARK: - Persistence
