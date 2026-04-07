@@ -408,19 +408,16 @@ struct TabItemView: View {
         systemImage: String? = nil
     ) -> some View {
         let symbol = systemImage ?? action.defaultContextMenuSystemImage
+        let button = Button {
+            onContextAction(action)
+        } label: {
+            Label(title, systemImage: symbol)
+        }
+
         if let shortcut = contextMenuState.shortcuts[action] {
-            Button {
-                onContextAction(action)
-            } label: {
-                Label(title, systemImage: symbol)
-            }
-            .keyboardShortcut(shortcut)
+            button.keyboardShortcut(shortcut)
         } else {
-            Button {
-                onContextAction(action)
-            } label: {
-                Label(title, systemImage: symbol)
-            }
+            button
         }
     }
 
