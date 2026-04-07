@@ -72,7 +72,7 @@ final class TerminalSurface: Identifiable {
         var workingDirectoryCString: UnsafeMutablePointer<CChar>?
         if let wd = workingDirectory {
             workingDirectoryCString = strdup(wd)
-            surfaceConfig.working_directory = workingDirectoryCString
+            surfaceConfig.working_directory = UnsafePointer(workingDirectoryCString)
         }
         defer {
             if let ptr = workingDirectoryCString {
