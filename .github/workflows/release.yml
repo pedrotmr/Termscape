@@ -122,4 +122,4 @@ jobs:
           files: |
             build/release/dist/*.zip
             build/release/dist/*.dmg
-            build/release/dist/${{ steps.mode.outputs.appcast_filename }}
+            build/release/dist/*.xml
