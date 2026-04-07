@@ -763,6 +763,8 @@ public final class BonsplitController {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
                 self?.internalController.isExternalUpdateInProgress = false
             }
+        } else {
+            notifyGeometryChange()
         }
 
         return true
