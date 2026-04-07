@@ -46,3 +46,6 @@ Icon
 # Sensitive / local
 *.env
 *.pem
+
+# Omx
+.omx/
