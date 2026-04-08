@@ -19,7 +19,6 @@ final class GhosttyNSView: NSView, NSTextInputClient {
 
     private var trackingArea: NSTrackingArea?
     private var windowObserver: NSObjectProtocol?
-    private var eventMonitor: Any?
     private var markedText: NSAttributedString = NSAttributedString()
 
     override init(frame frameRect: NSRect) {
@@ -36,21 +35,9 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         wantsLayer = true
         layer?.masksToBounds = true
         updateTrackingAreas()
-
-        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
-            guard let self,
-                  let window = self.window,
-                  event.window == window else { return event }
-            let location = self.convert(event.locationInWindow, from: nil)
-            guard self.hitTest(location) == self else { return event }
-            return event
-        }
     }
 
     deinit {
-        if let monitor = eventMonitor {
-            NSEvent.removeMonitor(monitor)
-        }
         if let observer = windowObserver {
             NotificationCenter.default.removeObserver(observer)
         }
@@ -299,10 +286,13 @@ final class GhosttyNSView: NSView, NSTextInputClient {
     }
 
     override func mouseDown(with event: NSEvent) {
-        guard let surface = terminalSurface?.surface else { return }
-        // Notify Bonsplit that this pane is now focused (enables focus-aware splits/close)
+        // Match rightMouseDown: focus Bonsplit + first responder even if surface not ready yet.
         onFocused?()
         window?.makeFirstResponder(self)
+        if terminalSurface?.surface == nil {
+            terminalSurface?.attachToView(self)
+        }
+        guard let surface = terminalSurface?.surface else { return }
         let point = convert(event.locationInWindow, from: nil)
         let mods = modsFromEvent(event)
         ghostty_surface_mouse_pos(surface, point.x, bounds.height - point.y, mods)

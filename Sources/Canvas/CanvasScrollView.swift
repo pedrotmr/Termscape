@@ -86,10 +86,25 @@ final class CanvasScrollView: NSScrollView {
         documentCanvasView.applyTheme(canvasBackground: canvasBackground, accentColor: accentColor)
     }
 
+    // MARK: - Coalesced layout
+
+    private var needsCoalescedLayout = false
+
     override func layout() {
         super.layout()
-        if let tab = hostedTab {
-            updateLayout(for: tab, options: [])
+        scheduleCoalescedLayout()
+    }
+
+    /// Coalesces rapid layout() calls (e.g. during window resize) into a single update.
+    private func scheduleCoalescedLayout() {
+        guard !needsCoalescedLayout else { return }
+        needsCoalescedLayout = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.needsCoalescedLayout else { return }
+            self.needsCoalescedLayout = false
+            if let tab = self.hostedTab {
+                self.updateLayout(for: tab, options: [])
+            }
         }
     }
 }

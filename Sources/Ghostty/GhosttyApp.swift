@@ -64,7 +64,8 @@ final class GhosttyApp {
             guard let content else { return }
             guard let ctx = GhosttyCallbackContext.from(userdata) else { return }
             guard let surface = ctx.surface else { return }
-            ghostty_surface_complete_clipboard_request(surface, content, state, true)
+            // Deny by default — programs should not silently read the clipboard (OSC 52).
+            ghostty_surface_complete_clipboard_request(surface, content, state, false)
         }
 
         runtimeConfig.write_clipboard_cb = { _, location, content, len, _ in
@@ -95,18 +96,16 @@ final class GhosttyApp {
 
             DispatchQueue.main.async {
                 guard let appState = AppDelegate.shared?.appState else { return }
-                for group in appState.groups {
-                    for workspace in group.workspaces {
-                        for tab in workspace.tabs {
-                            if tab.surfaces[surfaceId] != nil {
-                                tab.surfaces[surfaceId]?.teardown()
-                                tab.surfaces.removeValue(forKey: surfaceId)
-                                return
-                            }
-                        }
+                // Use workspaceId to narrow the search instead of scanning all groups/workspaces.
+                guard let workspace = appState.groups.lazy.flatMap(\.workspaces)
+                    .first(where: { $0.id == workspaceId }) else { return }
+                for tab in workspace.tabs {
+                    if tab.surfaces[surfaceId] != nil {
+                        tab.surfaces[surfaceId]?.teardown()
+                        tab.surfaces.removeValue(forKey: surfaceId)
+                        return
                     }
                 }
-                _ = workspaceId // suppress unused warning
             }
         }
 
@@ -168,11 +167,20 @@ final class GhosttyApp {
 
 /// Holds per-surface state needed by Ghostty C callbacks.
 /// Must be safe to retain/release from non-main-actor contexts.
-final class GhosttyCallbackContext {
+/// `surface` is accessed from both @MainActor code and C callbacks (potentially any thread),
+/// so access is synchronized via a lock.
+final class GhosttyCallbackContext: @unchecked Sendable {
     let surfaceId: UUID
     let workspaceId: UUID
+
+    private let lock = NSLock()
+    private var _surface: ghostty_surface_t?
+
     /// The C surface pointer — set after surface creation, read by clipboard callbacks.
-    var surface: ghostty_surface_t?
+    var surface: ghostty_surface_t? {
+        get { lock.withLock { _surface } }
+        set { lock.withLock { _surface = newValue } }
+    }
 
     init(surfaceId: UUID, workspaceId: UUID) {
         self.surfaceId = surfaceId

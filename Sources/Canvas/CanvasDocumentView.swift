@@ -29,8 +29,7 @@ final class CanvasDocumentView: NSView {
         layer?.backgroundColor = canvasBackground.cgColor
         currentAccentColor = accentColor
         // Re-apply borders with new accent color
-        for (paneId, view) in hostedViews {
-            _ = paneId  // suppress warning
+        for (_, view) in hostedViews {
             let isFocused = view.layer?.borderWidth == 1.5
             if isFocused {
                 view.layer?.borderColor = accentColor.withAlphaComponent(0.85).cgColor
@@ -46,17 +45,15 @@ final class CanvasDocumentView: NSView {
         guard viewportSize.width > 0 && viewportSize.height > 0 else { return nil }
 
         let tree = tab.bonsplitController.treeSnapshot()
-        let canvasWidth = layoutEngine.requiredCanvasWidth(for: tree, viewportWidth: viewportSize.width)
-        let canvasSize = CGSize(width: canvasWidth, height: viewportSize.height)
+        let layout = layoutEngine.computeLayout(from: tree, viewportWidth: viewportSize.width)
+        let canvasSize = CGSize(width: layout.canvasWidth, height: viewportSize.height)
 
         frame = CGRect(origin: .zero, size: canvasSize)
         tab.bonsplitController.setContainerFrame(CGRect(origin: .zero, size: canvasSize))
 
         let snapshot = tab.bonsplitController.layoutSnapshot()
         let isMultiPane = snapshot.panes.count > 1
-        let columnSpans = layoutEngine.leafColumnSpans(from: tree)
-        let totalColumns = CGFloat(layoutEngine.columnCount(from: tree))
-        let columnWidth = canvasWidth / max(totalColumns, 1)
+        let columnWidth = layout.canvasWidth / max(CGFloat(layout.columnCount), 1)
 
         var activePaneIds = Set<String>()
         var focusedRect: CGRect?
@@ -65,7 +62,7 @@ final class CanvasDocumentView: NSView {
             activePaneIds.insert(pane.paneId)
 
             let rawFrame: CGRect
-            if let span = columnSpans[pane.paneId] {
+            if let span = layout.columnSpans[pane.paneId] {
                 let x = CGFloat(span.colStart) * columnWidth
                 let w = CGFloat(span.colSpan) * columnWidth
                 rawFrame = CGRect(
@@ -104,22 +101,28 @@ final class CanvasDocumentView: NSView {
                 hostedView = surface.hostedView
                 hostedViews[pane.paneId] = hostedView
                 addSubview(hostedView)
+
+                // Wire callbacks only when attaching a new view (avoid allocation churn per layout pass).
+                let paneIdStr = pane.paneId
+                hostedView.surfaceView.onFocused = { [weak tab] in
+                    guard let tab, let paneUUID = UUID(uuidString: paneIdStr) else { return }
+                    tab.bonsplitController.focusPane(PaneID(id: paneUUID))
+                }
+
+                hostedView.surfaceView.onContextMenu = { [weak self, weak tab] event in
+                    guard let self, let tab else { return }
+                    self.contextMenuTab = tab
+                    NSMenu.popUpContextMenu(self.buildContextMenu(isMultiPane: isMultiPane), with: event, for: self)
+                }
             }
 
             hostedView.frame = rawFrame
             applyBorder(to: hostedView, focused: isFocused, multiPane: isMultiPane)
 
-            let paneIdStr = pane.paneId
-            hostedView.surfaceView.onFocused = { [weak tab] in
-                guard let tab, let paneUUID = UUID(uuidString: paneIdStr) else { return }
-                tab.bonsplitController.focusPane(PaneID(id: paneUUID))
-            }
-
-            // Wire right-click context menu
-            hostedView.surfaceView.onContextMenu = { [weak self, weak tab] event in
-                guard let self, let tab else { return }
-                self.contextMenuTab = tab
-                NSMenu.popUpContextMenu(self.buildContextMenu(isMultiPane: isMultiPane), with: event, for: self)
+            // Deliver any pending input (e.g. clone command) once the surface exists.
+            if let pending = tab.pendingInputOnceAttached, surface.surface != nil {
+                surface.sendText(pending)
+                tab.pendingInputOnceAttached = nil
             }
 
             if isFocused {
