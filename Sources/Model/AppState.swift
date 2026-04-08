@@ -88,7 +88,12 @@ final class AppState {
 
         let homeURL = FileManager.default.homeDirectoryForCurrentUser
         let cloneDir = homeURL.appendingPathComponent("Developer")
-        try? FileManager.default.createDirectory(at: cloneDir, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: cloneDir, withIntermediateDirectories: true)
+        } catch {
+            print("Failed to create clone directory at \(cloneDir.path): \(error)")
+            return
+        }
 
         let group = getOrCreateDefaultGroup()
 
