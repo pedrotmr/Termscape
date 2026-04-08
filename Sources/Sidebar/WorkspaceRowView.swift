@@ -144,7 +144,6 @@ struct WorkspaceRowView: View {
         }
         .padding(.leading, 10)
         .padding(.trailing, 10 + ((isHovered && !isRenaming) ? Self.hoveredCloseReserveWidth : 0))
-        .padding(.trailing, 10 + ((isHovered && !isRenaming) ? Self.hoveredCloseReserveWidth : 0))
         .padding(.vertical, 7)
         .background(rowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 7))

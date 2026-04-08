@@ -14,7 +14,11 @@ final class AppState {
     var cloneURL: String = ""
 
     var selectedWorkspace: Workspace? {
-        groups.flatMap(\.workspaces).first { $0.id == selectedWorkspaceId }
+        guard let id = selectedWorkspaceId else { return nil }
+        for group in groups {
+            if let ws = group.workspaces.first(where: { $0.id == id }) { return ws }
+        }
+        return nil
     }
 
     // MARK: - Workspace management
@@ -24,6 +28,7 @@ final class AppState {
         let workspaceName = name ?? defaultWorkspaceName(for: rootURL)
         let workspace = Workspace(name: workspaceName, rootURL: rootURL)
         group.workspaces.append(workspace)
+        schedulePersist()
         return workspace
     }
 
@@ -33,6 +38,7 @@ final class AppState {
         if selectedWorkspaceId == workspace.id {
             selectedWorkspaceId = groups.flatMap(\.workspaces).first?.id
         }
+        schedulePersist()
     }
 
     func selectWorkspace(_ id: UUID) {
@@ -73,7 +79,12 @@ final class AppState {
     }
 
     func cloneRepository(urlString: String) {
-        guard !urlString.isEmpty else { return }
+        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Validate URL scheme to prevent shell injection
+        let allowedPrefixes = ["https://", "http://", "git@", "ssh://", "git://"]
+        guard allowedPrefixes.contains(where: { trimmed.hasPrefix($0) }) else { return }
 
         let homeURL = FileManager.default.homeDirectoryForCurrentUser
         let cloneDir = homeURL.appendingPathComponent("Developer")
@@ -81,20 +92,28 @@ final class AppState {
 
         let group = getOrCreateDefaultGroup()
 
-        let repoName = urlString.split(separator: "/").last.map(String.init)?.replacingOccurrences(of: ".git", with: "") ?? "repo"
+        let repoName = trimmed.split(separator: "/").last.map(String.init)?.replacingOccurrences(of: ".git", with: "") ?? "repo"
         let destURL = cloneDir.appendingPathComponent(repoName).standardizedFileURL
 
         let workspace = addWorkspace(in: group, url: destURL, name: repoName)
         selectedWorkspaceId = workspace.id
         workspace.ensureHasTab()
 
-        if let tab = workspace.tabs.first, let surface = tab.surfaces.values.first {
-            let cloneCommand = "git clone \(urlString) \(destURL.path) && cd \(destURL.path)\n"
-            surface.sendText(cloneCommand)
+        // Defer clone command until the surface exists and attaches to a window.
+        // Surfaces are created lazily during the next render cycle.
+        if let tab = workspace.tabs.first {
+            let quotedURL = shellQuote(trimmed)
+            let quotedPath = shellQuote(destURL.path)
+            let cloneCommand = "git clone \(quotedURL) \(quotedPath) && cd \(quotedPath)\n"
+            tab.pendingInputOnceAttached = cloneCommand
         }
 
         showCloneSheet = false
         cloneURL = ""
+    }
+
+    private func shellQuote(_ s: String) -> String {
+        "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
     // MARK: - Helpers
@@ -144,6 +163,16 @@ final class AppState {
     }
 
     // MARK: - Persistence
+
+    private var persistWorkItem: DispatchWorkItem?
+
+    /// Debounced persist — schedules a write after a short delay, coalescing rapid mutations.
+    func schedulePersist() {
+        persistWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in self?.persist() }
+        persistWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: item)
+    }
 
     private var persistenceURL: URL? {
         guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {

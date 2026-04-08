@@ -16,6 +16,9 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     /// Terminal surfaces keyed by Bonsplit TabID's UUID.
     var surfaces: [UUID: TerminalSurface] = [:]
 
+    /// Text to send to the first surface once it attaches (e.g. a clone command).
+    var pendingInputOnceAttached: String?
+
     private let workspaceURL: URL?
 
     init(title: String = "Terminal", workspaceURL: URL?, workspaceId: UUID) {
@@ -31,30 +34,9 @@ final class WorkspaceTab: ObservableObject, Identifiable {
         config.appearance.minimumPaneHeight = 200
         self.bonsplitController = BonsplitController(configuration: config)
 
-        // Wire delegate so canvas redraws on every layout change (splits, resizes, closes)
+        // Wire delegate so canvas redraws on layout and focus changes (splits, resizes, closes, pane focus)
         // The delegate is held weakly by BonsplitController, so no retain cycle.
         self.bonsplitController.delegate = self
-    }
-
-    /// Create the initial terminal surface for this tab.
-    /// Must be called once after init, from the UI layer.
-    func createInitialSurface() -> TerminalSurface {
-        let surface = TerminalSurface(
-            workspaceId: workspaceId,
-            workingDirectory: workspaceURL?.path
-        )
-
-        // Create the first pane in Bonsplit
-        let tabId = bonsplitController.createTab(
-            title: title,
-            icon: "terminal",
-            kind: "terminal"
-        )
-        if let tabId {
-            surfaces[tabId.uuid] = surface
-        }
-
-        return surface
     }
 
     func createSurface(for tabId: TabID) -> TerminalSurface {
@@ -104,6 +86,10 @@ extension WorkspaceTab: BonsplitDelegate {
     }
 
     func splitTabBar(_ controller: BonsplitController, didClosePane paneId: PaneID) {
+        notifyLayoutChanged()
+    }
+
+    func splitTabBar(_ controller: BonsplitController, didFocusPane pane: PaneID) {
         notifyLayoutChanged()
     }
 

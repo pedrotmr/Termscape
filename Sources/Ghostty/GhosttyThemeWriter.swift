@@ -23,19 +23,34 @@ enum GhosttyThemeWriter {
     }
 
     static func removeOverride() {
-        try? FileManager.default.removeItem(at: themeFileURL)
+        do {
+            try FileManager.default.removeItem(at: themeFileURL)
+        } catch {
+            // File may not exist — that's fine; log other errors.
+            if (error as NSError).code != NSFileNoSuchFileError {
+                print("[Termscape] Failed to remove theme override: \(error)")
+            }
+        }
         reloadDefaultConfig()
     }
 
     // MARK: - File writing
 
     private static func write(_ t: TerminalTheme) {
-        // Ensure ~/.config/ghostty/ exists
         let dir = themeFileURL.deletingLastPathComponent()
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        } catch {
+            print("[Termscape] Failed to create ghostty config dir: \(error)")
+            return
+        }
 
         let content = buildConfig(t)
-        try? content.write(to: themeFileURL, atomically: true, encoding: .utf8)
+        do {
+            try content.write(to: themeFileURL, atomically: true, encoding: .utf8)
+        } catch {
+            print("[Termscape] Failed to write theme file: \(error)")
+        }
     }
 
     private static func buildConfig(_ t: TerminalTheme) -> String {
