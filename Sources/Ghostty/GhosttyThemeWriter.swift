@@ -95,8 +95,7 @@ enum GhosttyThemeWriter {
         for step in blendSteps {
             lifted = dimSuggestion.blended(toward: foreground, amount: step)
             if contrastRatio(lifted, background) >= minimumContrast {
-                adjusted[suggestionColorIndex] = lifted.hexString
-                return adjusted
+                break
             }
         }
 
