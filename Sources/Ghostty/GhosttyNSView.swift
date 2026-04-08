@@ -178,22 +178,15 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         keyEvent.composing = false
         keyEvent.unshifted_codepoint = unshiftedCodepoint(from: event)
 
-        guard includeText else {
-            keyEvent.text = nil
-            _ = ghostty_surface_key(surface, keyEvent)
-            return
-        }
-
-        let text = event.charactersIgnoringModifiers ?? event.characters ?? ""
+        let text = includeText ? (event.charactersIgnoringModifiers ?? event.characters ?? "") : ""
         if text.isEmpty {
             keyEvent.text = nil
             _ = ghostty_surface_key(surface, keyEvent)
-            return
-        }
-
-        _ = text.withCString { ptr in
-            keyEvent.text = ptr
-            return ghostty_surface_key(surface, keyEvent)
+        } else {
+            _ = text.withCString { ptr in
+                keyEvent.text = ptr
+                return ghostty_surface_key(surface, keyEvent)
+            }
         }
     }
 
