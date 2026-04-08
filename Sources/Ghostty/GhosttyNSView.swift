@@ -161,7 +161,7 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         let isSpecialKey = Self.directKeyCodes.contains(event.keyCode)
 
         if (hasSystemMod || isSpecialKey) && !hasMarkedText() {
-            sendKeyDirectly(event, surface: surface)
+            sendKeyDirectly(event, surface: surface, includeText: !isSpecialKey)
             return
         }
 
@@ -169,7 +169,7 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         self.inputContext?.handleEvent(event)
     }
 
-    private func sendKeyDirectly(_ event: NSEvent, surface: ghostty_surface_t) {
+    private func sendKeyDirectly(_ event: NSEvent, surface: ghostty_surface_t, includeText: Bool) {
         var keyEvent = ghostty_input_key_s()
         keyEvent.action = event.isARepeat ? GHOSTTY_ACTION_REPEAT : GHOSTTY_ACTION_PRESS
         keyEvent.keycode = UInt32(event.keyCode)
@@ -178,15 +178,22 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         keyEvent.composing = false
         keyEvent.unshifted_codepoint = unshiftedCodepoint(from: event)
 
+        guard includeText else {
+            keyEvent.text = nil
+            _ = ghostty_surface_key(surface, keyEvent)
+            return
+        }
+
         let text = event.charactersIgnoringModifiers ?? event.characters ?? ""
         if text.isEmpty {
             keyEvent.text = nil
             _ = ghostty_surface_key(surface, keyEvent)
-        } else {
-            _ = text.withCString { ptr in
-                keyEvent.text = ptr
-                return ghostty_surface_key(surface, keyEvent)
-            }
+            return
+        }
+
+        _ = text.withCString { ptr in
+            keyEvent.text = ptr
+            return ghostty_surface_key(surface, keyEvent)
         }
     }
 
