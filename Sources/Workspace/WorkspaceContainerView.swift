@@ -81,18 +81,36 @@ struct WorkspaceContainerView: View {
 
         if orientation == .horizontal {
             if beforeSnapshot.panes.count == 2 {
-                let viewportWidth = estimatedViewportWidth(from: beforeSnapshot)
-                if viewportWidth >= WorkspaceTab.minimumViewportWidthForThreePaneEqualization {
-                    tab.invalidateThreePaneStretchCache()
-                    tab.rebalanceThreePaneHorizontalWidthsForStretchMode(viewportWidth: viewportWidth)
-                } else if let targetPaneId {
-                    tab.invalidateThreePaneStretchCache()
-                    applyHorizontalSplitCreationSizing(
+                let isTargetInsideHorizontalContext: Bool
+                if let targetPaneId {
+                    isTargetInsideHorizontalContext = HorizontalPaneSizingEngine.targetPaneHasHorizontalAncestor(
+                        in: beforeTree,
+                        paneId: targetPaneId.id.uuidString
+                    )
+                } else {
+                    isTargetInsideHorizontalContext = HorizontalPaneSizingEngine.containsHorizontalSplit(in: beforeTree)
+                }
+
+                if !isTargetInsideHorizontalContext {
+                    applyFirstHorizontalSplitSizing(
                         tab: tab,
                         targetPaneId: targetPaneId,
-                        newPaneId: newPaneId,
-                        beforeSnapshot: beforeSnapshot
+                        newPaneId: newPaneId
                     )
+                } else {
+                    let viewportWidth = estimatedViewportWidth(from: beforeSnapshot)
+                    if viewportWidth >= WorkspaceTab.minimumViewportWidthForThreePaneEqualization {
+                        tab.invalidateThreePaneStretchCache()
+                        tab.rebalanceThreePaneHorizontalWidthsForStretchMode(viewportWidth: viewportWidth)
+                    } else if let targetPaneId {
+                        tab.invalidateThreePaneStretchCache()
+                        applyHorizontalSplitCreationSizing(
+                            tab: tab,
+                            targetPaneId: targetPaneId,
+                            newPaneId: newPaneId,
+                            beforeSnapshot: beforeSnapshot
+                        )
+                    }
                 }
             } else {
                 let shouldUseLocalFirstHorizontalBehavior: Bool
