@@ -33,7 +33,7 @@ final class CanvasScrollView: NSScrollView {
         scrollerStyle = .legacy
         autohidesScrollers = true
         drawsBackground = true
-        backgroundColor = NSColor(red: 0.125, green: 0.118, blue: 0.110, alpha: 1)
+        backgroundColor = AppTheme.tobacco.canvasBackground
         borderType = .noBorder
         documentView = documentCanvasView
     }
