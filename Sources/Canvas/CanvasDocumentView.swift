@@ -11,7 +11,7 @@ final class CanvasDocumentView: NSView {
     private weak var contextMenuTab: WorkspaceTab?
     private weak var currentTab: WorkspaceTab?
 
-    private var currentCanvasBackground: NSColor = NSColor(red: 0.125, green: 0.118, blue: 0.110, alpha: 1)
+    private var currentCanvasBackground: NSColor = AppTheme.tobacco.canvasBackground
     private var currentAccentColor: NSColor = NSColor(red: 0.337, green: 0.400, blue: 0.957, alpha: 0.85)
 
     private struct HorizontalDragState {
