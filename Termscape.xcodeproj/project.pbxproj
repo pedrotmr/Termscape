@@ -23,6 +23,7 @@
 		647725629CEF0E055944A951 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F0718C3F7D167C201BB85AF9 /* MetalKit.framework */; };
 		7B10CB53D1B2501FDEC7601A /* CanvasScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612B700BB644C942EA3F2EB3 /* CanvasScrollView.swift */; };
 		7D6081722E151B340D1D4103 /* GhosttyNSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F188918092D5460D7741715F /* GhosttyNSView.swift */; };
+		81285CE453E1FCD649984304 /* HorizontalPaneSizingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AE8AD69F5F1B66526D750 /* HorizontalPaneSizingEngine.swift */; };
 		82AB12FA9FDF7A82442EA627 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */; };
 		8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D13644947346C5C3B6824FE /* GhosttyApp.swift */; };
 		91A95B45D79D5332ABCDBFE7 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40BBEA2DF39DEE65354CC615 /* Carbon.framework */; };
@@ -40,6 +41,7 @@
 		D3F9DF29D650B72780F0F094 /* TerminalSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = A978683BBD9E259E5D3F7546 /* TerminalSurface.swift */; };
 		D65C5CCAA7A8E8F657636424 /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261561B96E12B36929EF6FA5 /* Workspace.swift */; };
 		DB05AB6321B71628FA374250 /* PaneLayoutEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */; };
+		EB7CADE425DAF9E7F92DB400 /* PaneDividerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48594151CBFD24181532EB5E /* PaneDividerView.swift */; };
 		F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5A15956DECE42BC68D182 /* Extensions.swift */; };
 		F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */; };
 /* End PBXBuildFile section */
@@ -51,6 +53,7 @@
 		3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyThemeWriter.swift; sourceTree = "<group>"; };
 		40BBEA2DF39DEE65354CC615 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
+		48594151CBFD24181532EB5E /* PaneDividerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneDividerView.swift; sourceTree = "<group>"; };
 		50AF240872C7EB5781E7A324 /* GroupRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRowView.swift; sourceTree = "<group>"; };
 		5AF576AD4FE79205F70B7DD8 /* AppUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdater.swift; sourceTree = "<group>"; };
 		5B1A23E64C268162427581A8 /* bonsplit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = bonsplit; path = vendor/bonsplit; sourceTree = SOURCE_ROOT; };
@@ -61,6 +64,7 @@
 		71FDDA40E9167FCA2B07A49D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		74D7D60369E322A18AEA2A1F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		8CCACB7F0513F9521697FA12 /* Termscape.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termscape.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		921AE8AD69F5F1B66526D750 /* HorizontalPaneSizingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalPaneSizingEngine.swift; sourceTree = "<group>"; };
 		A265BCC5F2838C098FFAE4DF /* WorkspaceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTab.swift; sourceTree = "<group>"; };
 		A3C6290AEA74AE75AC7B213D /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		A515485939A32E03853D1B61 /* WorkspaceRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRowView.swift; sourceTree = "<group>"; };
@@ -223,6 +227,8 @@
 				F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */,
 				CC9A490C0C4E8F18D189614E /* CanvasHostingView.swift */,
 				612B700BB644C942EA3F2EB3 /* CanvasScrollView.swift */,
+				921AE8AD69F5F1B66526D750 /* HorizontalPaneSizingEngine.swift */,
+				48594151CBFD24181532EB5E /* PaneDividerView.swift */,
 				ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */,
 			);
 			path = Canvas;
@@ -361,6 +367,8 @@
 				59618C3590FF7C9BB3AA8EC9 /* GhosttyThemeWriter.swift in Sources */,
 				A56FDF195CBDFD989D590227 /* Group.swift in Sources */,
 				C48E523E7A43B6C64861501A /* GroupRowView.swift in Sources */,
+				81285CE453E1FCD649984304 /* HorizontalPaneSizingEngine.swift in Sources */,
+				EB7CADE425DAF9E7F92DB400 /* PaneDividerView.swift in Sources */,
 				DB05AB6321B71628FA374250 /* PaneLayoutEngine.swift in Sources */,
 				82AB12FA9FDF7A82442EA627 /* SettingsView.swift in Sources */,
 				37E6BDB8DB7856661C6970DC /* SidebarView.swift in Sources */,
@@ -390,13 +398,9 @@
 				);
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/Resources";
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Termscape;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				OTHER_LDFLAGS = (
-					"-lc++",
-					"-lz",
-				);
+				OTHER_LDFLAGS = "-lc++ -lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.termscape.app;
 				PRODUCT_NAME = Termscape;
 				SDKROOT = macosx;
@@ -543,13 +547,9 @@
 				);
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/Resources";
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Termscape;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				OTHER_LDFLAGS = (
-					"-lc++",
-					"-lz",
-				);
+				OTHER_LDFLAGS = "-lc++ -lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.termscape.app;
 				PRODUCT_NAME = Termscape;
 				SDKROOT = macosx;

@@ -25,7 +25,7 @@ final class GhosttySurfaceScrollView: NSView {
 
         // Background
         backgroundView.wantsLayer = true
-        backgroundView.layer?.backgroundColor = NSColor.black.cgColor
+        backgroundView.layer?.backgroundColor = NSColor(red: 0.125, green: 0.118, blue: 0.110, alpha: 1).cgColor
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(backgroundView)
 

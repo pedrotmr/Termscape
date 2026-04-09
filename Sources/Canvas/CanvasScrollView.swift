@@ -13,6 +13,8 @@ final class CanvasScrollView: NSScrollView {
 
     /// Weak so the scroll view does not retain the tab; updated from `CanvasHostingView`.
     weak var hostedTab: WorkspaceTab?
+    private var isPerformingLayoutUpdate = false
+    private var lastViewportSize: CGSize = .zero
 
     override init(frame frameRect: NSRect) {
         documentCanvasView = CanvasDocumentView()
@@ -30,12 +32,17 @@ final class CanvasScrollView: NSScrollView {
         horizontalScrollElasticity = .automatic
         scrollerStyle = .legacy
         autohidesScrollers = true
-        drawsBackground = false
+        drawsBackground = true
+        backgroundColor = NSColor(red: 0.125, green: 0.118, blue: 0.110, alpha: 1)
         borderType = .noBorder
         documentView = documentCanvasView
     }
 
     func updateLayout(for tab: WorkspaceTab, options: CanvasLayoutUpdateOptions = []) {
+        if isPerformingLayoutUpdate { return }
+        isPerformingLayoutUpdate = true
+        defer { isPerformingLayoutUpdate = false }
+
         let viewportSize = documentVisibleRect.size
         guard viewportSize.width > 0 && viewportSize.height > 0 else { return }
 
@@ -83,6 +90,7 @@ final class CanvasScrollView: NSScrollView {
     }
 
     func applyTheme(canvasBackground: NSColor, accentColor: NSColor) {
+        backgroundColor = canvasBackground
         documentCanvasView.applyTheme(canvasBackground: canvasBackground, accentColor: accentColor)
     }
 
@@ -92,6 +100,15 @@ final class CanvasScrollView: NSScrollView {
 
     override func layout() {
         super.layout()
+        guard !isPerformingLayoutUpdate else { return }
+        let viewportSize = documentVisibleRect.size
+        guard viewportSize.width > 0, viewportSize.height > 0 else { return }
+
+        let viewportChanged = abs(viewportSize.width - lastViewportSize.width) > 0.5
+            || abs(viewportSize.height - lastViewportSize.height) > 0.5
+        guard viewportChanged else { return }
+
+        lastViewportSize = viewportSize
         scheduleCoalescedLayout()
     }
 

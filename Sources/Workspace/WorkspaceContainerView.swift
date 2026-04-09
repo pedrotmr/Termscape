@@ -73,7 +73,55 @@ struct WorkspaceContainerView: View {
     /// Bonsplit creates new panes with no tabs — we must add one so the canvas can
     /// attach a TerminalSurface to it.
     private func splitPane(tab: WorkspaceTab, orientation: SplitOrientation) {
+        let beforeSnapshot = tab.bonsplitController.layoutSnapshot()
+        let beforeTree = tab.bonsplitController.treeSnapshot()
+        let targetPaneId = tab.bonsplitController.focusedPaneId
+
         guard let newPaneId = tab.bonsplitController.splitPane(nil, orientation: orientation) else { return }
+
+        if orientation == .horizontal {
+            if beforeSnapshot.panes.count == 2 {
+                let viewportWidth = estimatedViewportWidth(from: beforeSnapshot)
+                if viewportWidth >= WorkspaceTab.minimumViewportWidthForThreePaneEqualization {
+                    tab.invalidateThreePaneStretchCache()
+                    tab.rebalanceThreePaneHorizontalWidthsForStretchMode(viewportWidth: viewportWidth)
+                } else if let targetPaneId {
+                    tab.invalidateThreePaneStretchCache()
+                    applyHorizontalSplitCreationSizing(
+                        tab: tab,
+                        targetPaneId: targetPaneId,
+                        newPaneId: newPaneId,
+                        beforeSnapshot: beforeSnapshot
+                    )
+                }
+            } else {
+                let shouldUseLocalFirstHorizontalBehavior: Bool
+                if let targetPaneId {
+                    shouldUseLocalFirstHorizontalBehavior = !HorizontalPaneSizingEngine.targetPaneHasHorizontalAncestor(
+                        in: beforeTree,
+                        paneId: targetPaneId.id.uuidString
+                    )
+                } else {
+                    shouldUseLocalFirstHorizontalBehavior = !HorizontalPaneSizingEngine.containsHorizontalSplit(in: beforeTree)
+                }
+
+                if shouldUseLocalFirstHorizontalBehavior {
+                    applyFirstHorizontalSplitSizing(
+                        tab: tab,
+                        targetPaneId: targetPaneId,
+                        newPaneId: newPaneId
+                    )
+                } else if let targetPaneId {
+                    applyHorizontalSplitCreationSizing(
+                        tab: tab,
+                        targetPaneId: targetPaneId,
+                        newPaneId: newPaneId,
+                        beforeSnapshot: beforeSnapshot
+                    )
+                }
+            }
+        }
+
         // Create a Bonsplit tab in the new pane. This fires didCreateTab → notifyLayoutChanged
         // → CanvasDocumentView creates a TerminalSurface for the new pane.
         tab.bonsplitController.createTab(
@@ -82,5 +130,59 @@ struct WorkspaceContainerView: View {
             kind: "terminal",
             inPane: newPaneId
         )
+    }
+
+    /// Keeps existing pane widths fixed and inserts the new pane with the default creation width.
+    private func applyHorizontalSplitCreationSizing(
+        tab: WorkspaceTab,
+        targetPaneId: PaneID,
+        newPaneId: PaneID,
+        beforeSnapshot: LayoutSnapshot
+    ) {
+        let tree = tab.bonsplitController.treeSnapshot()
+        var desiredPaneWidths = HorizontalPaneSizingEngine.paneWidths(from: beforeSnapshot)
+
+        let targetPaneKey = targetPaneId.id.uuidString
+        let newPaneKey = newPaneId.id.uuidString
+        let targetWidth = max(
+            desiredPaneWidths[targetPaneKey] ?? WorkspaceTab.splitInsertionMinimumPaneWidth,
+            1
+        )
+
+        desiredPaneWidths[targetPaneKey] = targetWidth
+        desiredPaneWidths[newPaneKey] = WorkspaceTab.splitInsertionMinimumPaneWidth
+
+        let plan = HorizontalPaneSizingEngine.buildPlan(
+            tree: tree,
+            desiredPaneWidths: desiredPaneWidths,
+            fallbackPaneWidth: WorkspaceTab.interactiveMinimumPaneWidth
+        )
+
+        for (splitId, position) in plan.splitPositions {
+            _ = tab.bonsplitController.setDividerPosition(position, forSplit: splitId)
+        }
+        tab.canvasWidth = max(plan.rootWidth, 1)
+    }
+
+    /// First local horizontal split for a pane starts as 50/50 and fills the viewport.
+    private func applyFirstHorizontalSplitSizing(tab: WorkspaceTab, targetPaneId: PaneID?, newPaneId: PaneID) {
+        let tree = tab.bonsplitController.treeSnapshot()
+        guard let targetPaneId else { return }
+        guard let splitUUID = HorizontalPaneSizingEngine.splitIDContainingPanes(
+            in: tree,
+            firstPaneId: targetPaneId.id.uuidString,
+            secondPaneId: newPaneId.id.uuidString,
+            orientation: "horizontal"
+        ) else { return }
+
+        _ = tab.bonsplitController.setDividerPosition(0.5, forSplit: splitUUID)
+        tab.canvasWidth = 0
+    }
+
+    private func estimatedViewportWidth(from snapshot: LayoutSnapshot) -> CGFloat {
+        let maxX = snapshot.panes.reduce(CGFloat(0)) { partial, pane in
+            max(partial, CGFloat(pane.frame.x + pane.frame.width))
+        }
+        return max(maxX, 1)
     }
 }
