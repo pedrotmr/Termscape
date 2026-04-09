@@ -43,6 +43,10 @@ if [[ -z "$SPARKLE_DOWNLOAD_URL_PREFIX" ]]; then
   fi
 fi
 
+# Sparkle resolves enclosure names with URL(relativeTo:). Without a trailing slash, the last
+# path segment is treated as a file and replaced by the zip name (wrong for GitHub: .../download/<tag>/<asset>).
+[[ "$SPARKLE_DOWNLOAD_URL_PREFIX" == */ ]] || SPARKLE_DOWNLOAD_URL_PREFIX="${SPARKLE_DOWNLOAD_URL_PREFIX}/"
+
 GENERATE_APPCAST=$(build_generate_appcast)
 
 rm -rf "$APPCAST_ARCHIVES_DIR"
@@ -55,6 +59,7 @@ args=(
 )
 
 if [[ -n "$SPARKLE_RELEASE_NOTES_URL_PREFIX" ]]; then
+  [[ "$SPARKLE_RELEASE_NOTES_URL_PREFIX" == */ ]] || SPARKLE_RELEASE_NOTES_URL_PREFIX="${SPARKLE_RELEASE_NOTES_URL_PREFIX}/"
   args+=(--release-notes-url-prefix "$SPARKLE_RELEASE_NOTES_URL_PREFIX")
 fi
 
@@ -72,13 +77,24 @@ fi
 
 cp "$APPCAST_ARCHIVES_DIR/$APPCAST_FILENAME" "$APPCAST_PATH"
 
-mapfile -t enclosure_urls < <(sed -n 's/.*enclosure url="\([^"]*\)".*/\1/p' "$APPCAST_PATH")
+# Bash 3.2 (macOS / GitHub Actions) has no mapfile; use read loop.
+enclosure_urls=()
+while IFS= read -r url || [[ -n "${url:-}" ]]; do
+  [[ -n "${url:-}" ]] && enclosure_urls+=("$url")
+done < <(sed -n 's/.*enclosure url="\([^"]*\)".*/\1/p' "$APPCAST_PATH")
 [[ "${#enclosure_urls[@]}" -gt 0 ]] || fail "generated appcast has no enclosure URLs"
 
 for enclosure_url in "${enclosure_urls[@]}"; do
   if [[ -n "${GITHUB_REF_NAME:-}" && "$enclosure_url" == *"/releases/download/"* ]]; then
     [[ "$enclosure_url" == *"/releases/download/${GITHUB_REF_NAME}/"* ]] \
       || fail "appcast enclosure URL missing release tag path (${GITHUB_REF_NAME}): $enclosure_url"
+  fi
+
+  # In this workflow appcast generation runs before the GitHub Release upload step,
+  # so release asset URLs can legitimately return 404 at this point.
+  if [[ -n "${GITHUB_ACTIONS:-}" && "$enclosure_url" == *"github.com/"*"/releases/download/"* ]]; then
+    log "skipping pre-publish download check in CI for GitHub release URL: $enclosure_url"
+    continue
   fi
 
   http_code=$(curl -sS -L -o /dev/null -w '%{http_code}' "$enclosure_url" || true)

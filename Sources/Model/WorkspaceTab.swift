@@ -4,6 +4,11 @@ import Bonsplit
 
 @MainActor
 final class WorkspaceTab: ObservableObject, Identifiable {
+    static let splitInsertionMinimumPaneWidth: CGFloat = 600
+    static let interactiveMinimumPaneWidth: CGFloat = 200
+    static let interactiveMinimumPaneHeight: CGFloat = 200
+    static let minimumViewportWidthForThreePaneEqualization: CGFloat = 1000
+
     let id: UUID
     @Published var title: String
     @Published var isPinned: Bool = false
@@ -19,7 +24,11 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     /// Text to send to the first surface once it attaches (e.g. a clone command).
     var pendingInputOnceAttached: String?
 
+    /// Absolute canvas width in points. Preserves pane sizing when the window size changes.
+    var canvasWidth: CGFloat = 0
+
     private let workspaceURL: URL?
+    private var lastThreePaneStretchUsesThirds: Bool?
 
     init(title: String = "Terminal", workspaceURL: URL?, workspaceId: UUID) {
         self.id = UUID()
@@ -30,8 +39,9 @@ final class WorkspaceTab: ObservableObject, Identifiable {
         var config = BonsplitConfiguration()
         config.allowSplits = true
         config.autoCloseEmptyPanes = true
-        config.appearance.minimumPaneWidth = 600
-        config.appearance.minimumPaneHeight = 200
+        config.appearance.minimumPaneWidth = Self.interactiveMinimumPaneWidth
+        config.appearance.minimumPaneHeight = Self.interactiveMinimumPaneHeight
+        config.appearance.enableAnimations = false
         self.bonsplitController = BonsplitController(configuration: config)
 
         // Wire delegate so canvas redraws on layout and focus changes (splits, resizes, closes, pane focus)
@@ -51,6 +61,53 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     func removeSurface(for tabId: TabID) {
         surfaces[tabId.uuid]?.teardown()
         surfaces.removeValue(forKey: tabId.uuid)
+    }
+
+    func invalidateThreePaneStretchCache() {
+        lastThreePaneStretchUsesThirds = nil
+    }
+
+    /// In stretch mode with three panes, rebalance horizontal splits to equal thirds.
+    func rebalanceThreePaneHorizontalWidthsForStretchMode(viewportWidth: CGFloat? = nil) {
+        guard canvasWidth <= 0 else {
+            lastThreePaneStretchUsesThirds = nil
+            return
+        }
+
+        let tree = bonsplitController.treeSnapshot()
+        let paneIDs = HorizontalPaneSizingEngine.paneIDs(in: tree)
+        guard paneIDs.count == 3 else {
+            lastThreePaneStretchUsesThirds = nil
+            return
+        }
+
+        let effectiveViewportWidth = max(viewportWidth ?? estimatedViewportWidthForStretchMode(), 1)
+        let shouldUseEqualThirds = effectiveViewportWidth >= Self.minimumViewportWidthForThreePaneEqualization
+        guard lastThreePaneStretchUsesThirds != shouldUseEqualThirds else { return }
+
+        if shouldUseEqualThirds {
+            var desiredPaneWidths: [String: CGFloat] = [:]
+            desiredPaneWidths.reserveCapacity(3)
+            for paneID in paneIDs {
+                desiredPaneWidths[paneID] = 1
+            }
+
+            let plan = HorizontalPaneSizingEngine.buildPlan(
+                tree: tree,
+                desiredPaneWidths: desiredPaneWidths,
+                fallbackPaneWidth: Self.interactiveMinimumPaneWidth
+            )
+
+            for (splitId, position) in plan.splitPositions {
+                _ = bonsplitController.setDividerPosition(position, forSplit: splitId)
+            }
+        } else {
+            for splitId in HorizontalPaneSizingEngine.splitIDs(in: tree, orientation: "horizontal") {
+                _ = bonsplitController.setDividerPosition(0.5, forSplit: splitId)
+            }
+        }
+        canvasWidth = 0
+        lastThreePaneStretchUsesThirds = shouldUseEqualThirds
     }
 
     func teardown() {
@@ -86,6 +143,7 @@ extension WorkspaceTab: BonsplitDelegate {
     }
 
     func splitTabBar(_ controller: BonsplitController, didClosePane paneId: PaneID) {
+        normalizeLayoutForSmallPaneCount()
         notifyLayoutChanged()
     }
 
@@ -95,5 +153,41 @@ extension WorkspaceTab: BonsplitDelegate {
 
     func splitTabBar(_ controller: BonsplitController, didChangeGeometry snapshot: LayoutSnapshot) {
         notifyLayoutChanged()
+    }
+
+    /// When the tree collapses to three panes or fewer, switch from strict-width mode
+    /// back to viewport-filling behavior with small-pane normalization.
+    private func normalizeLayoutForSmallPaneCount() {
+        let paneCount = bonsplitController.allPaneIds.count
+        guard paneCount <= 3 else {
+            lastThreePaneStretchUsesThirds = nil
+            return
+        }
+
+        // Let CanvasDocumentView derive width from the current viewport.
+        canvasWidth = 0
+
+        if paneCount == 3 {
+            invalidateThreePaneStretchCache()
+            rebalanceThreePaneHorizontalWidthsForStretchMode()
+            return
+        }
+
+        lastThreePaneStretchUsesThirds = nil
+        guard paneCount == 2 else { return }
+        let tree = bonsplitController.treeSnapshot()
+        guard case .split(let split) = tree,
+              let splitUUID = UUID(uuidString: split.id)
+        else { return }
+
+        _ = bonsplitController.setDividerPosition(0.5, forSplit: splitUUID)
+    }
+
+    private func estimatedViewportWidthForStretchMode() -> CGFloat {
+        let snapshot = bonsplitController.layoutSnapshot()
+        let maxX = snapshot.panes.reduce(CGFloat(0)) { partial, pane in
+            max(partial, CGFloat(pane.frame.x + pane.frame.width))
+        }
+        return max(maxX, 1)
     }
 }

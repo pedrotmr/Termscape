@@ -3,13 +3,11 @@ import Bonsplit
 
 /// Pre-computed layout result from a single tree traversal.
 struct PaneLayoutResult {
-    let columnCount: Int
     let canvasWidth: CGFloat
-    let columnSpans: [String: (colStart: Int, colSpan: Int)]
+    let paneHorizontalSpans: [String: (xFraction: CGFloat, widthFraction: CGFloat)]
 }
 
-/// Computes the canvas width needed to maintain minimum pane widths.
-/// Works with Bonsplit's LayoutSnapshot to get absolute pane frames.
+/// Computes proportional horizontal spans and the canvas width required to maintain minimum pane widths.
 struct PaneLayoutEngine {
     let minPaneWidth: CGFloat
 
@@ -17,44 +15,83 @@ struct PaneLayoutEngine {
         self.minPaneWidth = minPaneWidth
     }
 
-    /// Compute column count, canvas width, and per-pane column spans in a single tree traversal.
+    /// Compute canvas width and per-pane horizontal spans in one tree traversal.
     func computeLayout(from tree: ExternalTreeNode, viewportWidth: CGFloat) -> PaneLayoutResult {
-        let columns = columnCount(from: tree)
-        let canvasWidth = max(CGFloat(columns) * minPaneWidth, viewportWidth)
-        let tuples = leafColumnSpansRecursive(tree, colStart: 0, colSpan: columns)
-        let spans = Dictionary(uniqueKeysWithValues: tuples.map { ($0.paneId, ($0.colStart, $0.colSpan)) })
-        return PaneLayoutResult(columnCount: columns, canvasWidth: canvasWidth, columnSpans: spans)
+        var spans: [String: (xFraction: CGFloat, widthFraction: CGFloat)] = [:]
+        appendHorizontalFractions(
+            for: tree,
+            xFraction: 0,
+            widthFraction: 1,
+            spans: &spans
+        )
+        let requiredCanvasWidth = minimumCanvasWidth(for: spans)
+        let canvasWidth = max(viewportWidth, requiredCanvasWidth)
+
+        return PaneLayoutResult(
+            canvasWidth: canvasWidth,
+            paneHorizontalSpans: spans
+        )
     }
 
     // MARK: - Private
 
-    private func columnCount(from tree: ExternalTreeNode) -> Int {
-        switch tree {
-        case .pane:
-            return 1
-        case .split(let s) where s.orientation == "horizontal":
-            return columnCount(from: s.first) + columnCount(from: s.second)
-        case .split(let s):
-            return max(columnCount(from: s.first), columnCount(from: s.second))
+    /// Derives the minimum canvas width required to keep every pane at or above `minPaneWidth`
+    /// while preserving the current divider ratios.
+    private func minimumCanvasWidth(for spans: [String: (xFraction: CGFloat, widthFraction: CGFloat)]) -> CGFloat {
+        guard !spans.isEmpty else { return minPaneWidth }
+
+        var requiredWidth: CGFloat = minPaneWidth
+        for (_, span) in spans {
+            // Guard against tiny numerical drift near zero.
+            let widthFraction = max(span.widthFraction, 0.0001)
+            let paneRequiredWidth = minPaneWidth / widthFraction
+            requiredWidth = max(requiredWidth, paneRequiredWidth)
         }
+        return requiredWidth
     }
 
-    private func leafColumnSpansRecursive(
-        _ node: ExternalTreeNode,
-        colStart: Int,
-        colSpan: Int
-    ) -> [(paneId: String, colStart: Int, colSpan: Int)] {
+    private func appendHorizontalFractions(
+        for node: ExternalTreeNode,
+        xFraction: CGFloat,
+        widthFraction: CGFloat,
+        spans: inout [String: (xFraction: CGFloat, widthFraction: CGFloat)]
+    ) {
         switch node {
-        case .pane(let p):
-            return [(p.id, colStart, colSpan)]
-        case .split(let s) where s.orientation == "horizontal":
-            let leftCols = columnCount(from: s.first)
-            let rightCols = columnCount(from: s.second)
-            return leafColumnSpansRecursive(s.first, colStart: colStart, colSpan: leftCols)
-                + leafColumnSpansRecursive(s.second, colStart: colStart + leftCols, colSpan: rightCols)
-        case .split(let s):
-            return leafColumnSpansRecursive(s.first, colStart: colStart, colSpan: colSpan)
-                + leafColumnSpansRecursive(s.second, colStart: colStart, colSpan: colSpan)
+        case .pane(let pane):
+            spans[pane.id] = (
+                xFraction: xFraction,
+                widthFraction: widthFraction
+            )
+        case .split(let split) where split.orientation == "horizontal":
+            let divider = CGFloat(split.dividerPosition).clamped(to: 0.0001...0.9999)
+            let firstWidthFraction = widthFraction * divider
+            let secondWidthFraction = widthFraction - firstWidthFraction
+
+            appendHorizontalFractions(
+                for: split.first,
+                xFraction: xFraction,
+                widthFraction: firstWidthFraction,
+                spans: &spans
+            )
+            appendHorizontalFractions(
+                for: split.second,
+                xFraction: xFraction + firstWidthFraction,
+                widthFraction: secondWidthFraction,
+                spans: &spans
+            )
+        case .split(let split):
+            appendHorizontalFractions(
+                for: split.first,
+                xFraction: xFraction,
+                widthFraction: widthFraction,
+                spans: &spans
+            )
+            appendHorizontalFractions(
+                for: split.second,
+                xFraction: xFraction,
+                widthFraction: widthFraction,
+                spans: &spans
+            )
         }
     }
 }
