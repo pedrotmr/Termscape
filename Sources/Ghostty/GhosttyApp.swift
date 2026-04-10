@@ -53,8 +53,8 @@ final class GhosttyApp {
             }
         }
 
-        runtimeConfig.action_cb = { app, target, action in
-            GhosttyApp.shared.handleAction(target: target, action: action)
+        runtimeConfig.action_cb = { _, target, action in
+            GhosttyApp.handleRuntimeAction(target: target, action: action)
         }
 
         runtimeConfig.read_clipboard_cb = { userdata, location, state in
@@ -160,21 +160,31 @@ final class GhosttyApp {
         ghostty_app_tick(app)
     }
 
-    @discardableResult
-    func handleAction(target: ghostty_target_s, action: ghostty_action_s) -> Bool {
+    /// Ghostty invokes `action_cb` from an arbitrary thread; keep this `nonisolated` and hop to the main queue for AppKit and `surfaceRefsByHandle`.
+    nonisolated private static func handleRuntimeAction(target: ghostty_target_s, action: ghostty_action_s) -> Bool {
         switch action.tag {
         case GHOSTTY_ACTION_QUIT:
-            NSApp.terminate(nil)
+            DispatchQueue.main.async {
+                NSApp.terminate(nil)
+            }
             return true
         case GHOSTTY_ACTION_PWD:
-            guard let surface = surface(for: target),
-                  let pwdCString = action.action.pwd.pwd
-            else { return false }
-            surface.updateCurrentWorkingDirectory(String(cString: pwdCString))
+            guard target.tag == GHOSTTY_TARGET_SURFACE else { return false }
+            let surfaceKey = surfaceHandle(for: target.target.surface)
+            guard let pwdCString = action.action.pwd.pwd else { return false }
+            let path = String(cString: pwdCString)
+            DispatchQueue.main.async {
+                GhosttyApp.shared.applyPwdUpdate(surfaceKey: surfaceKey, path: path)
+            }
             return true
         default:
             return false
         }
+    }
+
+    private func applyPwdUpdate(surfaceKey: UInt, path: String) {
+        guard let surface = surface(forSurfaceKey: surfaceKey) else { return }
+        surface.updateCurrentWorkingDirectory(path)
     }
 
     func registerSurface(_ terminalSurface: TerminalSurface, for handle: ghostty_surface_t) {
@@ -185,10 +195,7 @@ final class GhosttyApp {
         surfaceRefsByHandle.removeValue(forKey: Self.surfaceHandle(for: handle))
     }
 
-    private func surface(for target: ghostty_target_s) -> TerminalSurface? {
-        guard target.tag == GHOSTTY_TARGET_SURFACE else { return nil }
-
-        let key = Self.surfaceHandle(for: target.target.surface)
+    private func surface(forSurfaceKey key: UInt) -> TerminalSurface? {
         guard let ref = surfaceRefsByHandle[key] else { return nil }
         guard let surface = ref.surface else {
             surfaceRefsByHandle.removeValue(forKey: key)
@@ -197,7 +204,7 @@ final class GhosttyApp {
         return surface
     }
 
-    private static func surfaceHandle(for surface: ghostty_surface_t) -> UInt {
+    nonisolated private static func surfaceHandle(for surface: ghostty_surface_t) -> UInt {
         UInt(bitPattern: surface)
     }
 }
