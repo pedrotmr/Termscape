@@ -10,6 +10,15 @@ final class GhosttyApp {
     private(set) var app: ghostty_app_t?
     private(set) var config: ghostty_config_t?
 
+    private final class WeakSurfaceRef {
+        weak var surface: TerminalSurface?
+
+        init(surface: TerminalSurface) {
+            self.surface = surface
+        }
+    }
+
+    private var surfaceRefsByHandle: [UInt: WeakSurfaceRef] = [:]
     private var appObservers: [NSObjectProtocol] = []
 
     private init() {
@@ -157,9 +166,39 @@ final class GhosttyApp {
         case GHOSTTY_ACTION_QUIT:
             NSApp.terminate(nil)
             return true
+        case GHOSTTY_ACTION_PWD:
+            guard let surface = surface(for: target),
+                  let pwdCString = action.action.pwd.pwd
+            else { return false }
+            surface.updateCurrentWorkingDirectory(String(cString: pwdCString))
+            return true
         default:
             return false
         }
+    }
+
+    func registerSurface(_ terminalSurface: TerminalSurface, for handle: ghostty_surface_t) {
+        surfaceRefsByHandle[Self.surfaceHandle(for: handle)] = WeakSurfaceRef(surface: terminalSurface)
+    }
+
+    func unregisterSurface(_ handle: ghostty_surface_t) {
+        surfaceRefsByHandle.removeValue(forKey: Self.surfaceHandle(for: handle))
+    }
+
+    private func surface(for target: ghostty_target_s) -> TerminalSurface? {
+        guard target.tag == GHOSTTY_TARGET_SURFACE else { return nil }
+
+        let key = Self.surfaceHandle(for: target.target.surface)
+        guard let ref = surfaceRefsByHandle[key] else { return nil }
+        guard let surface = ref.surface else {
+            surfaceRefsByHandle.removeValue(forKey: key)
+            return nil
+        }
+        return surface
+    }
+
+    private static func surfaceHandle(for surface: ghostty_surface_t) -> UInt {
+        UInt(bitPattern: surface)
     }
 }
 

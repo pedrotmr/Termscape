@@ -13,6 +13,7 @@ final class TerminalSurface: Identifiable {
     private var callbackContext: Unmanaged<GhosttyCallbackContext>?
 
     private let workingDirectory: String?
+    private(set) var currentWorkingDirectory: String?
 
     /// The AppKit view hierarchy: GhosttySurfaceScrollView > documentView > GhosttyNSView
     let hostedView: GhosttySurfaceScrollView
@@ -23,7 +24,9 @@ final class TerminalSurface: Identifiable {
     init(workspaceId: UUID, workingDirectory: String? = nil) {
         self.id = UUID()
         self.workspaceId = workspaceId
-        self.workingDirectory = workingDirectory
+        let normalizedDirectory = Self.normalizeWorkingDirectoryPath(workingDirectory)
+        self.workingDirectory = normalizedDirectory
+        self.currentWorkingDirectory = normalizedDirectory
 
         // Initial non-zero frame so Metal layer initializes correctly
         let view = GhosttyNSView(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
@@ -70,7 +73,7 @@ final class TerminalSurface: Identifiable {
 
         // Keep this C string alive until ghostty_surface_new consumes it.
         var workingDirectoryCString: UnsafeMutablePointer<CChar>?
-        if let wd = workingDirectory {
+        if let wd = currentWorkingDirectory {
             workingDirectoryCString = strdup(wd)
             surfaceConfig.working_directory = UnsafePointer(workingDirectoryCString)
         }
@@ -119,6 +122,7 @@ final class TerminalSurface: Identifiable {
             callbackContext = nil
             print("Failed to create ghostty surface")
         } else {
+            GhosttyApp.shared.registerSurface(self, for: surface!)
             // Give the callback context a direct reference to the surface
             // so clipboard callbacks can use it without going through Swift actors
             ctx.surface = surface
@@ -136,6 +140,8 @@ final class TerminalSurface: Identifiable {
             ctx?.release()
             return
         }
+
+        GhosttyApp.shared.unregisterSurface(s)
 
         Task { @MainActor in
             ghostty_surface_free(s)
@@ -171,5 +177,42 @@ final class TerminalSurface: Identifiable {
         Self.clearScreenAction.withCString { ptr in
             _ = ghostty_surface_binding_action(surface, ptr, UInt(Self.clearScreenAction.utf8.count))
         }
+    }
+
+    var splitWorkingDirectory: String? {
+        currentWorkingDirectory ?? workingDirectory
+    }
+
+    func updateCurrentWorkingDirectory(_ workingDirectory: String) {
+        guard let normalized = Self.normalizeWorkingDirectoryPath(workingDirectory) else { return }
+        currentWorkingDirectory = normalized
+    }
+
+    static func normalizeWorkingDirectoryPath(_ rawPath: String?) -> String? {
+        guard let rawPath else { return nil }
+        let trimmed = rawPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let candidatePath: String
+        if let url = URL(string: trimmed), url.isFileURL {
+            candidatePath = url.path
+        } else {
+            candidatePath = (trimmed as NSString).expandingTildeInPath
+        }
+
+        guard !candidatePath.isEmpty else { return nil }
+
+        let normalizedPath = URL(fileURLWithPath: candidatePath, isDirectory: true)
+            .standardizedFileURL
+            .path
+
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: normalizedPath, isDirectory: &isDirectory),
+              isDirectory.boolValue
+        else {
+            return nil
+        }
+
+        return normalizedPath
     }
 }
