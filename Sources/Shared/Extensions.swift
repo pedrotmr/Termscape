@@ -112,7 +112,6 @@ struct SidebarHoverTooltipModifier: ViewModifier {
                         .fixedSize()
                         .shadow(color: .black.opacity(0.45), radius: 8, y: 2)
                         .offset(y: Self.verticalOffsetAboveControl)
-                        .offset(y: Self.verticalOffsetAboveControl)
                         .allowsHitTesting(false)
                 }
             }
