@@ -76,6 +76,11 @@ struct WorkspaceContainerView: View {
         let beforeSnapshot = tab.bonsplitController.layoutSnapshot()
         let beforeTree = tab.bonsplitController.treeSnapshot()
         let targetPaneId = tab.bonsplitController.focusedPaneId
+        let sourceWorkingDirectory = focusedSurfaceWorkingDirectory(
+            tab: tab,
+            targetPaneId: targetPaneId,
+            snapshot: beforeSnapshot
+        )
 
         guard let newPaneId = tab.bonsplitController.splitPane(nil, orientation: orientation) else { return }
 
@@ -142,6 +147,7 @@ struct WorkspaceContainerView: View {
 
         // Create a Bonsplit tab in the new pane. This fires didCreateTab → notifyLayoutChanged
         // → CanvasDocumentView creates a TerminalSurface for the new pane.
+        tab.queueWorkingDirectoryForNextTab(sourceWorkingDirectory, inPane: newPaneId)
         tab.bonsplitController.createTab(
             title: "Terminal",
             icon: "terminal",
@@ -202,5 +208,22 @@ struct WorkspaceContainerView: View {
             max(partial, CGFloat(pane.frame.x + pane.frame.width))
         }
         return max(maxX, 1)
+    }
+
+    private func focusedSurfaceWorkingDirectory(
+        tab: WorkspaceTab,
+        targetPaneId: PaneID?,
+        snapshot: LayoutSnapshot
+    ) -> String? {
+        guard let targetPaneId else { return nil }
+        guard let sourcePane = snapshot.panes.first(where: { $0.paneId == targetPaneId.id.uuidString }),
+              let selectedTabId = sourcePane.selectedTabId,
+              let tabUUID = UUID(uuidString: selectedTabId),
+              let sourceSurface = tab.surfaces[tabUUID]
+        else {
+            return nil
+        }
+
+        return sourceSurface.splitWorkingDirectory
     }
 }

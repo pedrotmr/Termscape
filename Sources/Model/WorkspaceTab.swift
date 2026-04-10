@@ -29,6 +29,8 @@ final class WorkspaceTab: ObservableObject, Identifiable {
 
     private let workspaceURL: URL?
     private var lastThreePaneStretchUsesThirds: Bool?
+    private var pendingWorkingDirectoryByPaneId: [UUID: String] = [:]
+    private var pendingWorkingDirectoryByTabId: [UUID: String] = [:]
 
     init(title: String = "Terminal", workspaceURL: URL?, workspaceId: UUID) {
         self.id = UUID()
@@ -50,12 +52,19 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     }
 
     func createSurface(for tabId: TabID) -> TerminalSurface {
+        let defaultWorkingDirectory = TerminalSurface.normalizeWorkingDirectoryPath(workspaceURL?.path)
+        let splitWorkingDirectory = pendingWorkingDirectoryByTabId.removeValue(forKey: tabId.uuid)
         let surface = TerminalSurface(
             workspaceId: workspaceId,
-            workingDirectory: workspaceURL?.path
+            workingDirectory: splitWorkingDirectory ?? defaultWorkingDirectory
         )
         surfaces[tabId.uuid] = surface
         return surface
+    }
+
+    func queueWorkingDirectoryForNextTab(_ workingDirectory: String?, inPane paneId: PaneID) {
+        guard let normalized = TerminalSurface.normalizeWorkingDirectoryPath(workingDirectory) else { return }
+        pendingWorkingDirectoryByPaneId[paneId.id] = normalized
     }
 
     func removeSurface(for tabId: TabID) {
@@ -128,6 +137,9 @@ extension WorkspaceTab: BonsplitDelegate {
 
     // Canvas needs to redraw whenever a tab is created (new pane tab → needs a surface)
     func splitTabBar(_ controller: BonsplitController, didCreateTab tab: Bonsplit.Tab, inPane pane: PaneID) {
+        if let pendingWorkingDirectory = pendingWorkingDirectoryByPaneId.removeValue(forKey: pane.id) {
+            pendingWorkingDirectoryByTabId[tab.id.uuid] = pendingWorkingDirectory
+        }
         notifyLayoutChanged()
     }
 
