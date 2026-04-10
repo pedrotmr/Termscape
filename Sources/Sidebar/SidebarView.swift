@@ -117,12 +117,12 @@ struct SidebarView: View {
     }
   }
 
-  private func sidebarGroupRow(group: WorkspaceGroup, index: Int) -> AnyView {
+  private func sidebarGroupRow(group: WorkspaceGroup, index: Int) -> some View {
     let reorder: AnyGesture<DragGesture.Value>? =
       group.isImplicit
       ? nil
       : groupDragGesture(for: group, at: index)
-    let row = GroupRowView(
+    return GroupRowView(
       group: group,
       isGroupReorderDragging: draggingGroupId == group.id,
       suppressHeaderCollapse: groupIdToSuppressHeaderCollapse == group.id,
@@ -161,7 +161,6 @@ struct SidebarView: View {
     )
     .animation(
       draggingGroupId == group.id ? nil : slideAnimation, value: groupDragTranslation)
-    return AnyView(row)
   }
 
   @ViewBuilder
