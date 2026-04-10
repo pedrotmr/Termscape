@@ -194,7 +194,8 @@ final class TerminalSurface: Identifiable {
         guard !trimmed.isEmpty else { return nil }
 
         let candidatePath: String
-        if let url = URL(string: trimmed), url.isFileURL {
+        if trimmed.lowercased().hasPrefix("file:") {
+            guard let url = URL(string: trimmed), url.isFileURL else { return nil }
             candidatePath = url.path
         } else {
             candidatePath = (trimmed as NSString).expandingTildeInPath
