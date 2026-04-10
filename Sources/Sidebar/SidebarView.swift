@@ -29,7 +29,6 @@ struct SidebarView: View {
   @State private var workspaceDragSourceGroupId: UUID?
   @State private var workspaceDragFromIndex: Int?
   @State private var workspaceDragTranslation: CGFloat = 0
-  @State private var workspaceDragStartMidY: CGFloat = 0
   @State private var proposedWorkspaceDrop: WorkspaceDropTarget?
   @State private var workspaceDragStartFlatIndex: Int?
   @State private var proposedWorkspaceFlatInsert: Int?
@@ -337,22 +336,19 @@ struct SidebarView: View {
     -> AnyGesture<DragGesture.Value>
   {
     AnyGesture(
-      DragGesture(minimumDistance: 3)
+      DragGesture(minimumDistance: 3, coordinateSpace: .named("sidebarList"))
         .onChanged { value in
           if draggingWorkspaceId == nil {
             draggingWorkspaceId = workspace.id
             workspaceDragSourceGroupId = group.id
             workspaceDragFromIndex = rowIndex
-            workspaceDragStartMidY = workspaceRowFrames[workspace.id]?.midY ?? 0
             let full = fullOrderedWorkspaceSlots()
             workspaceDragStartFlatIndex =
               full.firstIndex(where: { $0.workspaceId == workspace.id })
               ?? modelFallbackFlatIndex(workspaceId: workspace.id)
           }
           workspaceDragTranslation = value.translation.height
-          let cursorY =
-            workspaceRowFrames[workspace.id].map { $0.midY }
-            ?? (workspaceDragStartMidY + workspaceDragTranslation)
+          let cursorY = value.location.y
           updateProposedWorkspaceDrop(cursorY: cursorY)
           updateCollapsedGroupHoverExpand(cursorY: cursorY)
         }
@@ -494,7 +490,6 @@ struct SidebarView: View {
     workspaceDragSourceGroupId = nil
     workspaceDragFromIndex = nil
     workspaceDragTranslation = 0
-    workspaceDragStartMidY = 0
     workspaceDragStartFlatIndex = nil
     proposedWorkspaceFlatInsert = nil
     proposedWorkspaceDrop = nil
