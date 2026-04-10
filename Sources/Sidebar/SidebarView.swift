@@ -322,7 +322,8 @@ struct SidebarView: View {
       let toFlat = proposedWorkspaceFlatInsert
     else { return 0 }
     let rem = orderedWorkspaceSlots(excluding: dragId)
-    guard let remIndex = rem.firstIndex(where: { $0.workspaceId.map { $0 == workspaceId } ?? false })
+    guard
+      let remIndex = rem.firstIndex(where: { $0.workspaceId.map { $0 == workspaceId } ?? false })
     else { return 0 }
     if fromFlat < toFlat {
       if remIndex >= fromFlat && remIndex < toFlat { return -rowH }
@@ -360,7 +361,7 @@ struct SidebarView: View {
     )
   }
 
-  /// `workspaceId == nil` marks an expanded empty group (drop at `indexInGroup`, always 0).
+  /// `workspaceId == nil` is a group-level slot: empty expanded group, or no row frames while dragging the sole workspace.
   private typealias WorkspaceLayoutSlot = (groupId: UUID, indexInGroup: Int, workspaceId: UUID?)
 
   private func slotMinY(_ slot: WorkspaceLayoutSlot) -> CGFloat {
@@ -391,7 +392,7 @@ struct SidebarView: View {
     return groupFrames[slot.groupId] ?? groupHeaderFrames[slot.groupId] ?? .zero
   }
 
-  /// Visible workspace rows (and expanded empty groups), top-to-bottom (optionally excluding one id).
+  /// Workspace rows plus group-level slots for empty groups and groups with no remaining row frames (e.g. sole row dragged).
   private func orderedWorkspaceSlots(excluding excludeId: UUID?) -> [WorkspaceLayoutSlot] {
     var slots: [WorkspaceLayoutSlot] = []
     for g in appState.groups {
@@ -402,10 +403,15 @@ struct SidebarView: View {
         }
         continue
       }
+      var addedForGroup = 0
       for (i, ws) in g.workspaces.enumerated() {
         if ws.id == excludeId { continue }
         guard workspaceRowFrames[ws.id] != nil else { continue }
         slots.append((g.id, i, ws.id))
+        addedForGroup += 1
+      }
+      if addedForGroup == 0, groupFrames[g.id] != nil || groupHeaderFrames[g.id] != nil {
+        slots.append((g.id, 0, nil))
       }
     }
     return slots.sorted { slotMinY($0) < slotMinY($1) }
@@ -421,9 +427,14 @@ struct SidebarView: View {
         }
         continue
       }
+      var addedForGroup = 0
       for (i, ws) in g.workspaces.enumerated() {
         guard workspaceRowFrames[ws.id] != nil else { continue }
         slots.append((g.id, i, ws.id))
+        addedForGroup += 1
+      }
+      if addedForGroup == 0, groupFrames[g.id] != nil || groupHeaderFrames[g.id] != nil {
+        slots.append((g.id, 0, nil))
       }
     }
     return slots.sorted { slotMinY($0) < slotMinY($1) }
@@ -482,6 +493,9 @@ struct SidebarView: View {
     }
     if toFlat >= rem.count {
       let last = rem[rem.count - 1]
+      if last.workspaceId == nil {
+        return WorkspaceDropTarget(groupId: last.groupId, index: 0)
+      }
       return WorkspaceDropTarget(groupId: last.groupId, index: last.indexInGroup + 1)
     }
     let prev = rem[toFlat - 1]
@@ -558,6 +572,7 @@ struct SidebarView: View {
       guard let g = appState.groups.first(where: { $0.id == capturedId }) else { return }
       guard g.isCollapsed else { return }
       g.isCollapsed = false
+      appState.schedulePersist()
     }
     hoverExpandWorkItem = work
     DispatchQueue.main.asyncAfter(
