@@ -322,7 +322,8 @@ struct SidebarView: View {
       let toFlat = proposedWorkspaceFlatInsert
     else { return 0 }
     let rem = orderedWorkspaceSlots(excluding: dragId)
-    guard let remIndex = rem.firstIndex(where: { $0.workspaceId == workspaceId }) else { return 0 }
+    guard let remIndex = rem.firstIndex(where: { $0.workspaceId.map { $0 == workspaceId } ?? false })
+    else { return 0 }
     if fromFlat < toFlat {
       if remIndex >= fromFlat && remIndex < toFlat { return -rowH }
     } else if fromFlat > toFlat {
@@ -343,7 +344,7 @@ struct SidebarView: View {
             workspaceDragFromIndex = rowIndex
             let full = fullOrderedWorkspaceSlots()
             workspaceDragStartFlatIndex =
-              full.firstIndex(where: { $0.workspaceId == workspace.id })
+              full.firstIndex(where: { $0.workspaceId.map { $0 == workspace.id } ?? false })
               ?? modelFallbackFlatIndex(workspaceId: workspace.id)
           }
           workspaceDragTranslation = value.translation.height
@@ -359,46 +360,83 @@ struct SidebarView: View {
     )
   }
 
-  /// Visible workspace rows with layout frames, top-to-bottom (optionally excluding one id).
-  private func orderedWorkspaceSlots(excluding excludeId: UUID?) -> [(
-    groupId: UUID, indexInGroup: Int, workspaceId: UUID
-  )] {
-    var slots: [(groupId: UUID, indexInGroup: Int, workspaceId: UUID)] = []
+  /// `workspaceId == nil` marks an expanded empty group (drop at `indexInGroup`, always 0).
+  private typealias WorkspaceLayoutSlot = (groupId: UUID, indexInGroup: Int, workspaceId: UUID?)
+
+  private func slotMinY(_ slot: WorkspaceLayoutSlot) -> CGFloat {
+    if let wid = slot.workspaceId, let f = workspaceRowFrames[wid] {
+      return f.minY
+    }
+    if let headerBottom = groupHeaderFrames[slot.groupId]?.maxY {
+      return headerBottom
+    }
+    return groupFrames[slot.groupId]?.minY ?? 0
+  }
+
+  private func slotAnchorMidY(_ slot: WorkspaceLayoutSlot) -> CGFloat {
+    if let wid = slot.workspaceId, let f = workspaceRowFrames[wid] {
+      return f.midY
+    }
+    if let gf = groupFrames[slot.groupId] {
+      let top = groupHeaderFrames[slot.groupId]?.maxY ?? gf.minY
+      return (top + gf.maxY) / 2
+    }
+    return groupHeaderFrames[slot.groupId]?.midY ?? 0
+  }
+
+  private func slotRect(_ slot: WorkspaceLayoutSlot) -> CGRect {
+    if let wid = slot.workspaceId, let f = workspaceRowFrames[wid] {
+      return f
+    }
+    return groupFrames[slot.groupId] ?? groupHeaderFrames[slot.groupId] ?? .zero
+  }
+
+  /// Visible workspace rows (and expanded empty groups), top-to-bottom (optionally excluding one id).
+  private func orderedWorkspaceSlots(excluding excludeId: UUID?) -> [WorkspaceLayoutSlot] {
+    var slots: [WorkspaceLayoutSlot] = []
     for g in appState.groups {
       guard !g.isCollapsed else { continue }
+      if g.workspaces.isEmpty {
+        if groupFrames[g.id] != nil || groupHeaderFrames[g.id] != nil {
+          slots.append((g.id, 0, nil))
+        }
+        continue
+      }
       for (i, ws) in g.workspaces.enumerated() {
         if ws.id == excludeId { continue }
         guard workspaceRowFrames[ws.id] != nil else { continue }
         slots.append((g.id, i, ws.id))
       }
     }
-    return slots.sorted {
-      (workspaceRowFrames[$0.workspaceId]?.minY ?? 0)
-        < (workspaceRowFrames[$1.workspaceId]?.minY ?? 0)
-    }
+    return slots.sorted { slotMinY($0) < slotMinY($1) }
   }
 
-  private func fullOrderedWorkspaceSlots() -> [(
-    groupId: UUID, indexInGroup: Int, workspaceId: UUID
-  )] {
-    var slots: [(groupId: UUID, indexInGroup: Int, workspaceId: UUID)] = []
+  private func fullOrderedWorkspaceSlots() -> [WorkspaceLayoutSlot] {
+    var slots: [WorkspaceLayoutSlot] = []
     for g in appState.groups {
       guard !g.isCollapsed else { continue }
+      if g.workspaces.isEmpty {
+        if groupFrames[g.id] != nil || groupHeaderFrames[g.id] != nil {
+          slots.append((g.id, 0, nil))
+        }
+        continue
+      }
       for (i, ws) in g.workspaces.enumerated() {
         guard workspaceRowFrames[ws.id] != nil else { continue }
         slots.append((g.id, i, ws.id))
       }
     }
-    return slots.sorted {
-      (workspaceRowFrames[$0.workspaceId]?.minY ?? 0)
-        < (workspaceRowFrames[$1.workspaceId]?.minY ?? 0)
-    }
+    return slots.sorted { slotMinY($0) < slotMinY($1) }
   }
 
   private func modelFallbackFlatIndex(workspaceId: UUID) -> Int {
     var n = 0
     for g in appState.groups {
       guard !g.isCollapsed else { continue }
+      if g.workspaces.isEmpty {
+        n += 1
+        continue
+      }
       for ws in g.workspaces {
         if ws.id == workspaceId { return n }
         n += 1
@@ -421,8 +459,7 @@ struct SidebarView: View {
 
     var toFlat = rem.count
     for i in 0..<rem.count {
-      let rowMid = workspaceRowFrames[rem[i].workspaceId]?.midY ?? 0
-      if cursorY < rowMid {
+      if cursorY < slotAnchorMidY(rem[i]) {
         toFlat = i
         break
       }
@@ -434,7 +471,7 @@ struct SidebarView: View {
   private func workspaceDropTargetRefined(
     cursorY: CGFloat,
     toFlat: Int,
-    rem: [(groupId: UUID, indexInGroup: Int, workspaceId: UUID)]
+    rem: [WorkspaceLayoutSlot]
   ) -> WorkspaceDropTarget? {
     if rem.isEmpty {
       guard let sourceGid = workspaceDragSourceGroupId else { return nil }
@@ -450,8 +487,8 @@ struct SidebarView: View {
     let prev = rem[toFlat - 1]
     let curr = rem[toFlat]
     if prev.groupId != curr.groupId {
-      let pF = workspaceRowFrames[prev.workspaceId] ?? .zero
-      let cF = workspaceRowFrames[curr.workspaceId] ?? .zero
+      let pF = slotRect(prev)
+      let cF = slotRect(curr)
       let gapMid = (pF.maxY + cF.minY) / 2
       if cursorY < gapMid {
         return WorkspaceDropTarget(groupId: prev.groupId, index: prev.indexInGroup + 1)
