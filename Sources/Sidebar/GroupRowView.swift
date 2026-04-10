@@ -91,6 +91,7 @@ struct GroupRowView: View {
               .simultaneousGesture(workspaceDragGesture(workspace, index))
           }
         }
+        .clipped()
         .transition(.opacity)
       }
     }
