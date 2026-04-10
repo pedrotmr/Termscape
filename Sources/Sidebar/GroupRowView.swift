@@ -162,6 +162,7 @@ struct GroupRowView: View {
             guard !suppressHeaderCollapse else { return }
             withAnimation(collapseToggleAnimation) {
               group.isCollapsed.toggle()
+              appState.schedulePersist()
             }
           } label: {
             HStack(spacing: 6) {
