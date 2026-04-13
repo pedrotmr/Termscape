@@ -163,17 +163,10 @@ final class WorkspaceTab: ObservableObject, Identifiable {
 // MARK: - BonsplitDelegate
 
 extension WorkspaceTab: BonsplitDelegate {
-  private static var layoutPersistenceWorkItem: DispatchWorkItem?
-
   /// Post the notification that CanvasHostingView listens for, triggering a canvas relayout.
   func notifyLayoutChanged() {
     NotificationCenter.default.post(name: .bonsplitLayoutDidChange, object: bonsplitController)
-    Self.layoutPersistenceWorkItem?.cancel()
-    let item = DispatchWorkItem {
-      NotificationCenter.default.post(name: .workspacePersistenceNeeded, object: nil)
-    }
-    Self.layoutPersistenceWorkItem = item
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: item)
+    NotificationCenter.default.post(name: .workspacePersistenceNeeded, object: nil)
   }
 
   // Canvas needs to redraw whenever a tab is created (new pane tab → needs a surface)
