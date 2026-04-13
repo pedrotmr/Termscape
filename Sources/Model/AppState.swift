@@ -76,6 +76,7 @@ final class AppState {
   func selectWorkspace(_ id: UUID) {
     selectedWorkspaceId = id
     selectedWorkspace?.ensureHasTab()
+    schedulePersist()
   }
 
   // MARK: - Opening workspaces
@@ -231,7 +232,8 @@ final class AppState {
   func persist() {
     guard let url = persistenceURL else { return }
     do {
-      let data = try JSONEncoder().encode(groups)
+      let payload = TermscapePersistence(groups: groups, selectedWorkspaceId: selectedWorkspaceId)
+      let data = try JSONEncoder().encode(payload)
       try data.write(to: url)
     } catch {
       print("Failed to persist workspaces: \(error)")
@@ -240,11 +242,25 @@ final class AppState {
 
   func load() {
     guard let url = persistenceURL,
-      let data = try? Data(contentsOf: url),
-      let savedGroups = try? JSONDecoder().decode([WorkspaceGroup].self, from: data)
+      let data = try? Data(contentsOf: url)
     else {
       return
     }
+
+    let decoder = JSONDecoder()
+    let savedGroups: [WorkspaceGroup]
+    let savedSelection: UUID?
+
+    if let payload = try? decoder.decode(TermscapePersistence.self, from: data) {
+      savedGroups = payload.groups
+      savedSelection = payload.selectedWorkspaceId
+    } else if let legacy = try? decoder.decode([WorkspaceGroup].self, from: data) {
+      savedGroups = legacy
+      savedSelection = nil
+    } else {
+      return
+    }
+
     groups = savedGroups
     // Migration: old saves have no isImplicit field (defaults to false).
     // If every group appears non-implicit, treat the first as the implicit default.
@@ -254,7 +270,13 @@ final class AppState {
     if normalizeImplicitGroupToFirst() {
       schedulePersist()
     }
-    selectedWorkspaceId = groups.flatMap(\.workspaces).first?.id
+
+    let workspaceIds = Set(groups.flatMap(\.workspaces).map(\.id))
+    if let sel = savedSelection, workspaceIds.contains(sel) {
+      selectedWorkspaceId = sel
+    } else {
+      selectedWorkspaceId = groups.flatMap(\.workspaces).first?.id
+    }
   }
 
   /// Ungrouped workspaces stay in the first section; fixes saves where groups were reordered above the implicit bucket.
