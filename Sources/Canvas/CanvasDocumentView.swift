@@ -11,9 +11,19 @@ final class CanvasDocumentView: NSView {
   private weak var contextMenuTab: WorkspaceTab?
   private weak var currentTab: WorkspaceTab?
 
-  private var currentCanvasBackground: NSColor = AppTheme.tobacco.canvasBackground
-  private var currentAccentColor: NSColor = NSColor(
-    red: 0.337, green: 0.400, blue: 0.957, alpha: 0.85)
+  private var currentCanvasMatte: NSColor = AppTheme.tobacco.canvasMatte
+  private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
+
+  /// Arc-style floating tiles: gutters, rounded rects, neutral borders.
+  private enum CanvasPaneChrome {
+    static let interPaneGutter: CGFloat = 8
+    static let outerInsetLoose: CGFloat = 8
+    static let outerInsetTight: CGFloat = 4
+    static let viewportTightThreshold: CGFloat = 880
+    static let cornerRadius: CGFloat = 12
+    static let borderWidthFocused: CGFloat = 1.5
+    static let borderWidthNormal: CGFloat = 1
+  }
 
   private struct HorizontalDragState {
     let tree: ExternalTreeNode
@@ -45,28 +55,21 @@ final class CanvasDocumentView: NSView {
     // Manual frame defines canvas size for NSScrollView; avoid autoresizing that pins width to the clip view.
     translatesAutoresizingMaskIntoConstraints = false
     autoresizingMask = []
-    layer?.backgroundColor = currentCanvasBackground.cgColor
+    layer?.backgroundColor = currentCanvasMatte.cgColor
   }
 
   required init?(coder: NSCoder) { fatalError() }
 
   // MARK: - Theme
 
-  func applyTheme(canvasBackground: NSColor, accentColor: NSColor) {
-    currentCanvasBackground = canvasBackground
-    layer?.backgroundColor = canvasBackground.cgColor
-    currentAccentColor = accentColor
+  func applyTheme(canvasMatte: NSColor, paneBackground: NSColor, accentColor: NSColor) {
+    _ = accentColor
+    currentCanvasMatte = canvasMatte
+    currentPaneBackground = paneBackground
+    layer?.backgroundColor = canvasMatte.cgColor
 
     for (_, view) in hostedViews {
-      let isFocused = view.layer?.borderWidth == 1.5
-      if isFocused {
-        view.layer?.borderColor = accentColor.withAlphaComponent(0.85).cgColor
-      }
-      view.setBackgroundColor(canvasBackground)
-    }
-
-    for (_, divider) in dividerViews {
-      divider.accentColor = accentColor
+      view.setBackgroundColor(paneBackground)
     }
   }
 
@@ -80,7 +83,8 @@ final class CanvasDocumentView: NSView {
     tab.rebalanceThreePaneHorizontalWidthsForStretchMode(viewportWidth: viewportSize.width)
 
     let canvasWidth = max(tab.canvasWidth <= 0 ? viewportSize.width : tab.canvasWidth, 1)
-    let canvasSize = CGSize(width: canvasWidth, height: viewportSize.height)
+    let canvasHeight = viewportSize.height
+    let canvasSize = CGSize(width: canvasWidth, height: canvasHeight)
     frame = CGRect(origin: .zero, size: canvasSize)
     tab.bonsplitController.setContainerFrame(CGRect(origin: .zero, size: canvasSize))
 
@@ -88,18 +92,33 @@ final class CanvasDocumentView: NSView {
     let snapshot = tab.bonsplitController.layoutSnapshot()
     let isMultiPane = snapshot.panes.count > 1
 
+    let outerInset = Self.outerInset(viewportWidth: viewportSize.width)
+    let innerLayoutRegion = CGRect(
+      x: outerInset,
+      y: outerInset,
+      width: max(canvasWidth - 2 * outerInset, 1),
+      height: max(canvasHeight - 2 * outerInset, 1)
+    )
+
+    // Partition the inner layout rect with the same rounded edges as `computeDividers`, so every
+    // split gets exactly `interPaneGutter` (horizontal vs vertical splits stay visually consistent).
+    let displayFrames: [String: CGRect]
+    if snapshot.panes.count <= 1, let only = snapshot.panes.first {
+      displayFrames = [only.paneId: innerLayoutRegion]
+    } else {
+      displayFrames = paneFramesWithInterPaneGutters(
+        from: tree,
+        region: innerLayoutRegion,
+        gutter: CanvasPaneChrome.interPaneGutter
+      )
+    }
+
     var activePaneIds = Set<String>()
     var focusedRect: CGRect?
 
     for pane in snapshot.panes {
       activePaneIds.insert(pane.paneId)
-      let rawFrame = CGRect(
-        x: pane.frame.x,
-        y: pane.frame.y,
-        width: pane.frame.width,
-        height: pane.frame.height
-      )
-      let displayFrame = pixelAlignedFrame(rawFrame)
+      guard let displayFrame = displayFrames[pane.paneId] else { continue }
       let isFocused = pane.paneId == snapshot.focusedPaneId
 
       guard let selectedTabIdStr = pane.selectedTabId,
@@ -121,7 +140,7 @@ final class CanvasDocumentView: NSView {
         hostedViews[pane.paneId]?.removeFromSuperview()
         hostedView = surface.hostedView
         hostedViews[pane.paneId] = hostedView
-        hostedView.setBackgroundColor(currentCanvasBackground)
+        hostedView.setBackgroundColor(currentPaneBackground)
         addSubview(hostedView)
 
         // Wire callbacks only when attaching a new view (avoid allocation churn per layout pass).
@@ -140,7 +159,7 @@ final class CanvasDocumentView: NSView {
       }
 
       hostedView.frame = displayFrame
-      applyBorder(to: hostedView, focused: isFocused, multiPane: isMultiPane)
+      applyPaneChrome(to: hostedView, focused: isFocused)
 
       // Deliver any pending input (e.g. clone command) once the surface exists.
       if let pending = tab.pendingInputOnceAttached, surface.surface != nil {
@@ -159,10 +178,7 @@ final class CanvasDocumentView: NSView {
       hostedViews.removeValue(forKey: paneId)
     }
 
-    let dividerDescriptors = computeDividers(
-      from: tree,
-      region: CGRect(origin: .zero, size: canvasSize)
-    )
+    let dividerDescriptors = computeDividers(from: tree, region: innerLayoutRegion)
     let activeSplitIds = Set(dividerDescriptors.map(\.splitId))
 
     for descriptor in dividerDescriptors {
@@ -171,7 +187,6 @@ final class CanvasDocumentView: NSView {
         dividerView = existing
       } else {
         let created = PaneDividerView(frame: descriptor.frame)
-        created.accentColor = currentAccentColor
         let splitId = descriptor.splitId
         let splitOrientation = descriptor.orientation
         created.onPressFocus = { [weak self] focusSide in
@@ -461,6 +476,72 @@ final class CanvasDocumentView: NSView {
     }
   }
 
+  /// Same split geometry as `computeDividers`, with a fixed physical gutter at each split (symmetric H/V).
+  private func paneFramesWithInterPaneGutters(
+    from node: ExternalTreeNode,
+    region: CGRect,
+    gutter: CGFloat
+  ) -> [String: CGRect] {
+    let half = gutter / 2
+    switch node {
+    case .pane(let p):
+      return [p.id: region]
+    case .split(let split):
+      let axis: SplitAxis = split.orientation == "horizontal" ? .horizontal : .vertical
+      let bounds = clampedDividerBounds(
+        first: split.first,
+        second: split.second,
+        axis: axis,
+        parentSpan: split.orientation == "horizontal" ? max(region.width, 1) : max(region.height, 1)
+      )
+      let position = CGFloat(split.dividerPosition).clamped(to: bounds)
+
+      if split.orientation == "horizontal" {
+        let dividerEdge = (region.minX + region.width * position).rounded()
+        let firstRegion = CGRect(
+          x: region.minX,
+          y: region.minY,
+          width: max(dividerEdge - region.minX - half, 1),
+          height: region.height
+        )
+        let secondRegion = CGRect(
+          x: dividerEdge + half,
+          y: region.minY,
+          width: max(region.maxX - dividerEdge - half, 1),
+          height: region.height
+        )
+        return paneFramesWithInterPaneGutters(
+          from: split.first, region: firstRegion, gutter: gutter
+        )
+        .merging(
+          paneFramesWithInterPaneGutters(from: split.second, region: secondRegion, gutter: gutter),
+          uniquingKeysWith: { existing, _ in existing }
+        )
+      } else {
+        let dividerEdge = (region.minY + region.height * position).rounded()
+        let firstRegion = CGRect(
+          x: region.minX,
+          y: region.minY,
+          width: region.width,
+          height: max(dividerEdge - region.minY - half, 1)
+        )
+        let secondRegion = CGRect(
+          x: region.minX,
+          y: dividerEdge + half,
+          width: region.width,
+          height: max(region.maxY - dividerEdge - half, 1)
+        )
+        return paneFramesWithInterPaneGutters(
+          from: split.first, region: firstRegion, gutter: gutter
+        )
+        .merging(
+          paneFramesWithInterPaneGutters(from: split.second, region: secondRegion, gutter: gutter),
+          uniquingKeysWith: { existing, _ in existing }
+        )
+      }
+    }
+  }
+
   private func computeDividers(from node: ExternalTreeNode, region: CGRect) -> [DividerDescriptor] {
     switch node {
     case .pane:
@@ -595,32 +676,22 @@ final class CanvasDocumentView: NSView {
     }
   }
 
-  private func pixelAlignedFrame(_ frame: CGRect) -> CGRect {
-    let minX = floor(frame.minX)
-    let minY = floor(frame.minY)
-    let maxX = ceil(frame.maxX)
-    let maxY = ceil(frame.maxY)
-    return CGRect(
-      x: minX,
-      y: minY,
-      width: max(maxX - minX, 0),
-      height: max(maxY - minY, 0)
-    )
+  private static func outerInset(viewportWidth: CGFloat) -> CGFloat {
+    viewportWidth < CanvasPaneChrome.viewportTightThreshold
+      ? CanvasPaneChrome.outerInsetTight : CanvasPaneChrome.outerInsetLoose
   }
 
-  private func applyBorder(to view: GhosttySurfaceScrollView, focused: Bool, multiPane: Bool) {
+  private func applyPaneChrome(to view: GhosttySurfaceScrollView, focused: Bool) {
     view.wantsLayer = true
-    guard multiPane else {
-      view.layer?.borderWidth = 0
-      view.layer?.borderColor = nil
-      return
-    }
+    guard let layer = view.layer else { return }
+    layer.cornerRadius = CanvasPaneChrome.cornerRadius
+    layer.masksToBounds = true
     if focused {
-      view.layer?.borderWidth = 1.5
-      view.layer?.borderColor = currentAccentColor.withAlphaComponent(0.85).cgColor
+      layer.borderWidth = CanvasPaneChrome.borderWidthFocused
+      layer.borderColor = NSColor.labelColor.withAlphaComponent(0.42).cgColor
     } else {
-      view.layer?.borderWidth = 0.5
-      view.layer?.borderColor = NSColor.white.withAlphaComponent(0.12).cgColor
+      layer.borderWidth = CanvasPaneChrome.borderWidthNormal
+      layer.borderColor = NSColor.labelColor.withAlphaComponent(0.18).cgColor
     }
   }
 
