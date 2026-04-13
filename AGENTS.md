@@ -66,3 +66,23 @@ xcodebuild -project Termscape.xcodeproj -scheme Termscape -configuration Debug b
 ```
 
 Release: `Scripts/release/` (ZIP/DMG, notarize, Sparkle); CI on tag `v*` via `.github/workflows/release.yml`.
+
+## Cursor Cloud specific instructions
+
+### Platform constraint
+
+Termscape is a **macOS-only** native app (arm64, AppKit, Metal, SwiftUI). The Cloud Agent VM runs **Linux x86_64**, so `xcodebuild` and running the app are not possible here. Full builds and GUI testing require a macOS host with Xcode 16.
+
+### What works on Linux
+
+| Tool | Command | Notes |
+|------|---------|-------|
+| **SwiftLint** | `swiftlint lint` (from repo root) | Lints all `.swift` files across `Sources/` and `vendor/bonsplit/`. No `.swiftlint.yml` config exists yet; uses defaults. |
+| **Swift syntax** | `swiftc -typecheck <file>` | Works for platform-independent logic only; files importing AppKit/SwiftUI/Metal will fail. |
+| **Git LFS** | `git lfs pull` | Required after clone to fetch `GhosttyKit.xcframework` static library. Already run by the update script. |
+
+### Key caveats
+
+- **No test runner on Linux.** The only test target (`BonsplitTests`) imports AppKit/SwiftUI and cannot compile on Linux. Tests must run on macOS via `xcodebuild test` or Xcode.
+- **No `xcodegen` on Linux.** The committed `Termscape.xcodeproj` is usable as-is; regeneration requires macOS.
+- The SwiftLint violations in the existing codebase (identifier_name, line_length, etc.) are pre-existing. Focus lint checks on files you modify.
