@@ -67,9 +67,9 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     config.appearance.minimumPaneHeight = Self.interactiveMinimumPaneHeight
     config.appearance.enableAnimations = false
     self.bonsplitController = BonsplitController(configuration: config)
-    self.bonsplitController.delegate = self
     let focus = snapshot.focusedPaneId.flatMap(UUID.init(uuidString:)).map { PaneID(id: $0) }
     self.bonsplitController.replaceRootTree(with: snapshot.tree, focusedPaneId: focus)
+    self.bonsplitController.delegate = self
 
     if let map = snapshot.workingDirectoryByTerminalTabId {
       for (idStr, rawPath) in map {
