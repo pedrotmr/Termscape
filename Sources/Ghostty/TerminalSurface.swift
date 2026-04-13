@@ -188,21 +188,12 @@ final class TerminalSurface: Identifiable {
     currentWorkingDirectory ?? workingDirectory
   }
 
-  private static var pwdPersistWorkItem: DispatchWorkItem?
-
   func updateCurrentWorkingDirectory(_ workingDirectory: String) {
-    guard let normalized = Self.normalizeWorkingDirectoryPath(workingDirectory) else { return }
+    guard let normalized = Self.normalizeWorkingDirectoryPath(workingDirectory),
+      normalized != currentWorkingDirectory
+    else { return }
     currentWorkingDirectory = normalized
-    Self.schedulePersistAfterPwdChange()
-  }
-
-  private static func schedulePersistAfterPwdChange() {
-    pwdPersistWorkItem?.cancel()
-    let item = DispatchWorkItem {
-      NotificationCenter.default.post(name: .workspacePersistenceNeeded, object: nil)
-    }
-    pwdPersistWorkItem = item
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: item)
+    NotificationCenter.default.post(name: .workspacePersistenceNeeded, object: nil)
   }
 
   static func normalizeWorkingDirectoryPath(_ rawPath: String?) -> String? {
