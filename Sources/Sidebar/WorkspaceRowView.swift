@@ -87,12 +87,6 @@ struct WorkspaceRowView: View {
         }
         .buttonStyle(.plain)
         .onHover { hoverCloseWorkspace = $0 }
-        .sidebarHoverTooltip(
-          "Close workspace",
-          theme: t,
-          isPresented: $hoverCloseWorkspace,
-          horizontalAnchor: .trailing
-        )
         .padding(.trailing, 10)
         .transition(.opacity)
       }
