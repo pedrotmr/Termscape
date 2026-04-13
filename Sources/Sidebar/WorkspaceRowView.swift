@@ -302,8 +302,15 @@ struct WorkspaceRowView: View {
   }
 
   private func moveWorkspace(to targetGroup: WorkspaceGroup) {
-    group.workspaces.removeAll { $0.id == workspace.id }
-    targetGroup.workspaces.append(workspace)
-    appState.persist()
+    guard let fromIndex = group.workspaces.firstIndex(where: { $0.id == workspace.id }) else {
+      return
+    }
+    appState.relocateWorkspace(
+      workspaceId: workspace.id,
+      fromGroupId: group.id,
+      fromIndex: fromIndex,
+      toGroupId: targetGroup.id,
+      toIndex: targetGroup.workspaces.count
+    )
   }
 }
