@@ -87,12 +87,6 @@ struct WorkspaceRowView: View {
         }
         .buttonStyle(.plain)
         .onHover { hoverCloseWorkspace = $0 }
-        .sidebarHoverTooltip(
-          "Close workspace",
-          theme: t,
-          isPresented: $hoverCloseWorkspace,
-          horizontalAnchor: .trailing
-        )
         .padding(.trailing, 10)
         .transition(.opacity)
       }
@@ -308,15 +302,8 @@ struct WorkspaceRowView: View {
   }
 
   private func moveWorkspace(to targetGroup: WorkspaceGroup) {
-    guard let fromIndex = group.workspaces.firstIndex(where: { $0.id == workspace.id }) else {
-      return
-    }
-    appState.relocateWorkspace(
-      workspaceId: workspace.id,
-      fromGroupId: group.id,
-      fromIndex: fromIndex,
-      toGroupId: targetGroup.id,
-      toIndex: targetGroup.workspaces.count
-    )
+    group.workspaces.removeAll { $0.id == workspace.id }
+    targetGroup.workspaces.append(workspace)
+    appState.persist()
   }
 }
