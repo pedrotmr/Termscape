@@ -13,6 +13,7 @@ final class CanvasDocumentView: NSView {
 
   private var currentCanvasMatte: NSColor = AppTheme.tobacco.canvasMatte
   private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
+  private var currentAccentColor: NSColor = AppTheme.tobacco.accentNSColor
 
   /// Arc-style floating tiles: gutters, rounded rects, neutral borders.
   private enum CanvasPaneChrome {
@@ -63,7 +64,7 @@ final class CanvasDocumentView: NSView {
   // MARK: - Theme
 
   func applyTheme(canvasMatte: NSColor, paneBackground: NSColor, accentColor: NSColor) {
-    _ = accentColor
+    currentAccentColor = accentColor
     currentCanvasMatte = canvasMatte
     currentPaneBackground = paneBackground
     layer?.backgroundColor = canvasMatte.cgColor
@@ -688,7 +689,7 @@ final class CanvasDocumentView: NSView {
     layer.masksToBounds = true
     if focused {
       layer.borderWidth = CanvasPaneChrome.borderWidthFocused
-      layer.borderColor = NSColor.labelColor.withAlphaComponent(0.42).cgColor
+      layer.borderColor = currentAccentColor.withAlphaComponent(0.85).cgColor
     } else {
       layer.borderWidth = CanvasPaneChrome.borderWidthNormal
       layer.borderColor = NSColor.labelColor.withAlphaComponent(0.18).cgColor
