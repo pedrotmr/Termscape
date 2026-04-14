@@ -29,6 +29,10 @@ struct TermscapeApp: App {
                 }
                 .keyboardShortcut("t", modifiers: .command)
 
+                Button("New Browser Tab") {
+                    NotificationCenter.default.post(name: .newBrowserTab, object: nil)
+                }
+
                 Button("Close Tab") {
                     NotificationCenter.default.post(name: .closeTab, object: nil)
                 }
@@ -45,6 +49,16 @@ struct TermscapeApp: App {
                     NotificationCenter.default.post(name: .splitDown, object: nil)
                 }
                 .keyboardShortcut("d", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("Split Browser Right") {
+                    NotificationCenter.default.post(name: .splitBrowserRight, object: nil)
+                }
+
+                Button("Split Browser Down") {
+                    NotificationCenter.default.post(name: .splitBrowserDown, object: nil)
+                }
             }
         }
     }
@@ -52,12 +66,15 @@ struct TermscapeApp: App {
 
 extension Notification.Name {
     static let newTab = Notification.Name("termscape.newTab")
+    static let newBrowserTab = Notification.Name("termscape.newBrowserTab")
     static let closeTab = Notification.Name("termscape.closeTab")
     static let splitRight = Notification.Name("termscape.splitRight")
     static let splitDown = Notification.Name("termscape.splitDown")
+    static let splitBrowserRight = Notification.Name("termscape.splitBrowserRight")
+    static let splitBrowserDown = Notification.Name("termscape.splitBrowserDown")
     static let newWorkspace = Notification.Name("termscape.newWorkspace")
     static let ghosttyConfigDidReload = Notification.Name("termscape.ghosttyConfigDidReload")
-    /// Posted by the context menu to move the focused pane's terminal into a new workspace tab.
+    /// Posted by the context menu to move the focused pane content into a new workspace tab.
     static let moveToNewTab = Notification.Name("termscape.moveToNewTab")
 
     /// Tab/pane layout or workspace tab strip changed; `AppState` debounces persistence.
@@ -66,6 +83,8 @@ extension Notification.Name {
     /// Typed keys for the `moveToNewTab` notification's `userInfo` dictionary.
     enum MoveToNewTabKey {
         static let surface = "surface"
+        static let browserSurface = "browserSurface"
+        static let contentKind = "contentKind"
         static let sourceTab = "sourceTab"
         static let closeSourceTab = "closeSourceTab"
     }

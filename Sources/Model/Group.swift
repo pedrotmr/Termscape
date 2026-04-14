@@ -57,6 +57,10 @@ struct WorkspaceTabSnapshot: Codable {
     let focusedPaneId: String?
     /// Bonsplit terminal tab id (UUID string) → normalized working directory for surfaces that exist or were tracked.
     let workingDirectoryByTerminalTabId: [String: String]?
+    /// Bonsplit tab id (UUID string) -> pane content kind ("terminal" | "browser").
+    let tabKindByTabId: [String: String]?
+    /// Bonsplit browser tab id (UUID string) -> current URL string.
+    let browserURLByTabId: [String: String]?
 
     @MainActor
     init(_ tab: WorkspaceTab) {
@@ -67,24 +71,40 @@ struct WorkspaceTabSnapshot: Codable {
         tree = tab.bonsplitController.treeSnapshot()
         focusedPaneId = tab.bonsplitController.layoutSnapshot().focusedPaneId
 
-        let tabIdStrings = Self.collectTerminalTabIdStrings(from: tree)
+        let tabIdStrings = Set(Self.collectTabIdStrings(from: tree))
         var cwdMap: [String: String] = [:]
-        for idStr in Set(tabIdStrings) {
-            guard let u = UUID(uuidString: idStr),
-                  let path = tab.surfaces[u]?.splitWorkingDirectory
-            else { continue }
-            cwdMap[idStr] = path
+        var kindMap: [String: String] = [:]
+        var browserURLMap: [String: String] = [:]
+
+        for idStr in tabIdStrings {
+            guard let u = UUID(uuidString: idStr) else { continue }
+
+            let kind = tab.paneContentKind(for: u)
+            kindMap[idStr] = kind.rawValue
+
+            if let path = tab.surfaces[u]?.splitWorkingDirectory {
+                cwdMap[idStr] = path
+            }
+
+            if kind == .browser,
+               let browserURL = tab.browserURL(for: u)?.absoluteString,
+               !browserURL.isEmpty {
+                browserURLMap[idStr] = browserURL
+            }
+
         }
         workingDirectoryByTerminalTabId = cwdMap.isEmpty ? nil : cwdMap
+        tabKindByTabId = kindMap.isEmpty ? nil : kindMap
+        browserURLByTabId = browserURLMap.isEmpty ? nil : browserURLMap
     }
 
-    private static func collectTerminalTabIdStrings(from node: ExternalTreeNode) -> [String] {
+    private static func collectTabIdStrings(from node: ExternalTreeNode) -> [String] {
         switch node {
         case let .pane(pane):
             return pane.tabs.map(\.id)
         case let .split(split):
-            return collectTerminalTabIdStrings(from: split.first)
-                + collectTerminalTabIdStrings(from: split.second)
+            return collectTabIdStrings(from: split.first)
+                + collectTabIdStrings(from: split.second)
         }
     }
 
@@ -99,10 +119,20 @@ struct WorkspaceTabSnapshot: Codable {
         workingDirectoryByTerminalTabId = try c.decodeIfPresent(
             [String: String].self, forKey: .workingDirectoryByTerminalTabId
         )
+        tabKindByTabId = try c.decodeIfPresent([String: String].self, forKey: .tabKindByTabId)
+        browserURLByTabId = try c.decodeIfPresent([String: String].self, forKey: .browserURLByTabId)
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, title, isPinned, canvasWidthPts, tree, focusedPaneId, workingDirectoryByTerminalTabId
+        case id
+        case title
+        case isPinned
+        case canvasWidthPts
+        case tree
+        case focusedPaneId
+        case workingDirectoryByTerminalTabId
+        case tabKindByTabId
+        case browserURLByTabId
     }
 
     func encode(to encoder: Encoder) throws {
@@ -114,6 +144,8 @@ struct WorkspaceTabSnapshot: Codable {
         try c.encode(tree, forKey: .tree)
         try c.encodeIfPresent(focusedPaneId, forKey: .focusedPaneId)
         try c.encodeIfPresent(workingDirectoryByTerminalTabId, forKey: .workingDirectoryByTerminalTabId)
+        try c.encodeIfPresent(tabKindByTabId, forKey: .tabKindByTabId)
+        try c.encodeIfPresent(browserURLByTabId, forKey: .browserURLByTabId)
     }
 }
 
