@@ -41,7 +41,11 @@ jobs:
             fi
           fi
 
-          mapfile -t SWIFT_FILES < <(
+          SWIFT_FILES=()
+          while IFS= read -r file; do
+            [[ -n "$file" ]] || continue
+            SWIFT_FILES+=("$file")
+          done < <(
             git diff --name-only --diff-filter=ACMR "$RANGE" \
               | grep -E '\.swift$' \
               | grep -v '^vendor/' || true

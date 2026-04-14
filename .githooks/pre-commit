@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mapfile -t STAGED_SWIFT_FILES < <(
+STAGED_SWIFT_FILES=()
+while IFS= read -r file; do
+  [[ -n "$file" ]] || continue
+  STAGED_SWIFT_FILES+=("$file")
+done < <(
   git diff --cached --name-only --diff-filter=ACMR \
     | grep -E '\.swift$' \
     | grep -v '^vendor/' || true
