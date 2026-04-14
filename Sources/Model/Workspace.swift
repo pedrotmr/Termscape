@@ -31,7 +31,11 @@ final class Workspace: ObservableObject, Identifiable {
 
     convenience init(snapshot: WorkspaceSnapshot) {
         self.init(
-            id: snapshot.id, name: snapshot.name, rootURL: snapshot.rootURL, color: snapshot.color
+            id: snapshot.id,
+            name: snapshot.name,
+            rootURL: snapshot.rootURL,
+            color: snapshot.color,
+            isNameManuallyCustomized: snapshot.isNameManuallyCustomized ?? false
         )
         if let snapshots = snapshot.tabSnapshots, !snapshots.isEmpty {
             for snap in snapshots {
