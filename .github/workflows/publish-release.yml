@@ -1,4 +1,4 @@
-name: Release
+name: Publish Release
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to build/release (for example v1.2.3)"
+        description: "Tag to build/release"
         required: false
         type: string
 
