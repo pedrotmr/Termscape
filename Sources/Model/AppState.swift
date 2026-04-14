@@ -130,10 +130,10 @@ final class AppState {
 
     let group = getOrCreateDefaultGroup()
 
-    let repoName =
-      trimmed.split(separator: "/").last.map(String.init)?.replacingOccurrences(
-        of: ".git", with: ""
-      ) ?? "repo"
+    let repoLeaf = trimmed.split(separator: "/").last.map(String.init) ?? "repo"
+    let repoName = repoLeaf.hasSuffix(".git")
+      ? String(repoLeaf.dropLast(4))
+      : repoLeaf
     let destURL = cloneDir.appendingPathComponent(repoName).standardizedFileURL
 
     let workspace = addWorkspace(in: group, url: destURL, name: repoName)
