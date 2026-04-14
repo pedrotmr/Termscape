@@ -173,7 +173,11 @@ final class CanvasDocumentView: NSView {
             self.contextMenuTab = tab
             self.contextMenuCanClear = true
             NSMenu.popUpContextMenu(
-              self.buildContextMenu(isMultiPane: isMultiPane, canClear: true),
+              self.buildContextMenu(
+                isMultiPane: isMultiPane,
+                canClear: true,
+                canMoveToNewTab: !(snapshot.panes.count == 1 && tab.isPinned)
+              ),
               with: event,
               for: self
             )
@@ -219,7 +223,11 @@ final class CanvasDocumentView: NSView {
             self.contextMenuTab = tab
             self.contextMenuCanClear = false
             NSMenu.popUpContextMenu(
-              self.buildContextMenu(isMultiPane: isMultiPane, canClear: false),
+              self.buildContextMenu(
+                isMultiPane: isMultiPane,
+                canClear: false,
+                canMoveToNewTab: !(snapshot.panes.count == 1 && tab.isPinned)
+              ),
               with: event,
               for: self
             )
@@ -927,7 +935,11 @@ final class CanvasDocumentView: NSView {
 
   // MARK: - Context menu
 
-  private func buildContextMenu(isMultiPane: Bool, canClear: Bool) -> NSMenu {
+  private func buildContextMenu(
+    isMultiPane: Bool,
+    canClear: Bool,
+    canMoveToNewTab: Bool
+  ) -> NSMenu {
     let menu = NSMenu(title: "")
     menu.autoenablesItems = false
 
@@ -977,11 +989,13 @@ final class CanvasDocumentView: NSView {
     )
 
     menu.addItem(.separator())
-    menu.addItem(
-      makeItem(
-        "Move to New Tab", icon: "arrow.up.right.square", action: #selector(menuMoveToNewTab(_:))
-      )
+    let moveToNewTabItem = makeItem(
+      "Move to New Tab",
+      icon: "arrow.up.right.square",
+      action: #selector(menuMoveToNewTab(_:))
     )
+    moveToNewTabItem.isEnabled = canMoveToNewTab
+    menu.addItem(moveToNewTabItem)
     menu.addItem(.separator())
 
     let clearItem = makeItem("Clear", icon: "eraser.fill", action: #selector(menuClear(_:)))
@@ -1031,6 +1045,9 @@ final class CanvasDocumentView: NSView {
 
   @objc private func menuMoveToNewTab(_: Any?) {
     guard let tab = contextMenuTab else { return }
+    let isSinglePane = tab.bonsplitController.allPaneIds.count == 1
+    guard !(isSinglePane && tab.isPinned) else { return }
+
     let snapshot = tab.bonsplitController.layoutSnapshot()
     guard let focusedPaneId = snapshot.focusedPaneId,
       let pane = snapshot.panes.first(where: { $0.paneId == focusedPaneId }),
@@ -1060,7 +1077,6 @@ final class CanvasDocumentView: NSView {
 
     // Close the source pane if it's not the only one.
     // (For single-pane, the workspace tab itself is closed by the notification handler.)
-    let isSinglePane = tab.bonsplitController.allPaneIds.count == 1
     if !isSinglePane, let paneUUID = UUID(uuidString: focusedPaneId) {
       tab.bonsplitController.closePane(PaneID(id: paneUUID))
     }
