@@ -97,10 +97,7 @@ run_check() {
   fi
 
   echo "Running swiftlint lint --strict on ${#LINT_TARGETS[@]} target(s)"
-  local target
-  for target in "${LINT_TARGETS[@]}"; do
-    swiftlint lint --strict --path "$target"
-  done
+  swiftlint lint --strict "${LINT_TARGETS[@]}"
 }
 
 if [[ "$MODE" == "-h" || "$MODE" == "--help" ]]; then
