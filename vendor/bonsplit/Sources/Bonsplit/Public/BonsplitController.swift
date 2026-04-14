@@ -122,7 +122,8 @@ public final class BonsplitController {
             // Insert after the currently selected tab
             if let paneState = internalController.rootNode.findPane(PaneID(id: targetPane.id)),
                let selectedTabId = paneState.selectedTabId,
-               let currentIndex = paneState.tabs.firstIndex(where: { $0.id == selectedTabId }) {
+               let currentIndex = paneState.tabs.firstIndex(where: { $0.id == selectedTabId })
+            {
                 insertIndex = currentIndex + 1
             } else {
                 // No selected tab, append to end
@@ -288,7 +289,8 @@ public final class BonsplitController {
     /// - Returns: true if moved.
     @discardableResult
     public func moveTab(_ tabId: TabID, toPane targetPaneId: PaneID, atIndex index: Int? = nil)
-        -> Bool {
+        -> Bool
+    {
         guard let (sourcePane, sourceIndex) = findTabInternal(tabId) else { return false }
         guard let targetPane = internalController.rootNode.findPane(PaneID(id: targetPaneId.id)) else {
             return false

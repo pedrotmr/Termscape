@@ -28,17 +28,20 @@
             let env = ProcessInfo.processInfo.environment
 
             if let explicit = env["CMUX_DEBUG_LOG"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !explicit.isEmpty {
+               !explicit.isEmpty
+            {
                 return explicit
             }
 
             if let tag = env["CMUX_TAG"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !tag.isEmpty {
+               !tag.isEmpty
+            {
                 return "/tmp/cmux-debug-\(sanitizePathToken(tag)).log"
             }
 
             if let socketPath = env["CMUX_SOCKET_PATH"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !socketPath.isEmpty {
+               !socketPath.isEmpty
+            {
                 let socketBase = URL(fileURLWithPath: socketPath).deletingPathExtension().lastPathComponent
                 if socketBase.hasPrefix("cmux-debug-") {
                     return "/tmp/\(socketBase).log"
@@ -46,7 +49,8 @@
             }
 
             if let bundleId = Bundle.main.bundleIdentifier,
-               bundleId != "com.cmuxterm.app.debug" {
+               bundleId != "com.cmuxterm.app.debug"
+            {
                 return "/tmp/cmux-debug-\(sanitizePathToken(bundleId)).log"
             }
 

@@ -60,7 +60,8 @@ final class GhosttyNSView: NSView, NSTextInputClient {
 
         if let surface = terminalSurface?.surface,
            let displayID = window?.screen?.displayID,
-           displayID != 0 {
+           displayID != 0
+        {
             ghostty_surface_set_display_id(surface, displayID)
         }
 
@@ -145,7 +146,7 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         // Home, End, Page Up, Page Down
         115, 116, 119, 121,
         // F1–F20
-        96, 97, 98, 99, 100, 101, 103, 109, 111, 118, 120, 122
+        96, 97, 98, 99, 100, 101, 103, 109, 111, 118, 120, 122,
     ]
 
     override func keyDown(with event: NSEvent) {
@@ -381,7 +382,8 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         let shiftVertical = event.modifierFlags.contains(.shift) && abs(dy) > 0.01 && !horizontalPrimary
 
         if let canvas = enclosingTermscapeCanvasScrollView(),
-           canvas.documentCanvasView.frame.width > canvas.documentVisibleRect.width + 0.5 {
+           canvas.documentCanvasView.frame.width > canvas.documentVisibleRect.width + 0.5
+        {
             // Negate so Shift+scroll down pans left (matches typical macOS horizontal-scroll expectation).
             if horizontalPrimary {
                 canvas.applyHorizontalScrollDelta(-dx)

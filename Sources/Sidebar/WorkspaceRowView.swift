@@ -40,7 +40,7 @@ struct WorkspaceDotColor: Identifiable {
         .init(name: "React Blue", hex: "#61dafb"),
         .init(name: "Peacock", hex: "#337295"),
         .init(name: "Azure Blue", hex: "#007fff"),
-        .init(name: "Mandalorian Blue", hex: "#1857a4")
+        .init(name: "Mandalorian Blue", hex: "#1857a4"),
     ]
 }
 
@@ -276,7 +276,7 @@ struct WorkspaceRowView: View {
             Color(red: 1.00, green: 0.55, blue: 0.35),
             Color(red: 0.78, green: 0.47, blue: 1.00),
             Color(red: 1.00, green: 0.80, blue: 0.28),
-            Color(red: 0.28, green: 0.86, blue: 1.00)
+            Color(red: 0.28, green: 0.86, blue: 1.00),
         ]
         return palette[abs(workspace.id.hashValue) % palette.count]
     }

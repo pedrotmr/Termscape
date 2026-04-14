@@ -53,7 +53,7 @@ struct SettingsView: View {
                         GridItem(.flexible(), spacing: 12),
                         GridItem(.flexible(), spacing: 12),
                         GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12)
+                        GridItem(.flexible(), spacing: 12),
                     ],
                     spacing: 16
                 ) {
@@ -271,7 +271,7 @@ private struct ThemeCard: View {
     private let dotColors: [Color] = [
         Color(red: 0.40, green: 0.60, blue: 1.00),
         Color(red: 0.35, green: 0.85, blue: 0.60),
-        Color(red: 1.00, green: 0.55, blue: 0.35)
+        Color(red: 1.00, green: 0.55, blue: 0.35),
     ]
 }
 

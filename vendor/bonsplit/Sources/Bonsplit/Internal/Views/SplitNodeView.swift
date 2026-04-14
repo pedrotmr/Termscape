@@ -88,7 +88,7 @@ struct SinglePaneWrapper<Content: View, EmptyContent: View>: NSViewRepresentable
             hostingController.view.topAnchor.constraint(equalTo: containerView.topAnchor),
             hostingController.view.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             hostingController.view.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+            hostingController.view.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
         ])
 
         // Store hosting controller to keep it alive

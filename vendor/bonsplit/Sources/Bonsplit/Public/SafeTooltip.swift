@@ -105,7 +105,8 @@ private final class SafeTooltipView: NSView {
 
         if tooltipTag != nil,
            nextBounds == registeredBounds,
-           tooltipText == registeredText {
+           tooltipText == registeredText
+        {
             return
         }
 

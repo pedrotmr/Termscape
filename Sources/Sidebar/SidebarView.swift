@@ -309,7 +309,8 @@ struct SidebarView: View {
         var target = pos
         if let imp = appState.groups.firstIndex(where: { $0.isImplicit }),
            draggingArrayIndex < appState.groups.count,
-           !appState.groups[draggingArrayIndex].isImplicit {
+           !appState.groups[draggingArrayIndex].isImplicit
+        {
             target = max(target, imp + 1)
         }
         return min(max(0, target), appState.groups.count - 1)
@@ -339,7 +340,8 @@ struct SidebarView: View {
     }
 
     private func workspaceDragGesture(group: WorkspaceGroup, workspace: Workspace, rowIndex: Int)
-        -> AnyGesture<DragGesture.Value> {
+        -> AnyGesture<DragGesture.Value>
+    {
         AnyGesture(
             DragGesture(minimumDistance: 3, coordinateSpace: .named("sidebarList"))
                 .onChanged { value in

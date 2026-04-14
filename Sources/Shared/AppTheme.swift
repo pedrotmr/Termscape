@@ -80,7 +80,7 @@ extension AppTheme {
         .obsidian, .tobacco, .dracula, .catppuccin, .aurora, .claude, .gruvbox, .brutalist, .sakura,
         .nordic,
         // Light
-        .chalk, .parchment
+        .chalk, .parchment,
     ]
 
     // MARK: Obsidian — original near-black cool dark
@@ -112,7 +112,7 @@ extension AppTheme {
                 "#1A1A1F", "#FF5F5F", "#5FAFA3", "#D7AF5F",
                 "#5666F4", "#9B78D4", "#5FAFAF", "#C8C8D0",
                 "#2E2E3A", "#FF7F7F", "#6FCFBF", "#EFCF7F",
-                "#7080FF", "#BF98F4", "#7FCFCF", "#E0E0E8"
+                "#7080FF", "#BF98F4", "#7FCFCF", "#E0E0E8",
             ]
         )
     )
@@ -146,7 +146,7 @@ extension AppTheme {
                 "#1A1714", "#D47060", "#8BA870", "#EB9C3D",
                 "#6880C8", "#A878A0", "#70A8A0", "#C8B8A0",
                 "#2E2820", "#E88070", "#A0C080", "#FFBC5D",
-                "#80A0E8", "#C890C0", "#90C8C0", "#E8DDD0"
+                "#80A0E8", "#C890C0", "#90C8C0", "#E8DDD0",
             ]
         )
     )
@@ -180,7 +180,7 @@ extension AppTheme {
                 "#21222C", "#FF5555", "#50FA7B", "#F1FA8C",
                 "#BD93F9", "#FF79C6", "#8BE9FD", "#F8F8F2",
                 "#6272A4", "#FF6E6E", "#69FF94", "#FFFFA5",
-                "#D6ACFF", "#FF92DF", "#A4FFFF", "#FFFFFF"
+                "#D6ACFF", "#FF92DF", "#A4FFFF", "#FFFFFF",
             ]
         )
     )
@@ -214,7 +214,7 @@ extension AppTheme {
                 "#45475A", "#F38BA8", "#A6E3A1", "#F9E2AF",
                 "#89B4FA", "#F5C2E7", "#94E2D5", "#BAC2DE",
                 "#585B70", "#F38BA8", "#A6E3A1", "#F9E2AF",
-                "#89B4FA", "#F5C2E7", "#94E2D5", "#A6ADC8"
+                "#89B4FA", "#F5C2E7", "#94E2D5", "#A6ADC8",
             ]
         )
     )
@@ -248,7 +248,7 @@ extension AppTheme {
                 "#0D1520", "#FF4A6E", "#00E5B0", "#FFD080",
                 "#00D8FF", "#C880FF", "#00EEFF", "#8FC8E8",
                 "#1A2A3A", "#FF6A8E", "#00FFCA", "#FFE0A0",
-                "#60F0FF", "#E0A0FF", "#60FFFF", "#BEE2FF"
+                "#60F0FF", "#E0A0FF", "#60FFFF", "#BEE2FF",
             ]
         )
     )
@@ -282,7 +282,7 @@ extension AppTheme {
                 "#1D1814", "#CF5C4A", "#7EA870", "#D4A060",
                 "#6880B0", "#A87898", "#6A9898", "#D0C0B0",
                 "#302218", "#DA7756", "#9CC890", "#ECC080",
-                "#8898D0", "#C890B0", "#88B8B8", "#F5EBE2"
+                "#8898D0", "#C890B0", "#88B8B8", "#F5EBE2",
             ]
         )
     )
@@ -316,7 +316,7 @@ extension AppTheme {
                 "#282828", "#CC241D", "#98971A", "#D79921",
                 "#458588", "#B16286", "#689D6A", "#A89984",
                 "#928374", "#FB4934", "#B8BB26", "#FABD2F",
-                "#83A598", "#D3869B", "#8EC07C", "#EBDBB2"
+                "#83A598", "#D3869B", "#8EC07C", "#EBDBB2",
             ]
         )
     )
@@ -350,7 +350,7 @@ extension AppTheme {
                 "#111111", "#FF3B30", "#30D158", "#FFD60A",
                 "#0A84FF", "#BF5AF2", "#32ADE6", "#EBEBEB",
                 "#3A3A3A", "#FF6961", "#4CD964", "#FFE333",
-                "#409CFF", "#DA8FFF", "#70D7FF", "#FFFFFF"
+                "#409CFF", "#DA8FFF", "#70D7FF", "#FFFFFF",
             ]
         )
     )
@@ -384,7 +384,7 @@ extension AppTheme {
                 "#1A1020", "#FF5B78", "#78D8A0", "#F0C080",
                 "#A078E8", "#FF6B9D", "#78D8D8", "#D0B8D8",
                 "#2D1E3A", "#FF7B98", "#90EEC0", "#FFD8A0",
-                "#C098FF", "#FF90BD", "#90F0F0", "#F0E0F0"
+                "#C098FF", "#FF90BD", "#90F0F0", "#F0E0F0",
             ]
         )
     )
@@ -418,7 +418,7 @@ extension AppTheme {
                 "#3B4252", "#BF616A", "#A3BE8C", "#EBCB8B",
                 "#81A1C1", "#B48EAD", "#88C0D0", "#E5E9F0",
                 "#4C566A", "#BF616A", "#A3BE8C", "#EBCB8B",
-                "#81A1C1", "#B48EAD", "#8FBCBB", "#ECEFF4"
+                "#81A1C1", "#B48EAD", "#8FBCBB", "#ECEFF4",
             ]
         )
     )
@@ -452,7 +452,7 @@ extension AppTheme {
                 "#2C2018", "#C0392B", "#27AE60", "#D4870A",
                 "#2E5FAB", "#8E44AD", "#16A085", "#746A60",
                 "#5C4A38", "#E74C3C", "#2ECC71", "#F39C12",
-                "#3498DB", "#9B59B6", "#1ABC9C", "#1A1209"
+                "#3498DB", "#9B59B6", "#1ABC9C", "#1A1209",
             ]
         )
     )
@@ -486,7 +486,7 @@ extension AppTheme {
                 "#2C1F0F", "#B83030", "#3D7A40", "#B87030",
                 "#3050A0", "#784080", "#307878", "#6E5840",
                 "#4E3820", "#C94040", "#509A55", "#C89040",
-                "#5070C0", "#9858A0", "#509898", "#1E1208"
+                "#5070C0", "#9858A0", "#509898", "#1E1208",
             ]
         )
     )

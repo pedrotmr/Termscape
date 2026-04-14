@@ -103,7 +103,8 @@ enum HorizontalPaneSizingEngine {
         case let .split(split):
             var ids: [UUID] = []
             if orientation == nil || split.orientation == orientation,
-               let splitUUID = UUID(uuidString: split.id) {
+               let splitUUID = UUID(uuidString: split.id)
+            {
                 ids.append(splitUUID)
             }
             ids += splitIDs(in: split.first, orientation: orientation)

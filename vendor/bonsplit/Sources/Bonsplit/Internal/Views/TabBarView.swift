@@ -81,7 +81,7 @@ final class TabBarLeadingInsetPassthroughView: NSView {
             NSWindow.didResizeNotification,
             NSWindow.didEndLiveResizeNotification,
             NSWindow.didBecomeKeyNotification,
-            NSWindow.didBecomeMainNotification
+            NSWindow.didBecomeMainNotification,
         ]
         observers = names.map { name in
             center.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
@@ -662,7 +662,7 @@ struct TabBarView: View {
             LinearGradient(
                 colors: [
                     TabBarColors.barBackground(for: appearance),
-                    TabBarColors.barBackground(for: appearance).opacity(0)
+                    TabBarColors.barBackground(for: appearance).opacity(0),
                 ],
                 startPoint: .leading,
                 endPoint: .trailing
@@ -677,7 +677,7 @@ struct TabBarView: View {
             LinearGradient(
                 colors: [
                     TabBarColors.barBackground(for: appearance).opacity(0),
-                    TabBarColors.barBackground(for: appearance)
+                    TabBarColors.barBackground(for: appearance),
                 ],
                 startPoint: .leading,
                 endPoint: .trailing
@@ -1206,7 +1206,8 @@ struct TabDropDelegate: DropDelegate {
         let pasteboard = NSPasteboard(name: .drag)
         let type = NSPasteboard.PasteboardType(UTType.tabTransfer.identifier)
         if let data = pasteboard.data(forType: type),
-           let transfer = try? JSONDecoder().decode(TabTransferData.self, from: data) {
+           let transfer = try? JSONDecoder().decode(TabTransferData.self, from: data)
+        {
             return transfer
         }
         if let raw = pasteboard.string(forType: type) {

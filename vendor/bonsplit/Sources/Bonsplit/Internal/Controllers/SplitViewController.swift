@@ -378,7 +378,8 @@ final class SplitViewController {
         guard let currentBounds = allPaneBounds.first(where: { $0.paneId == currentPaneId })?.bounds else { return }
 
         if let targetPaneId = findBestNeighbor(from: currentBounds, currentPaneId: currentPaneId,
-                                               direction: direction, allPaneBounds: allPaneBounds) {
+                                               direction: direction, allPaneBounds: allPaneBounds)
+        {
             focusPane(targetPaneId)
         }
         // No neighbor found = at edge, do nothing
@@ -399,7 +400,8 @@ final class SplitViewController {
     }
 
     private func findBestNeighbor(from currentBounds: CGRect, currentPaneId: PaneID,
-                                  direction: NavigationDirection, allPaneBounds: [PaneBounds]) -> PaneID? {
+                                  direction: NavigationDirection, allPaneBounds: [PaneBounds]) -> PaneID?
+    {
         let epsilon: CGFloat = 0.001
 
         // Filter to panes in the target direction

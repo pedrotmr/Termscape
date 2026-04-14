@@ -634,7 +634,8 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             )
 
             if abs(clampedStatePosition - lastAppliedPosition) <= 0.01,
-               abs(currentNormalized - clampedStatePosition) <= 0.01 {
+               abs(currentNormalized - clampedStatePosition) <= 0.01
+            {
                 return
             }
 
@@ -650,7 +651,8 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             guard (NSEvent.pressedMouseButtons & 1) != 0 else {
                 #if DEBUG
                     if let event = NSApp.currentEvent,
-                       event.type == .leftMouseDown || event.type == .leftMouseDragged {
+                       event.type == .leftMouseDown || event.type == .leftMouseDragged
+                    {
                         debugLogDividerDragSkip("leftMouseNotPressed", splitView: splitView, event: event)
                     }
                 #endif

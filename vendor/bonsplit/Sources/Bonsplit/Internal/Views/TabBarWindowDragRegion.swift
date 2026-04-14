@@ -7,7 +7,8 @@ private func performTabBarStandardDoubleClick(window: NSWindow?) -> Bool {
     let globalDefaults = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain) ?? [:]
     if let action = (globalDefaults["AppleActionOnDoubleClick"] as? String)?
         .trimmingCharacters(in: .whitespacesAndNewlines)
-        .lowercased() {
+        .lowercased()
+    {
         switch action {
         case "minimize":
             window.miniaturize(nil)
@@ -23,7 +24,8 @@ private func performTabBarStandardDoubleClick(window: NSWindow?) -> Bool {
     }
 
     if let miniaturizeOnDoubleClick = globalDefaults["AppleMiniaturizeOnDoubleClick"] as? Bool,
-       miniaturizeOnDoubleClick {
+       miniaturizeOnDoubleClick
+    {
         window.miniaturize(nil)
         return true
     }

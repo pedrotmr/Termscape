@@ -147,7 +147,7 @@ private struct TabBarHostingWrapper<Content: View>: NSViewRepresentable {
             hostingView.topAnchor.constraint(equalTo: containerView.topAnchor),
             hostingView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             hostingView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+            hostingView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
         ])
 
         context.coordinator.hostingView = hostingView
@@ -526,13 +526,15 @@ struct UnifiedPaneDropDelegate: DropDelegate {
             return nil
         }
         if defaultZone == .left,
-           bonsplitController.adjacentPane(to: sourcePaneId, direction: .right) == pane.id {
+           bonsplitController.adjacentPane(to: sourcePaneId, direction: .right) == pane.id
+        {
             // Preserve the outer edge as a split affordance while treating the shared edge
             // between adjacent panes as "drop into this pane".
             return .center
         }
         if defaultZone == .right,
-           bonsplitController.adjacentPane(to: sourcePaneId, direction: .left) == pane.id {
+           bonsplitController.adjacentPane(to: sourcePaneId, direction: .left) == pane.id
+        {
             return .center
         }
         return nil
@@ -721,7 +723,8 @@ struct UnifiedPaneDropDelegate: DropDelegate {
         let pasteboard = NSPasteboard(name: .drag)
         let type = NSPasteboard.PasteboardType(UTType.tabTransfer.identifier)
         if let data = pasteboard.data(forType: type),
-           let transfer = try? JSONDecoder().decode(TabTransferData.self, from: data) {
+           let transfer = try? JSONDecoder().decode(TabTransferData.self, from: data)
+        {
             return transfer
         }
         if let raw = pasteboard.string(forType: type) {

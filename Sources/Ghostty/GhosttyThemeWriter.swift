@@ -62,7 +62,7 @@ enum GhosttyThemeWriter {
             "cursor-color = \(t.cursor)",
             "selection-background = \(t.selectionBackground)",
             "selection-foreground = \(t.selectionForeground)",
-            ""
+            "",
         ]
         for (i, hex) in palette.enumerated() {
             lines.append("palette = \(i)=\(hex)")

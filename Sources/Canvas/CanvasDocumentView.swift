@@ -271,7 +271,8 @@ final class CanvasDocumentView: NSView {
 
         if let view = window.firstResponder as? NSView,
            view.window === window,
-           !view.isDescendant(of: self) {
+           !view.isDescendant(of: self)
+        {
             return
         }
 
@@ -782,7 +783,7 @@ final class CanvasDocumentView: NSView {
             userInfo: [
                 key.surface: surface,
                 key.sourceTab: tab,
-                key.closeSourceTab: isSinglePane
+                key.closeSourceTab: isSinglePane,
             ]
         )
     }

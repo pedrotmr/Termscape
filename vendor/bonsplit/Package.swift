@@ -6,13 +6,13 @@ let package = Package(
     name: "Bonsplit",
     defaultLocalization: "en",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v14),
     ],
     products: [
         .library(
             name: "Bonsplit",
             targets: ["Bonsplit"]
-        )
+        ),
     ],
     targets: [
         .target(
@@ -20,13 +20,13 @@ let package = Package(
             dependencies: [],
             path: "Sources/Bonsplit",
             resources: [
-                .process("Resources")
+                .process("Resources"),
             ]
         ),
         .testTarget(
             name: "BonsplitTests",
             dependencies: ["Bonsplit"],
             path: "Tests/BonsplitTests"
-        )
+        ),
     ]
 )

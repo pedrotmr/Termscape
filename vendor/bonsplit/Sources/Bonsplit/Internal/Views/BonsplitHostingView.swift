@@ -31,7 +31,7 @@ final class BonsplitHostingView<Content: View>: NSHostingView<Content> {
             zeroSafeAreaLayoutGuide.leadingAnchor.constraint(equalTo: leadingAnchor),
             zeroSafeAreaLayoutGuide.trailingAnchor.constraint(equalTo: trailingAnchor),
             zeroSafeAreaLayoutGuide.topAnchor.constraint(equalTo: topAnchor),
-            zeroSafeAreaLayoutGuide.bottomAnchor.constraint(equalTo: bottomAnchor)
+            zeroSafeAreaLayoutGuide.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
 

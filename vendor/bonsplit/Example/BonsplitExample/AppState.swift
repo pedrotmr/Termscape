@@ -82,7 +82,7 @@ class AppState: ObservableObject {
             "import SwiftUI\n\nstruct MyView: View {\n    var body: some View {\n        Text(\"Hello from tab \\(index)\")\n            .font(.largeTitle)\n            .padding()\n    }\n}",
             "# Notes\n\nThis is a sample document.\n\n## Features\n\n- Drag and drop tabs\n- Split panes\n- Keyboard navigation\n\n## Tips\n\nTry dragging a tab to the edge of a pane to create a split!",
             "func fibonacci(_ n: Int) -> Int {\n    guard n > 1 else { return n }\n    return fibonacci(n - 1) + fibonacci(n - 2)\n}\n\nlet result = fibonacci(10)\nprint(\"Fibonacci(10) = \\(result)\")",
-            "struct Document: Identifiable {\n    let id = UUID()\n    var title: String\n    var content: String\n    var isDirty: Bool = false\n}\n\nclass DocumentManager {\n    var documents: [Document] = []\n    \n    func save(_ document: Document) {\n        // Save implementation\n    }\n}"
+            "struct Document: Identifiable {\n    let id = UUID()\n    var title: String\n    var content: String\n    var isDirty: Bool = false\n}\n\nclass DocumentManager {\n    var documents: [Document] = []\n    \n    func save(_ document: Document) {\n        // Save implementation\n    }\n}",
         ]
         return samples[(index - 1) % samples.count]
     }
@@ -94,7 +94,8 @@ class AppState: ObservableObject {
 extension AppState: BonsplitDelegate {
     func splitTabBar(_: BonsplitController,
                      shouldCloseTab tab: Bonsplit.Tab,
-                     inPane pane: PaneID) -> Bool {
+                     inPane pane: PaneID) -> Bool
+    {
         debugState?.log("🔔 shouldCloseTab: \"\(tab.title)\" in pane \(pane.hashValue)")
 
         // If tab is dirty, show confirmation
@@ -129,7 +130,8 @@ extension AppState: BonsplitDelegate {
 
     func splitTabBar(_: BonsplitController,
                      didCloseTab tabId: TabID,
-                     fromPane pane: PaneID) {
+                     fromPane pane: PaneID)
+    {
         debugState?.log("✅ didCloseTab: tab \(tabId.hashValue) from pane \(pane.hashValue)")
 
         // Clean up content when tab is closed
@@ -139,7 +141,8 @@ extension AppState: BonsplitDelegate {
 
     func splitTabBar(_: BonsplitController,
                      didSelectTab tab: Bonsplit.Tab,
-                     inPane _: PaneID) {
+                     inPane _: PaneID)
+    {
         // Update window title
         if let window = NSApp.keyWindow {
             window.title = tab.title
@@ -149,7 +152,8 @@ extension AppState: BonsplitDelegate {
     func splitTabBar(_: BonsplitController,
                      didSplitPane _: PaneID,
                      newPane: PaneID,
-                     orientation _: SplitOrientation) {
+                     orientation _: SplitOrientation)
+    {
         // Option 1: Auto-create a tab in the new pane
         newTab(inPane: newPane)
 
@@ -158,14 +162,16 @@ extension AppState: BonsplitDelegate {
     }
 
     func splitTabBar(_ controller: BonsplitController,
-                     didChangeGeometry snapshot: LayoutSnapshot) {
+                     didChangeGeometry snapshot: LayoutSnapshot)
+    {
         debugState?.log("Geometry changed: \(snapshot.panes.count) panes")
         debugState?.currentSnapshot = snapshot
         debugState?.currentTree = controller.treeSnapshot()
     }
 
     func splitTabBar(_: BonsplitController,
-                     shouldNotifyDuringDrag _: Bool) -> Bool {
+                     shouldNotifyDuringDrag _: Bool) -> Bool
+    {
         // Enable real-time notifications during drag
         return true
     }

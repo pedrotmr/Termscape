@@ -17,10 +17,12 @@ struct WorkspaceContainerView: View {
                         // If this tab has multiple panes, Cmd+W closes the focused pane.
                         // Only close the whole tab when it's down to a single pane.
                         if tab.bonsplitController.allPaneIds.count > 1,
-                           let focusedPaneId = tab.bonsplitController.focusedPaneId {
+                           let focusedPaneId = tab.bonsplitController.focusedPaneId
+                        {
                             tab.bonsplitController.closePane(focusedPaneId)
                         } else if let tabId = workspace.selectedTabId,
-                                  !(workspace.selectedTab?.isPinned ?? false) {
+                                  !(workspace.selectedTab?.isPinned ?? false)
+                        {
                             workspace.closeTab(tabId)
                         }
                     }
@@ -64,7 +66,8 @@ struct WorkspaceContainerView: View {
         let initialSnapshot = newTab.bonsplitController.layoutSnapshot()
         if let firstPane = initialSnapshot.panes.first,
            let tabIdStr = firstPane.selectedTabId,
-           let tabUUID = UUID(uuidString: tabIdStr) {
+           let tabUUID = UUID(uuidString: tabIdStr)
+        {
             newTab.surfaces[tabUUID] = surface
         }
     }
