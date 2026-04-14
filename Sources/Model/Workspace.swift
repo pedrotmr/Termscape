@@ -29,28 +29,28 @@ final class Workspace: ObservableObject, Identifiable {
     self.color = color
   }
 
-    convenience init(snapshot: WorkspaceSnapshot) {
-        self.init(
-            id: snapshot.id,
-            name: snapshot.name,
-            rootURL: snapshot.rootURL,
-            color: snapshot.color,
-            isNameManuallyCustomized: snapshot.isNameManuallyCustomized ?? false
-        )
-        if let snapshots = snapshot.tabSnapshots, !snapshots.isEmpty {
-            for snap in snapshots {
-                let tab = WorkspaceTab(restoring: snap, workspaceURL: rootURL, workspaceId: id)
-                tabs.append(tab)
-            }
-            if let sel = snapshot.selectedTabId, tabs.contains(where: { $0.id == sel }) {
-                selectedTabId = sel
-            } else {
-                selectedTabId = tabs.first?.id
-            }
-        } else {
-            _ = addTab()
-        }
+  convenience init(snapshot: WorkspaceSnapshot) {
+    self.init(
+      id: snapshot.id,
+      name: snapshot.name,
+      rootURL: snapshot.rootURL,
+      color: snapshot.color,
+      isNameManuallyCustomized: snapshot.isNameManuallyCustomized ?? false
+    )
+    if let snapshots = snapshot.tabSnapshots, !snapshots.isEmpty {
+      for snap in snapshots {
+        let tab = WorkspaceTab(restoring: snap, workspaceURL: rootURL, workspaceId: id)
+        tabs.append(tab)
+      }
+      if let sel = snapshot.selectedTabId, tabs.contains(where: { $0.id == sel }) {
+        selectedTabId = sel
+      } else {
+        selectedTabId = tabs.first?.id
+      }
+    } else {
+      _ = addTab()
     }
+  }
 
   func selectTab(_ id: UUID) {
     selectedTabId = id

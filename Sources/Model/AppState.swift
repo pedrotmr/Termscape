@@ -131,7 +131,8 @@ final class AppState {
     let group = getOrCreateDefaultGroup()
 
     let repoLeaf = trimmed.split(separator: "/").last.map(String.init) ?? "repo"
-    let repoName = repoLeaf.hasSuffix(".git")
+    let repoName =
+      repoLeaf.hasSuffix(".git")
       ? String(repoLeaf.dropLast(4))
       : repoLeaf
     let destURL = cloneDir.appendingPathComponent(repoName).standardizedFileURL
