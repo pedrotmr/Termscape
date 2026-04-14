@@ -6,7 +6,7 @@ struct HorizontalSizingPlan {
     let splitPositions: [UUID: CGFloat]
 }
 
-struct HorizontalPaneSizingEngine {
+enum HorizontalPaneSizingEngine {
     static let defaultFallbackPaneWidth: CGFloat = 200
 
     static func paneWidths(from snapshot: LayoutSnapshot) -> [String: CGFloat] {
@@ -20,9 +20,9 @@ struct HorizontalPaneSizingEngine {
 
     static func paneIDs(in node: ExternalTreeNode) -> Set<String> {
         switch node {
-        case .pane(let pane):
+        case let .pane(pane):
             return [pane.id]
-        case .split(let split):
+        case let .split(split):
             return paneIDs(in: split.first).union(paneIDs(in: split.second))
         }
     }
@@ -31,7 +31,7 @@ struct HorizontalPaneSizingEngine {
         switch node {
         case .pane:
             return nil
-        case .split(let split):
+        case let .split(split):
             if split.id == splitId { return split }
             if let first = findSplit(in: split.first, splitId: splitId) { return first }
             return findSplit(in: split.second, splitId: splitId)
@@ -42,7 +42,7 @@ struct HorizontalPaneSizingEngine {
         switch node {
         case .pane:
             return false
-        case .split(let split):
+        case let .split(split):
             if split.orientation == "horizontal" {
                 return true
             }
@@ -66,7 +66,7 @@ struct HorizontalPaneSizingEngine {
         switch node {
         case .pane:
             return nil
-        case .split(let split):
+        case let .split(split):
             if let orientation, split.orientation != orientation {
                 // keep searching children
             } else {
@@ -74,7 +74,7 @@ struct HorizontalPaneSizingEngine {
                 let secondIDs = paneIDs(in: split.second)
                 let isMatch =
                     (firstIDs.contains(firstPaneId) && secondIDs.contains(secondPaneId))
-                    || (firstIDs.contains(secondPaneId) && secondIDs.contains(firstPaneId))
+                        || (firstIDs.contains(secondPaneId) && secondIDs.contains(firstPaneId))
                 if isMatch, let splitUUID = UUID(uuidString: split.id) {
                     return splitUUID
                 }
@@ -100,9 +100,9 @@ struct HorizontalPaneSizingEngine {
         switch node {
         case .pane:
             return []
-        case .split(let split):
+        case let .split(split):
             var ids: [UUID] = []
-            if (orientation == nil || split.orientation == orientation),
+            if orientation == nil || split.orientation == orientation,
                let splitUUID = UUID(uuidString: split.id) {
                 ids.append(splitUUID)
             }
@@ -118,9 +118,9 @@ struct HorizontalPaneSizingEngine {
         hasAncestor: Bool
     ) -> Bool? {
         switch node {
-        case .pane(let pane):
+        case let .pane(pane):
             return pane.id == paneId ? hasAncestor : nil
-        case .split(let split):
+        case let .split(split):
             let nextHasAncestor = hasAncestor || split.orientation == "horizontal"
             if let inFirst = hasHorizontalAncestor(
                 in: split.first,
@@ -141,7 +141,7 @@ struct HorizontalPaneSizingEngine {
         switch node {
         case .pane:
             return minimumPaneWidth
-        case .split(let split):
+        case let .split(split):
             let first = minimumRequiredWidth(for: split.first, minimumPaneWidth: minimumPaneWidth)
             let second = minimumRequiredWidth(for: split.second, minimumPaneWidth: minimumPaneWidth)
             if split.orientation == "horizontal" {
@@ -176,9 +176,9 @@ struct HorizontalPaneSizingEngine {
         splitPositions: inout [UUID: CGFloat]
     ) -> CGFloat {
         switch node {
-        case .pane(let pane):
+        case let .pane(pane):
             return max(desiredPaneWidths[pane.id] ?? fallbackPaneWidth, 1)
-        case .split(let split):
+        case let .split(split):
             let firstWidth = computeWidth(
                 node: split.first,
                 desiredPaneWidths: desiredPaneWidths,

@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 private var splitContainerProgrammaticSyncDepth = 0
 
@@ -10,68 +10,70 @@ private class ThemedSplitView: NSSplitView {
         customDividerColor ?? super.dividerColor
     }
 
-    override var isOpaque: Bool { false }
+    override var isOpaque: Bool {
+        false
+    }
 }
 
 #if DEBUG
-private func debugPointString(_ point: NSPoint) -> String {
-    let x = Int(point.x.rounded())
-    let y = Int(point.y.rounded())
-    return "\(x)x\(y)"
-}
-
-private func debugRectString(_ rect: NSRect) -> String {
-    let x = Int(rect.origin.x.rounded())
-    let y = Int(rect.origin.y.rounded())
-    let w = Int(rect.size.width.rounded())
-    let h = Int(rect.size.height.rounded())
-    return "\(x):\(y)+\(w)x\(h)"
-}
-
-private final class DebugSplitView: ThemedSplitView {
-    var debugSplitToken: String = "none"
-    private var lastLoggedEventTimestampMs: Int = -1
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        let result = super.hitTest(point)
-        guard let event = NSApp.currentEvent else { return result }
-        guard event.type == .leftMouseDown else { return result }
-        guard event.window == window else { return result }
-        let eventTimestampMs = Int((event.timestamp * 1000).rounded())
-        guard eventTimestampMs != lastLoggedEventTimestampMs else { return result }
-        lastLoggedEventTimestampMs = eventTimestampMs
-
-        let dividerRect = debugDividerRect()
-        let hitRect = dividerRect?.insetBy(dx: -4, dy: -4)
-        let onDivider = dividerRect?.contains(point) == true
-        let nearDivider = hitRect?.contains(point) == true
-        let targetClass = result.map { NSStringFromClass(type(of: $0)) } ?? "nil"
-
-        dlog(
-            "divider.hitTest split=\(debugSplitToken) point=\(debugPointString(point)) target=\(targetClass) onDivider=\(onDivider ? 1 : 0) nearDivider=\(nearDivider ? 1 : 0)"
-        )
-
-        return result
+    private func debugPointString(_ point: NSPoint) -> String {
+        let x = Int(point.x.rounded())
+        let y = Int(point.y.rounded())
+        return "\(x)x\(y)"
     }
 
-    private func debugDividerRect() -> NSRect? {
-        guard arrangedSubviews.count >= 2 else { return nil }
+    private func debugRectString(_ rect: NSRect) -> String {
+        let x = Int(rect.origin.x.rounded())
+        let y = Int(rect.origin.y.rounded())
+        let w = Int(rect.size.width.rounded())
+        let h = Int(rect.size.height.rounded())
+        return "\(x):\(y)+\(w)x\(h)"
+    }
 
-        let a = arrangedSubviews[0].frame
-        let b = arrangedSubviews[1].frame
-        let thickness = dividerThickness
+    private final class DebugSplitView: ThemedSplitView {
+        var debugSplitToken: String = "none"
+        private var lastLoggedEventTimestampMs: Int = -1
 
-        if isVertical {
-            guard a.width > 1, b.width > 1 else { return nil }
-            let x = max(0, a.maxX)
-            return NSRect(x: x, y: 0, width: thickness, height: bounds.height)
+        override func hitTest(_ point: NSPoint) -> NSView? {
+            let result = super.hitTest(point)
+            guard let event = NSApp.currentEvent else { return result }
+            guard event.type == .leftMouseDown else { return result }
+            guard event.window == window else { return result }
+            let eventTimestampMs = Int((event.timestamp * 1000).rounded())
+            guard eventTimestampMs != lastLoggedEventTimestampMs else { return result }
+            lastLoggedEventTimestampMs = eventTimestampMs
+
+            let dividerRect = debugDividerRect()
+            let hitRect = dividerRect?.insetBy(dx: -4, dy: -4)
+            let onDivider = dividerRect?.contains(point) == true
+            let nearDivider = hitRect?.contains(point) == true
+            let targetClass = result.map { NSStringFromClass(type(of: $0)) } ?? "nil"
+
+            dlog(
+                "divider.hitTest split=\(debugSplitToken) point=\(debugPointString(point)) target=\(targetClass) onDivider=\(onDivider ? 1 : 0) nearDivider=\(nearDivider ? 1 : 0)"
+            )
+
+            return result
         }
 
-        guard a.height > 1, b.height > 1 else { return nil }
-        let y = max(0, a.maxY)
-        return NSRect(x: 0, y: y, width: bounds.width, height: thickness)
+        private func debugDividerRect() -> NSRect? {
+            guard arrangedSubviews.count >= 2 else { return nil }
+
+            let a = arrangedSubviews[0].frame
+            let b = arrangedSubviews[1].frame
+            let thickness = dividerThickness
+
+            if isVertical {
+                guard a.width > 1, b.width > 1 else { return nil }
+                let x = max(0, a.maxX)
+                return NSRect(x: x, y: 0, width: thickness, height: bounds.height)
+            }
+
+            guard a.height > 1, b.height > 1 else { return nil }
+            let y = max(0, a.maxY)
+            return NSRect(x: 0, y: y, width: bounds.width, height: thickness)
+        }
     }
-}
 #endif
 
 /// SwiftUI wrapper around NSSplitView for native split behavior
@@ -99,15 +101,15 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
     }
 
     func makeNSView(context: Context) -> NSSplitView {
-#if DEBUG
-        let splitView: ThemedSplitView = {
-            let debugSplitView = DebugSplitView()
-            debugSplitView.debugSplitToken = String(splitState.id.uuidString.prefix(5))
-            return debugSplitView
-        }()
-#else
-        let splitView = ThemedSplitView()
-#endif
+        #if DEBUG
+            let splitView: ThemedSplitView = {
+                let debugSplitView = DebugSplitView()
+                debugSplitView.debugSplitToken = String(splitState.id.uuidString.prefix(5))
+                return debugSplitView
+            }()
+        #else
+            let splitView = ThemedSplitView()
+        #endif
         splitView.customDividerColor = TabBarColors.nsColorSeparator(for: appearance)
         splitView.isVertical = splitState.orientation == .horizontal
         splitView.dividerStyle = .thin
@@ -142,17 +144,17 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
 
         // Capture animation origin before it gets cleared
         let animationOrigin = splitState.animationOrigin
-#if DEBUG
-        let splitDebugToken = String(splitState.id.uuidString.prefix(5))
-        let orientationToken = splitState.orientation == .horizontal ? "horizontal" : "vertical"
-        let animationOriginToken: String = {
-            guard let animationOrigin else { return "none" }
-            switch animationOrigin {
-            case .fromFirst: return "fromFirst"
-            case .fromSecond: return "fromSecond"
-            }
-        }()
-#endif
+        #if DEBUG
+            let splitDebugToken = String(splitState.id.uuidString.prefix(5))
+            let orientationToken = splitState.orientation == .horizontal ? "horizontal" : "vertical"
+            let animationOriginToken: String = {
+                guard let animationOrigin else { return "none" }
+                switch animationOrigin {
+                case .fromFirst: return "fromFirst"
+                case .fromSecond: return "fromSecond"
+                }
+            }()
+        #endif
 
         // Determine which pane is new (will be hidden initially)
         let newPaneIndex = animationOrigin == .fromFirst ? 0 : 1
@@ -174,7 +176,7 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             }
         }
 
-        // Apply the initial divider position once after initial layout scheduling.
+        /// Apply the initial divider position once after initial layout scheduling.
         func applyInitialDividerPosition() {
             if context.coordinator.didApplyInitialDividerPosition {
                 return
@@ -189,16 +191,16 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
                 // makeNSView can run before NSSplitView has a real frame; retry on the
                 // next runloop so we still get the intended entry animation.
                 context.coordinator.initialDividerApplyAttempts += 1
-#if DEBUG
-                let attempt = context.coordinator.initialDividerApplyAttempts
-                if attempt == 1 || attempt == 4 || attempt == 8 || attempt == 12 {
-                    dlog(
-                        "split.entry.wait split=\(splitDebugToken) orientation=\(orientationToken) " +
-                        "origin=\(animationOriginToken) animate=\(shouldAnimate ? 1 : 0) " +
-                        "attempt=\(attempt) total=\(Int(totalSize.rounded())) available=\(Int(availableSize.rounded()))"
-                    )
-                }
-#endif
+                #if DEBUG
+                    let attempt = context.coordinator.initialDividerApplyAttempts
+                    if attempt == 1 || attempt == 4 || attempt == 8 || attempt == 12 {
+                        dlog(
+                            "split.entry.wait split=\(splitDebugToken) orientation=\(orientationToken) " +
+                                "origin=\(animationOriginToken) animate=\(shouldAnimate ? 1 : 0) " +
+                                "attempt=\(attempt) total=\(Int(totalSize.rounded())) available=\(Int(availableSize.rounded()))"
+                        )
+                    }
+                #endif
                 if context.coordinator.initialDividerApplyAttempts < 12 {
                     DispatchQueue.main.async {
                         applyInitialDividerPosition()
@@ -212,12 +214,12 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
                     splitView.arrangedSubviews[newPaneIndex].isHidden = false
                     context.coordinator.isAnimating = false
                 }
-#if DEBUG
-                dlog(
-                    "split.entry.fallback split=\(splitDebugToken) orientation=\(orientationToken) " +
-                    "origin=\(animationOriginToken) animate=\(shouldAnimate ? 1 : 0) attempts=\(context.coordinator.initialDividerApplyAttempts)"
-                )
-#endif
+                #if DEBUG
+                    dlog(
+                        "split.entry.fallback split=\(splitDebugToken) orientation=\(orientationToken) " +
+                            "origin=\(animationOriginToken) animate=\(shouldAnimate ? 1 : 0) attempts=\(context.coordinator.initialDividerApplyAttempts)"
+                    )
+                #endif
                 return
             }
 
@@ -231,14 +233,14 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
                 if shouldAnimate {
                     // Position at edge while new pane is hidden
                     let startPosition: CGFloat = animationOrigin == .fromFirst ? 0 : availableSize
-#if DEBUG
-                    dlog(
-                        "split.entry.start split=\(splitDebugToken) orientation=\(orientationToken) " +
-                        "origin=\(animationOriginToken) newPaneIndex=\(newPaneIndex) " +
-                        "startPx=\(Int(startPosition.rounded())) targetPx=\(Int(targetPosition.rounded())) " +
-                        "available=\(Int(availableSize.rounded()))"
-                    )
-#endif
+                    #if DEBUG
+                        dlog(
+                            "split.entry.start split=\(splitDebugToken) orientation=\(orientationToken) " +
+                                "origin=\(animationOriginToken) newPaneIndex=\(newPaneIndex) " +
+                                "startPx=\(Int(startPosition.rounded())) targetPx=\(Int(targetPosition.rounded())) " +
+                                "available=\(Int(availableSize.rounded()))"
+                        )
+                    #endif
                     context.coordinator.setPositionSafely(startPosition, in: splitView, layout: true)
 
                     // Wait for layout
@@ -256,24 +258,24 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
                             // Re-assert exact 0.5 ratio to prevent pixel-rounding drift
                             splitState.dividerPosition = 0.5
                             context.coordinator.lastAppliedPosition = 0.5
-#if DEBUG
-                            dlog(
-                                "split.entry.complete split=\(splitDebugToken) orientation=\(orientationToken) " +
-                                "origin=\(animationOriginToken) finalRatio=\(String(format: "%.3f", splitState.dividerPosition))"
-                            )
-#endif
+                            #if DEBUG
+                                dlog(
+                                    "split.entry.complete split=\(splitDebugToken) orientation=\(orientationToken) " +
+                                        "origin=\(animationOriginToken) finalRatio=\(String(format: "%.3f", splitState.dividerPosition))"
+                                )
+                            #endif
                         }
                     }
                 } else {
                     // No animation - just set the position immediately
                     context.coordinator.setPositionSafely(targetPosition, in: splitView, layout: false)
-#if DEBUG
-                    dlog(
-                        "split.entry.noAnimation split=\(splitDebugToken) orientation=\(orientationToken) " +
-                        "origin=\(animationOriginToken) targetPx=\(Int(targetPosition.rounded())) " +
-                        "enableAnimations=\(enableAnimations ? 1 : 0)"
-                    )
-#endif
+                    #if DEBUG
+                        dlog(
+                            "split.entry.noAnimation split=\(splitDebugToken) orientation=\(orientationToken) " +
+                                "origin=\(animationOriginToken) targetPx=\(Int(targetPosition.rounded())) " +
+                                "enableAnimations=\(enableAnimations ? 1 : 0)"
+                        )
+                    #endif
                 }
             } else {
                 // No animation - just set the position
@@ -414,7 +416,7 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
     @ViewBuilder
     private func makeView(for node: SplitNode) -> some View {
         switch node {
-        case .pane(let paneState):
+        case let .pane(paneState):
             PaneContainerView(
                 pane: paneState,
                 controller: controller,
@@ -423,7 +425,7 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
                 showSplitButtons: showSplitButtons,
                 contentViewLifecycle: contentViewLifecycle
             )
-        case .split(let nestedSplitState):
+        case let .split(nestedSplitState):
             SplitContainerView(
                 splitState: nestedSplitState,
                 controller: controller,
@@ -455,7 +457,7 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
         var onGeometryChange: ((_ isDragging: Bool) -> Void)?
         /// Track last applied position to detect external changes
         var lastAppliedPosition: CGFloat = 0.5
-        // Guard programmatic `setPosition` re-entrancy from resize callbacks.
+        /// Guard programmatic `setPosition` re-entrancy from resize callbacks.
         var isSyncingProgrammatically = false
         /// Track if user is actively dragging the divider
         var isDragging = false
@@ -473,13 +475,13 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             onGeometryChange: ((_ isDragging: Bool) -> Void)?
         ) {
             self.splitState = splitState
-            self.splitStateId = splitState.id
+            splitStateId = splitState.id
             self.minimumPaneWidth = minimumPaneWidth
             self.minimumPaneHeight = minimumPaneHeight
             self.onGeometryChange = onGeometryChange
-            self.lastAppliedPosition = splitState.dividerPosition
-            self.firstNodeType = splitState.first.nodeType
-            self.secondNodeType = splitState.second.nodeType
+            lastAppliedPosition = splitState.dividerPosition
+            firstNodeType = splitState.first.nodeType
+            secondNodeType = splitState.second.nodeType
         }
 
         func update(
@@ -538,9 +540,9 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
 
         private func normalizedDividerBounds(in splitView: NSSplitView) -> ClosedRange<CGFloat> {
             let available = splitAvailableSize(in: splitView)
-            guard available > 0 else { return 0...1 }
+            guard available > 0 else { return 0 ... 1 }
             let minNormalized = min(0.5, effectiveMinimumPaneSize(in: splitView) / available)
-            return minNormalized...(1 - minNormalized)
+            return minNormalized ... (1 - minNormalized)
         }
 
         private func clampedDividerPosition(_ position: CGFloat, in splitView: NSSplitView) -> CGFloat {
@@ -550,35 +552,36 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             let maxPosition = max(minPaneSize, available - minPaneSize)
             return min(max(position, minPaneSize), maxPosition)
         }
-#if DEBUG
-        private func debugLogDividerDragSkip(
-            _ reason: String,
-            splitView: NSSplitView,
-            event: NSEvent? = nil,
-            location: NSPoint? = nil,
-            dividerRect: NSRect? = nil,
-            hitRect: NSRect? = nil
-        ) {
-            var message = "divider.dragCheck.skip split=\(splitState.id.uuidString.prefix(5)) reason=\(reason)"
-            if let event {
-                let ageMs = Int(((ProcessInfo.processInfo.systemUptime - event.timestamp) * 1000).rounded())
-                message += " eventType=\(event.type.rawValue) ageMs=\(ageMs)"
-            } else {
-                message += " event=nil"
+
+        #if DEBUG
+            private func debugLogDividerDragSkip(
+                _ reason: String,
+                splitView: NSSplitView,
+                event: NSEvent? = nil,
+                location: NSPoint? = nil,
+                dividerRect: NSRect? = nil,
+                hitRect: NSRect? = nil
+            ) {
+                var message = "divider.dragCheck.skip split=\(splitState.id.uuidString.prefix(5)) reason=\(reason)"
+                if let event {
+                    let ageMs = Int(((ProcessInfo.processInfo.systemUptime - event.timestamp) * 1000).rounded())
+                    message += " eventType=\(event.type.rawValue) ageMs=\(ageMs)"
+                } else {
+                    message += " event=nil"
+                }
+                message += " splitWin=\(splitView.window?.windowNumber ?? -1)"
+                if let location {
+                    message += " loc=\(debugPointString(location))"
+                }
+                if let dividerRect {
+                    message += " divider=\(debugRectString(dividerRect))"
+                }
+                if let hitRect {
+                    message += " hit=\(debugRectString(hitRect))"
+                }
+                dlog(message)
             }
-            message += " splitWin=\(splitView.window?.windowNumber ?? -1)"
-            if let location {
-                message += " loc=\(debugPointString(location))"
-            }
-            if let dividerRect {
-                message += " divider=\(debugRectString(dividerRect))"
-            }
-            if let hitRect {
-                message += " hit=\(debugRectString(hitRect))"
-            }
-            dlog(message)
-        }
-#endif
+        #endif
         /// Apply external position changes to the NSSplitView
         func setPositionSafely(_ position: CGFloat, in splitView: NSSplitView, layout: Bool = true) {
             isSyncingProgrammatically = true
@@ -602,9 +605,9 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             guard splitView.arrangedSubviews.count >= 2 else {
                 // Structural updates can temporarily remove an arranged subview.
                 // A subsequent update/layout pass will re-apply the model position.
-#if DEBUG
-                BonsplitDebugCounters.recordArrangedSubviewUnderflow()
-#endif
+                #if DEBUG
+                    BonsplitDebugCounters.recordArrangedSubviewUnderflow()
+                #endif
                 return
             }
 
@@ -630,8 +633,8 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
                 min(stateBounds.upperBound, currentDividerPixels / availableSize)
             )
 
-            if abs(clampedStatePosition - lastAppliedPosition) <= 0.01 &&
-                abs(currentNormalized - clampedStatePosition) <= 0.01 {
+            if abs(clampedStatePosition - lastAppliedPosition) <= 0.01,
+               abs(currentNormalized - clampedStatePosition) <= 0.01 {
                 return
             }
 
@@ -645,12 +648,12 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             // If the left mouse button isn't down, this can't be an interactive divider drag.
             // (`splitViewWillResizeSubviews` can fire for programmatic/layout-driven resizes too.)
             guard (NSEvent.pressedMouseButtons & 1) != 0 else {
-#if DEBUG
-                if let event = NSApp.currentEvent,
-                   event.type == .leftMouseDown || event.type == .leftMouseDragged {
-                    debugLogDividerDragSkip("leftMouseNotPressed", splitView: splitView, event: event)
-                }
-#endif
+                #if DEBUG
+                    if let event = NSApp.currentEvent,
+                       event.type == .leftMouseDown || event.type == .leftMouseDragged {
+                        debugLogDividerDragSkip("leftMouseNotPressed", splitView: splitView, event: event)
+                    }
+                #endif
                 isDragging = false
                 return
             }
@@ -661,9 +664,9 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             }
 
             guard let event = NSApp.currentEvent else {
-#if DEBUG
-                debugLogDividerDragSkip("noCurrentEvent", splitView: splitView, event: nil)
-#endif
+                #if DEBUG
+                    debugLogDividerDragSkip("noCurrentEvent", splitView: splitView, event: nil)
+                #endif
                 return
             }
 
@@ -674,27 +677,27 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             // `NSApp.currentEvent` can be stale when called from async UI work (e.g. socket commands).
             // Only trust very recent events.
             guard (now - event.timestamp) < 0.1 else {
-#if DEBUG
-                debugLogDividerDragSkip("staleCurrentEvent", splitView: splitView, event: event)
-#endif
+                #if DEBUG
+                    debugLogDividerDragSkip("staleCurrentEvent", splitView: splitView, event: event)
+                #endif
                 return
             }
             guard event.type == .leftMouseDown || event.type == .leftMouseDragged else {
-#if DEBUG
-                debugLogDividerDragSkip("wrongEventType", splitView: splitView, event: event)
-#endif
+                #if DEBUG
+                    debugLogDividerDragSkip("wrongEventType", splitView: splitView, event: event)
+                #endif
                 return
             }
             guard event.window == splitView.window else {
-#if DEBUG
-                debugLogDividerDragSkip("windowMismatch", splitView: splitView, event: event)
-#endif
+                #if DEBUG
+                    debugLogDividerDragSkip("windowMismatch", splitView: splitView, event: event)
+                #endif
                 return
             }
             guard splitView.arrangedSubviews.count >= 2 else {
-#if DEBUG
-                debugLogDividerDragSkip("arrangedUnderflow", splitView: splitView, event: event)
-#endif
+                #if DEBUG
+                    debugLogDividerDragSkip("arrangedUnderflow", splitView: splitView, event: event)
+                #endif
                 return
             }
 
@@ -706,9 +709,9 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             if splitView.isVertical {
                 // If we don't have real frames yet (during structural updates), don't infer dragging.
                 guard a.width > 1, b.width > 1 else {
-#if DEBUG
-                    debugLogDividerDragSkip("invalidSubviewWidths", splitView: splitView, event: event, location: location)
-#endif
+                    #if DEBUG
+                        debugLogDividerDragSkip("invalidSubviewWidths", splitView: splitView, event: event, location: location)
+                    #endif
                     return
                 }
                 // Vertical divider between left/right arranged subviews.
@@ -716,9 +719,9 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
                 dividerRect = NSRect(x: x, y: 0, width: thickness, height: splitView.bounds.height)
             } else {
                 guard a.height > 1, b.height > 1 else {
-#if DEBUG
-                    debugLogDividerDragSkip("invalidSubviewHeights", splitView: splitView, event: event, location: location)
-#endif
+                    #if DEBUG
+                        debugLogDividerDragSkip("invalidSubviewHeights", splitView: splitView, event: event, location: location)
+                    #endif
                     return
                 }
                 // Horizontal divider between top/bottom arranged subviews.
@@ -728,22 +731,22 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             let hitRect = dividerRect.insetBy(dx: -4, dy: -4)
             if hitRect.contains(location) {
                 isDragging = true
-#if DEBUG
-                dlog(
-                    "divider.dragStart split=\(splitState.id.uuidString.prefix(5)) loc=\(debugPointString(location)) divider=\(debugRectString(dividerRect)) hit=\(debugRectString(hitRect))"
-                )
-#endif
+                #if DEBUG
+                    dlog(
+                        "divider.dragStart split=\(splitState.id.uuidString.prefix(5)) loc=\(debugPointString(location)) divider=\(debugRectString(dividerRect)) hit=\(debugRectString(hitRect))"
+                    )
+                #endif
             } else {
-#if DEBUG
-                debugLogDividerDragSkip(
-                    "hitRectMiss",
-                    splitView: splitView,
-                    event: event,
-                    location: location,
-                    dividerRect: dividerRect,
-                    hitRect: hitRect
-                )
-#endif
+                #if DEBUG
+                    debugLogDividerDragSkip(
+                        "hitRectMiss",
+                        splitView: splitView,
+                        event: event,
+                        location: location,
+                        dividerRect: dividerRect,
+                        hitRect: hitRect
+                    )
+                #endif
             }
         }
 
@@ -751,31 +754,31 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             // Skip position updates during animation
             guard !isAnimating else { return }
             guard let splitView = notification.object as? NSSplitView else { return }
-#if DEBUG
-            let subframes = splitView.arrangedSubviews.enumerated().map { (i, v) in
-                "\(i)=\(Int(v.frame.width))x\(Int(v.frame.height))"
-            }.joined(separator: " ")
-            dlog("split.didResize split=\(splitState.id.uuidString.prefix(5)) orient=\(splitState.orientation == .horizontal ? "H" : "V") container=\(Int(splitView.frame.width))x\(Int(splitView.frame.height)) subs=[\(subframes)] anim=\(isAnimating ? 1 : 0) sync=\(isSyncingProgrammatically ? 1 : 0)")
-#endif
+            #if DEBUG
+                let subframes = splitView.arrangedSubviews.enumerated().map { i, v in
+                    "\(i)=\(Int(v.frame.width))x\(Int(v.frame.height))"
+                }.joined(separator: " ")
+                dlog("split.didResize split=\(splitState.id.uuidString.prefix(5)) orient=\(splitState.orientation == .horizontal ? "H" : "V") container=\(Int(splitView.frame.width))x\(Int(splitView.frame.height)) subs=[\(subframes)] anim=\(isAnimating ? 1 : 0) sync=\(isSyncingProgrammatically ? 1 : 0)")
+            #endif
             if isSyncingProgrammatically || splitContainerProgrammaticSyncDepth > 0 {
                 return
             }
             // Prevent stale drag state from persisting through programmatic/async resizes.
             let leftDown = (NSEvent.pressedMouseButtons & 1) != 0
             if !leftDown {
-#if DEBUG
-                if isDragging {
-                    dlog("divider.dragStateReset split=\(splitState.id.uuidString.prefix(5)) reason=leftMouseReleased")
-                }
-#endif
+                #if DEBUG
+                    if isDragging {
+                        dlog("divider.dragStateReset split=\(splitState.id.uuidString.prefix(5)) reason=leftMouseReleased")
+                    }
+                #endif
                 isDragging = false
             }
             // During structural updates (pane↔split), arranged subviews can be temporarily removed.
             // Avoid persisting a dividerPosition derived from a transient 1-subview layout.
             guard splitView.arrangedSubviews.count >= 2 else {
-#if DEBUG
-                BonsplitDebugCounters.recordArrangedSubviewUnderflow()
-#endif
+                #if DEBUG
+                    BonsplitDebugCounters.recordArrangedSubviewUnderflow()
+                #endif
                 return
             }
 
@@ -806,9 +809,9 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
                 // Check if drag ended (mouse up)
                 let wasDragging = isDragging && leftDown
                 if let event = NSApp.currentEvent, event.type == .leftMouseUp {
-#if DEBUG
-                    dlog("divider.dragEnd split=\(splitState.id.uuidString.prefix(5))")
-#endif
+                    #if DEBUG
+                        dlog("divider.dragEnd split=\(splitState.id.uuidString.prefix(5))")
+                    #endif
                     isDragging = false
                 }
 
@@ -816,28 +819,28 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
                 // (window resizes, view reparenting, pane↔split structural updates), the model's
                 // dividerPosition should remain stable; syncPosition() will keep the view aligned.
                 guard wasDragging else {
-#if DEBUG
-                    let eventType = NSApp.currentEvent.map { String(describing: $0.type) } ?? "none"
-                    dlog(
-                        "divider.resizeIgnored split=\(splitState.id.uuidString.prefix(5)) eventType=\(eventType) leftDown=\(leftDown ? 1 : 0) isDragging=\(isDragging ? 1 : 0) normalized=\(String(format: "%.3f", normalizedPosition)) model=\(String(format: "%.3f", self.splitState.dividerPosition))"
-                    )
-#endif
-                    let statePosition = self.splitState.dividerPosition
+                    #if DEBUG
+                        let eventType = NSApp.currentEvent.map { String(describing: $0.type) } ?? "none"
+                        dlog(
+                            "divider.resizeIgnored split=\(splitState.id.uuidString.prefix(5)) eventType=\(eventType) leftDown=\(leftDown ? 1 : 0) isDragging=\(isDragging ? 1 : 0) normalized=\(String(format: "%.3f", normalizedPosition)) model=\(String(format: "%.3f", splitState.dividerPosition))"
+                        )
+                    #endif
+                    let statePosition = splitState.dividerPosition
                     // Re-assert synchronously. setPositionSafely sets isSyncingProgrammatically=true,
                     // so the recursive splitViewDidResizeSubviews call is caught by the guard above.
                     // Deferring to the next runloop turn would allow the transient frame to propagate
                     // through SwiftUI layout → ghostty terminal resize → reflow, causing content shifts.
-                    self.syncPosition(statePosition, in: splitView)
-                    self.onGeometryChange?(false)
+                    syncPosition(statePosition, in: splitView)
+                    onGeometryChange?(false)
                     return
                 }
 
                 Task { @MainActor in
-#if DEBUG
-                    dlog(
-                        "divider.dragUpdate split=\(splitState.id.uuidString.prefix(5)) normalized=\(String(format: "%.3f", normalizedPosition)) px=\(Int(dividerPosition.rounded())) available=\(Int(availableSize.rounded()))"
-                    )
-#endif
+                    #if DEBUG
+                        dlog(
+                            "divider.dragUpdate split=\(splitState.id.uuidString.prefix(5)) normalized=\(String(format: "%.3f", normalizedPosition)) px=\(Int(dividerPosition.rounded())) available=\(Int(availableSize.rounded()))"
+                        )
+                    #endif
                     self.splitState.dividerPosition = normalizedPosition
                     self.lastAppliedPosition = normalizedPosition
                     // Notify geometry change with drag state
@@ -846,7 +849,7 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             }
         }
 
-        func splitView(_ splitView: NSSplitView, effectiveRect proposedEffectiveRect: NSRect, forDrawnRect drawnRect: NSRect, ofDividerAt dividerIndex: Int) -> NSRect {
+        func splitView(_: NSSplitView, effectiveRect proposedEffectiveRect: NSRect, forDrawnRect drawnRect: NSRect, ofDividerAt _: Int) -> NSRect {
             let expanded = drawnRect.insetBy(dx: -5, dy: -5)
             return proposedEffectiveRect.union(expanded)
         }
@@ -872,13 +875,13 @@ struct SplitContainerView<Content: View, EmptyContent: View>: NSViewRepresentabl
             return dividerRect.insetBy(dx: -5, dy: -5)
         }
 
-        func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
+        func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt _: Int) -> CGFloat {
             // Allow edge positions during animation
             guard !isAnimating else { return proposedMinimumPosition }
             return max(proposedMinimumPosition, effectiveMinimumPaneSize(in: splitView))
         }
 
-        func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
+        func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt _: Int) -> CGFloat {
             // Allow edge positions during animation
             guard !isAnimating else { return proposedMaximumPosition }
             let availableSize = splitAvailableSize(in: splitView)

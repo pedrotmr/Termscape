@@ -12,7 +12,7 @@ let package = Package(
         .library(
             name: "Bonsplit",
             targets: ["Bonsplit"]
-        ),
+        )
     ],
     targets: [
         .target(
@@ -27,6 +27,6 @@ let package = Package(
             name: "BonsplitTests",
             dependencies: ["Bonsplit"],
             path: "Tests/BonsplitTests"
-        ),
+        )
     ]
 )

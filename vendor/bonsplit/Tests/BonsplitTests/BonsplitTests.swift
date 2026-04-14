@@ -1,7 +1,7 @@
-import XCTest
-@testable import Bonsplit
 import AppKit
+@testable import Bonsplit
 import SwiftUI
+import XCTest
 
 final class BonsplitTests: XCTestCase {
     func testTabBarLeadingTrafficLightInsetKeepsFullClearanceWhenTabBarStartsAtWindowEdge() {
@@ -58,11 +58,11 @@ final class BonsplitTests: XCTestCase {
     private struct LayoutProbeRepresentable: NSViewRepresentable {
         let probeView: LayoutProbeView
 
-        func makeNSView(context: Context) -> LayoutProbeView {
+        func makeNSView(context _: Context) -> LayoutProbeView {
             probeView
         }
 
-        func updateNSView(_ nsView: LayoutProbeView, context: Context) {}
+        func updateNSView(_: LayoutProbeView, context _: Context) {}
     }
 
     @MainActor
@@ -89,10 +89,10 @@ final class BonsplitTests: XCTestCase {
         var tabId: TabID?
         var paneId: PaneID?
 
-        func splitTabBar(_ controller: BonsplitController, didRequestTabContextAction action: TabContextAction, for tab: Bonsplit.Tab, inPane pane: PaneID) {
+        func splitTabBar(_: BonsplitController, didRequestTabContextAction action: TabContextAction, for tab: Bonsplit.Tab, inPane pane: PaneID) {
             self.action = action
-            self.tabId = tab.id
-            self.paneId = pane
+            tabId = tab.id
+            paneId = pane
         }
     }
 
@@ -100,7 +100,7 @@ final class BonsplitTests: XCTestCase {
         var requestedKind: String?
         var requestedPaneId: PaneID?
 
-        func splitTabBar(_ controller: BonsplitController, didRequestNewTab kind: String, inPane pane: PaneID) {
+        func splitTabBar(_: BonsplitController, didRequestNewTab kind: String, inPane pane: PaneID) {
             requestedKind = kind
             requestedPaneId = pane
         }
@@ -125,7 +125,7 @@ final class BonsplitTests: XCTestCase {
     private final class DragRecordingWindow: NSWindow {
         private(set) var didPerformDrag = false
 
-        override func performDrag(with event: NSEvent) {
+        override func performDrag(with _: NSEvent) {
             didPerformDrag = true
         }
     }
@@ -144,18 +144,18 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testTabRetrieval() {
+    func testTabRetrieval() throws {
         let controller = BonsplitController()
-        let tabId = controller.createTab(title: "Test Tab", icon: "doc")!
+        let tabId = try XCTUnwrap(controller.createTab(title: "Test Tab", icon: "doc"))
         let tab = controller.tab(tabId)
         XCTAssertEqual(tab?.title, "Test Tab")
         XCTAssertEqual(tab?.icon, "doc")
     }
 
     @MainActor
-    func testTabUpdate() {
+    func testTabUpdate() throws {
         let controller = BonsplitController()
-        let tabId = controller.createTab(title: "Original", icon: "doc")!
+        let tabId = try XCTUnwrap(controller.createTab(title: "Original", icon: "doc"))
 
         controller.updateTab(tabId, title: "Updated", isDirty: true)
 
@@ -165,9 +165,9 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testTabClose() {
+    func testTabClose() throws {
         let controller = BonsplitController()
-        let tabId = controller.createTab(title: "Test Tab", icon: "doc")!
+        let tabId = try XCTUnwrap(controller.createTab(title: "Test Tab", icon: "doc"))
 
         let closed = controller.closeTab(tabId)
 
@@ -176,16 +176,16 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testCloseSelectedTabKeepsIndexStableWhenPossible() {
+    func testCloseSelectedTabKeepsIndexStableWhenPossible() throws {
         do {
             let config = BonsplitConfiguration(newTabPosition: .end)
             let controller = BonsplitController(configuration: config)
 
-            let tab0 = controller.createTab(title: "0")!
-            let tab1 = controller.createTab(title: "1")!
-            let tab2 = controller.createTab(title: "2")!
+            let tab0 = try XCTUnwrap(controller.createTab(title: "0"))
+            let tab1 = try XCTUnwrap(controller.createTab(title: "1"))
+            let tab2 = try XCTUnwrap(controller.createTab(title: "2"))
 
-            let pane = controller.focusedPaneId!
+            let pane = try XCTUnwrap(controller.focusedPaneId)
 
             controller.selectTab(tab1)
             XCTAssertEqual(controller.selectedTab(inPane: pane)?.id, tab1)
@@ -201,11 +201,11 @@ final class BonsplitTests: XCTestCase {
             let config = BonsplitConfiguration(newTabPosition: .end)
             let controller = BonsplitController(configuration: config)
 
-            let tab0 = controller.createTab(title: "0")!
-            let tab1 = controller.createTab(title: "1")!
-            let tab2 = controller.createTab(title: "2")!
+            let tab0 = try XCTUnwrap(controller.createTab(title: "0"))
+            let tab1 = try XCTUnwrap(controller.createTab(title: "1"))
+            let tab2 = try XCTUnwrap(controller.createTab(title: "2"))
 
-            let pane = controller.focusedPaneId!
+            let pane = try XCTUnwrap(controller.focusedPaneId)
 
             controller.selectTab(tab2)
             XCTAssertEqual(controller.selectedTab(inPane: pane)?.id, tab2)
@@ -256,11 +256,11 @@ final class BonsplitTests: XCTestCase {
         XCTAssertEqual(controller.configuration.appearance.splitButtonTooltips, customTooltips)
     }
 
-    func testChromeBackgroundHexOverrideParsesForPaneBackground() {
+    func testChromeBackgroundHexOverrideParsesForPaneBackground() throws {
         let appearance = BonsplitConfiguration.Appearance(
             chromeColors: .init(backgroundHex: "#FDF6E3")
         )
-        let color = TabBarColors.nsColorPaneBackground(for: appearance).usingColorSpace(.sRGB)!
+        let color = try XCTUnwrap(TabBarColors.nsColorPaneBackground(for: appearance).usingColorSpace(.sRGB))
 
         var red: CGFloat = 0
         var green: CGFloat = 0
@@ -274,11 +274,11 @@ final class BonsplitTests: XCTestCase {
         XCTAssertEqual(Int(round(alpha * 255)), 255)
     }
 
-    func testChromeBorderHexOverrideParsesForSeparatorColor() {
+    func testChromeBorderHexOverrideParsesForSeparatorColor() throws {
         let appearance = BonsplitConfiguration.Appearance(
             chromeColors: .init(backgroundHex: "#272822", borderHex: "#112233")
         )
-        let color = TabBarColors.nsColorSeparator(for: appearance).usingColorSpace(.sRGB)!
+        let color = try XCTUnwrap(TabBarColors.nsColorSeparator(for: appearance).usingColorSpace(.sRGB))
 
         var red: CGFloat = 0
         var green: CGFloat = 0
@@ -292,12 +292,12 @@ final class BonsplitTests: XCTestCase {
         XCTAssertEqual(Int(round(alpha * 255)), 255)
     }
 
-    func testInvalidChromeBackgroundHexFallsBackToPaneDefaultColor() {
+    func testInvalidChromeBackgroundHexFallsBackToPaneDefaultColor() throws {
         let appearance = BonsplitConfiguration.Appearance(
             chromeColors: .init(backgroundHex: "#ZZZZZZ")
         )
-        let resolved = TabBarColors.nsColorPaneBackground(for: appearance).usingColorSpace(.sRGB)!
-        let fallback = NSColor.textBackgroundColor.usingColorSpace(.sRGB)!
+        let resolved = try XCTUnwrap(TabBarColors.nsColorPaneBackground(for: appearance).usingColorSpace(.sRGB))
+        let fallback = try XCTUnwrap(NSColor.textBackgroundColor.usingColorSpace(.sRGB))
 
         var rr: CGFloat = 0
         var rg: CGFloat = 0
@@ -317,12 +317,12 @@ final class BonsplitTests: XCTestCase {
         XCTAssertEqual(ra, fa, accuracy: 0.0001)
     }
 
-    func testPartiallyInvalidChromeBackgroundHexFallsBackToPaneDefaultColor() {
+    func testPartiallyInvalidChromeBackgroundHexFallsBackToPaneDefaultColor() throws {
         let appearance = BonsplitConfiguration.Appearance(
             chromeColors: .init(backgroundHex: "#FF000G")
         )
-        let resolved = TabBarColors.nsColorPaneBackground(for: appearance).usingColorSpace(.sRGB)!
-        let fallback = NSColor.textBackgroundColor.usingColorSpace(.sRGB)!
+        let resolved = try XCTUnwrap(TabBarColors.nsColorPaneBackground(for: appearance).usingColorSpace(.sRGB))
+        let fallback = try XCTUnwrap(NSColor.textBackgroundColor.usingColorSpace(.sRGB))
 
         var rr: CGFloat = 0
         var rg: CGFloat = 0
@@ -342,11 +342,11 @@ final class BonsplitTests: XCTestCase {
         XCTAssertEqual(ra, fa, accuracy: 0.0001)
     }
 
-    func testInactiveTextUsesLightForegroundOnDarkCustomChromeBackground() {
+    func testInactiveTextUsesLightForegroundOnDarkCustomChromeBackground() throws {
         let appearance = BonsplitConfiguration.Appearance(
             chromeColors: .init(backgroundHex: "#272822")
         )
-        let color = TabBarColors.nsColorInactiveText(for: appearance).usingColorSpace(.sRGB)!
+        let color = try XCTUnwrap(TabBarColors.nsColorInactiveText(for: appearance).usingColorSpace(.sRGB))
 
         var red: CGFloat = 0
         var green: CGFloat = 0
@@ -360,13 +360,13 @@ final class BonsplitTests: XCTestCase {
         XCTAssertGreaterThan(alpha, 0.6)
     }
 
-    func testSplitActionPressedStateUsesHigherContrast() {
+    func testSplitActionPressedStateUsesHigherContrast() throws {
         let appearance = BonsplitConfiguration.Appearance(
             chromeColors: .init(backgroundHex: "#272822")
         )
 
-        let idleIcon = TabBarColors.nsColorSplitActionIcon(for: appearance, isPressed: false).usingColorSpace(.sRGB)!
-        let pressedIcon = TabBarColors.nsColorSplitActionIcon(for: appearance, isPressed: true).usingColorSpace(.sRGB)!
+        let idleIcon = try XCTUnwrap(TabBarColors.nsColorSplitActionIcon(for: appearance, isPressed: false).usingColorSpace(.sRGB))
+        let pressedIcon = try XCTUnwrap(TabBarColors.nsColorSplitActionIcon(for: appearance, isPressed: true).usingColorSpace(.sRGB))
 
         var idleAlpha: CGFloat = 0
         idleIcon.getRed(nil, green: nil, blue: nil, alpha: &idleAlpha)
@@ -428,14 +428,14 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testCreateTabStoresKindAndPinnedState() {
+    func testCreateTabStoresKindAndPinnedState() throws {
         let controller = BonsplitController()
-        let tabId = controller.createTab(
+        let tabId = try XCTUnwrap(controller.createTab(
             title: "Browser",
             icon: "globe",
             kind: "browser",
             isPinned: true
-        )!
+        ))
 
         let tab = controller.tab(tabId)
         XCTAssertEqual(tab?.kind, "browser")
@@ -443,12 +443,12 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testCreateAndUpdateTabCustomTitleFlag() {
+    func testCreateAndUpdateTabCustomTitleFlag() throws {
         let controller = BonsplitController()
-        let tabId = controller.createTab(
+        let tabId = try XCTUnwrap(controller.createTab(
             title: "Infra",
             hasCustomTitle: true
-        )!
+        ))
 
         XCTAssertEqual(controller.tab(tabId)?.hasCustomTitle, true)
 
@@ -457,10 +457,10 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testSplitPaneWithOptionalTabPreservesCustomTitleFlag() {
+    func testSplitPaneWithOptionalTabPreservesCustomTitleFlag() throws {
         let controller = BonsplitController()
         _ = controller.createTab(title: "Base")
-        let sourcePaneId = controller.focusedPaneId!
+        let sourcePaneId = try XCTUnwrap(controller.focusedPaneId)
         let customTab = Bonsplit.Tab(title: "Custom", hasCustomTitle: true)
 
         guard let newPaneId = controller.splitPane(sourcePaneId, orientation: .horizontal, withTab: customTab) else {
@@ -471,10 +471,10 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testSplitPaneWithInsertSidePreservesCustomTitleFlag() {
+    func testSplitPaneWithInsertSidePreservesCustomTitleFlag() throws {
         let controller = BonsplitController()
         _ = controller.createTab(title: "Base")
-        let sourcePaneId = controller.focusedPaneId!
+        let sourcePaneId = try XCTUnwrap(controller.focusedPaneId)
         let customTab = Bonsplit.Tab(title: "Custom", hasCustomTitle: true)
 
         guard let newPaneId = controller.splitPane(
@@ -532,10 +532,10 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testRequestTabContextActionForwardsToDelegate() {
+    func testRequestTabContextActionForwardsToDelegate() throws {
         let controller = BonsplitController()
-        let pane = controller.focusedPaneId!
-        let tabId = controller.createTab(title: "Test", kind: "browser")!
+        let pane = try XCTUnwrap(controller.focusedPaneId)
+        let tabId = try XCTUnwrap(controller.createTab(title: "Test", kind: "browser"))
         let spy = TabContextActionDelegateSpy()
         controller.delegate = spy
 
@@ -547,10 +547,10 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testRequestTabContextActionForwardsMarkAsReadToDelegate() {
+    func testRequestTabContextActionForwardsMarkAsReadToDelegate() throws {
         let controller = BonsplitController()
-        let pane = controller.focusedPaneId!
-        let tabId = controller.createTab(title: "Test", kind: "terminal")!
+        let pane = try XCTUnwrap(controller.focusedPaneId)
+        let tabId = try XCTUnwrap(controller.createTab(title: "Test", kind: "terminal"))
         let spy = TabContextActionDelegateSpy()
         controller.delegate = spy
 
@@ -562,11 +562,11 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testDoubleClickingEmptyTrailingTabBarSpaceRequestsNewTerminalTab() {
+    func testDoubleClickingEmptyTrailingTabBarSpaceRequestsNewTerminalTab() throws {
         let appearance = BonsplitConfiguration.Appearance(showSplitButtons: false)
         let configuration = BonsplitConfiguration(appearance: appearance)
         let controller = BonsplitController(configuration: configuration)
-        let pane = controller.internalController.rootNode.allPanes.first!
+        let pane = try XCTUnwrap(controller.internalController.rootNode.allPanes.first)
         let spy = NewTabRequestDelegateSpy()
         controller.delegate = spy
 
@@ -656,11 +656,11 @@ final class BonsplitTests: XCTestCase {
     }
 
     @MainActor
-    func testMouseDownInEmptyTrailingTabBarSpaceStartsWindowDrag() {
+    func testMouseDownInEmptyTrailingTabBarSpaceStartsWindowDrag() throws {
         let appearance = BonsplitConfiguration.Appearance(showSplitButtons: false)
         let configuration = BonsplitConfiguration(appearance: appearance)
         let controller = BonsplitController(configuration: configuration)
-        let pane = controller.internalController.rootNode.allPanes.first!
+        let pane = try XCTUnwrap(controller.internalController.rootNode.allPanes.first)
 
         let hostingView = NSHostingView(
             rootView: TabBarView(pane: pane, isFocused: true, showSplitButtons: false)
@@ -850,11 +850,11 @@ final class BonsplitTests: XCTestCase {
     }
 
     func testTabBarSeparatorSegmentsClampGapIntoBounds() {
-        var segments = TabBarStyling.separatorSegments(totalWidth: 100, gap: -20...40)
+        var segments = TabBarStyling.separatorSegments(totalWidth: 100, gap: -20 ... 40)
         XCTAssertEqual(segments.left, 0, accuracy: 0.0001)
         XCTAssertEqual(segments.right, 60, accuracy: 0.0001)
 
-        segments = TabBarStyling.separatorSegments(totalWidth: 100, gap: 25...120)
+        segments = TabBarStyling.separatorSegments(totalWidth: 100, gap: 25 ... 120)
         XCTAssertEqual(segments.left, 25, accuracy: 0.0001)
         XCTAssertEqual(segments.right, 0, accuracy: 0.0001)
 

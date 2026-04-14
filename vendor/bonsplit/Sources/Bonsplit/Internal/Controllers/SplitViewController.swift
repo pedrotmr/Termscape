@@ -65,7 +65,7 @@ final class SplitViewController {
             let welcomeTab = TabItem(title: "Welcome", icon: "star")
             let initialPane = PaneState(tabs: [welcomeTab])
             self.rootNode = .pane(initialPane)
-            self.focusedPaneId = initialPane.id
+            focusedPaneId = initialPane.id
         }
     }
 
@@ -74,9 +74,9 @@ final class SplitViewController {
     /// Set focus to a specific pane
     func focusPane(_ paneId: PaneID) {
         guard rootNode.findPane(paneId) != nil else { return }
-#if DEBUG
-        dlog("focus.bonsplit pane=\(paneId.id.uuidString.prefix(5))")
-#endif
+        #if DEBUG
+            dlog("focus.bonsplit pane=\(paneId.id.uuidString.prefix(5))")
+        #endif
         focusedPaneId = paneId
     }
 
@@ -134,7 +134,7 @@ final class SplitViewController {
         newTab: TabItem?
     ) -> SplitNode {
         switch node {
-        case .pane(let paneState):
+        case let .pane(paneState):
             if paneState.id == targetPaneId {
                 // Create new pane - empty if no tab provided (gives developer full control)
                 let newPane: PaneState
@@ -153,7 +153,7 @@ final class SplitViewController {
                     // from an edge via animationOrigin, but the model should never represent a
                     // fully-collapsed pane (which can get stuck under view reparenting timing).
                     dividerPosition: 0.5,
-                    animationOrigin: .fromSecond  // New pane slides in from right/bottom
+                    animationOrigin: .fromSecond // New pane slides in from right/bottom
                 )
 
                 // Focus the new pane
@@ -163,7 +163,7 @@ final class SplitViewController {
             }
             return node
 
-        case .split(let splitState):
+        case let .split(splitState):
             splitState.first = splitNodeRecursively(
                 node: splitState.first,
                 targetPaneId: targetPaneId,
@@ -200,7 +200,7 @@ final class SplitViewController {
         insertFirst: Bool
     ) -> SplitNode {
         switch node {
-        case .pane(let paneState):
+        case let .pane(paneState):
             if paneState.id == targetPaneId {
                 // Create new pane with the tab
                 let newPane = PaneState(tabs: [tab])
@@ -234,7 +234,7 @@ final class SplitViewController {
             }
             return node
 
-        case .split(let splitState):
+        case let .split(splitState):
             splitState.first = splitNodeWithTabRecursively(
                 node: splitState.first,
                 targetPaneId: targetPaneId,
@@ -281,20 +281,20 @@ final class SplitViewController {
         targetPaneId: PaneID
     ) -> (SplitNode?, PaneID?) {
         switch node {
-        case .pane(let paneState):
+        case let .pane(paneState):
             if paneState.id == targetPaneId {
                 return (nil, nil)
             }
             return (node, nil)
 
-        case .split(let splitState):
+        case let .split(splitState):
             // Check if either direct child is the target
-            if case .pane(let firstPane) = splitState.first, firstPane.id == targetPaneId {
+            if case let .pane(firstPane) = splitState.first, firstPane.id == targetPaneId {
                 let focusTarget = splitState.second.allPaneIds.first
                 return (splitState.second, focusTarget)
             }
 
-            if case .pane(let secondPane) = splitState.second, secondPane.id == targetPaneId {
+            if case let .pane(secondPane) = splitState.second, secondPane.id == targetPaneId {
                 let focusTarget = splitState.first.allPaneIds.first
                 return (splitState.first, focusTarget)
             }
@@ -351,7 +351,7 @@ final class SplitViewController {
         focusPane(targetPaneId)
 
         // If source pane is now empty and not the only pane, close it
-        if sourcePane.tabs.isEmpty && rootNode.allPaneIds.count > 1 {
+        if sourcePane.tabs.isEmpty, rootNode.allPaneIds.count > 1 {
             closePane(sourcePaneId)
         }
     }
@@ -363,7 +363,7 @@ final class SplitViewController {
         pane.removeTab(tabId)
 
         // If pane is now empty and not the only pane, close it
-        if pane.tabs.isEmpty && rootNode.allPaneIds.count > 1 {
+        if pane.tabs.isEmpty, rootNode.allPaneIds.count > 1 {
             closePane(paneId)
         }
     }
@@ -407,10 +407,10 @@ final class SplitViewController {
             guard paneBounds.paneId != currentPaneId else { return false }
             let b = paneBounds.bounds
             switch direction {
-            case .left:  return b.maxX <= currentBounds.minX + epsilon
+            case .left: return b.maxX <= currentBounds.minX + epsilon
             case .right: return b.minX >= currentBounds.maxX - epsilon
-            case .up:    return b.maxY <= currentBounds.minY + epsilon
-            case .down:  return b.minY >= currentBounds.maxY - epsilon
+            case .up: return b.maxY <= currentBounds.minY + epsilon
+            case .down: return b.minY >= currentBounds.maxY - epsilon
             }
         }
 
@@ -492,7 +492,7 @@ final class SplitViewController {
         switch node {
         case .pane:
             return nil
-        case .split(let splitState):
+        case let .split(splitState):
             if splitState.id == id {
                 return splitState
             }
@@ -512,7 +512,7 @@ final class SplitViewController {
         switch node {
         case .pane:
             return []
-        case .split(let splitState):
+        case let .split(splitState):
             return [splitState] + collectSplits(from: splitState.first) + collectSplits(from: splitState.second)
         }
     }

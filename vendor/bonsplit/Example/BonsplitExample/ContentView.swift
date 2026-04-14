@@ -1,5 +1,5 @@
-import SwiftUI
 import Bonsplit
+import SwiftUI
 
 struct ContentView: View {
     @StateObject private var appState = AppState()

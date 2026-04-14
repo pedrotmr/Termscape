@@ -2,21 +2,21 @@ import Foundation
 
 /// Opaque identifier for tabs
 public struct TabID: Hashable, Codable, Sendable {
-    internal let id: UUID
+    let id: UUID
 
     public init() {
-        self.id = UUID()
+        id = UUID()
     }
 
     public init(uuid: UUID) {
-        self.id = uuid
+        id = uuid
     }
 
     public var uuid: UUID {
         id
     }
 
-    internal init(id: UUID) {
+    init(id: UUID) {
         self.id = id
     }
 }

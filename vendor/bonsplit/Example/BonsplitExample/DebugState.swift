@@ -1,5 +1,5 @@
-import SwiftUI
 import Bonsplit
+import SwiftUI
 
 /// Observable state for the geometry debug panel
 @MainActor

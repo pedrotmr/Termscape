@@ -1,5 +1,5 @@
-import SwiftUI
 import Bonsplit
+import SwiftUI
 
 struct WorkspaceContainerView: View {
     @ObservedObject var workspace: Workspace

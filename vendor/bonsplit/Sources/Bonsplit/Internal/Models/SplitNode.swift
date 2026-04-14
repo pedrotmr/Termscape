@@ -15,9 +15,9 @@ indirect enum SplitNode: Identifiable, Equatable {
 
     var id: UUID {
         switch self {
-        case .pane(let state):
+        case let .pane(state):
             return state.id.id
-        case .split(let state):
+        case let .split(state):
             return state.id
         }
     }
@@ -25,9 +25,9 @@ indirect enum SplitNode: Identifiable, Equatable {
     /// Find a pane by its ID
     func findPane(_ paneId: PaneID) -> PaneState? {
         switch self {
-        case .pane(let state):
+        case let .pane(state):
             return state.id == paneId ? state : nil
-        case .split(let state):
+        case let .split(state):
             return state.first.findPane(paneId) ?? state.second.findPane(paneId)
         }
     }
@@ -35,9 +35,9 @@ indirect enum SplitNode: Identifiable, Equatable {
     /// Find the leaf node for a pane by ID.
     func findNode(containing paneId: PaneID) -> SplitNode? {
         switch self {
-        case .pane(let state):
+        case let .pane(state):
             return state.id == paneId ? self : nil
-        case .split(let state):
+        case let .split(state):
             return state.first.findNode(containing: paneId) ?? state.second.findNode(containing: paneId)
         }
     }
@@ -45,9 +45,9 @@ indirect enum SplitNode: Identifiable, Equatable {
     /// Get all pane IDs in the tree
     var allPaneIds: [PaneID] {
         switch self {
-        case .pane(let state):
+        case let .pane(state):
             return [state.id]
-        case .split(let state):
+        case let .split(state):
             return state.first.allPaneIds + state.second.allPaneIds
         }
     }
@@ -55,9 +55,9 @@ indirect enum SplitNode: Identifiable, Equatable {
     /// Get all panes in the tree
     var allPanes: [PaneState] {
         switch self {
-        case .pane(let state):
+        case let .pane(state):
             return [state]
-        case .split(let state):
+        case let .split(state):
             return state.first.allPanes + state.second.allPanes
         }
     }
@@ -84,21 +84,21 @@ indirect enum SplitNode: Identifiable, Equatable {
     /// - Returns: Array of pane IDs with their computed bounds
     func computePaneBounds(in availableRect: CGRect = CGRect(x: 0, y: 0, width: 1, height: 1)) -> [PaneBounds] {
         switch self {
-        case .pane(let paneState):
+        case let .pane(paneState):
             return [PaneBounds(paneId: paneState.id, bounds: availableRect)]
 
-        case .split(let splitState):
+        case let .split(splitState):
             let dividerPos = splitState.dividerPosition
             let firstRect: CGRect
             let secondRect: CGRect
 
             switch splitState.orientation {
-            case .horizontal:  // Side-by-side: first=LEFT, second=RIGHT
+            case .horizontal: // Side-by-side: first=LEFT, second=RIGHT
                 firstRect = CGRect(x: availableRect.minX, y: availableRect.minY,
                                    width: availableRect.width * dividerPos, height: availableRect.height)
                 secondRect = CGRect(x: availableRect.minX + availableRect.width * dividerPos, y: availableRect.minY,
                                     width: availableRect.width * (1 - dividerPos), height: availableRect.height)
-            case .vertical:  // Stacked: first=TOP, second=BOTTOM
+            case .vertical: // Stacked: first=TOP, second=BOTTOM
                 firstRect = CGRect(x: availableRect.minX, y: availableRect.minY,
                                    width: availableRect.width, height: availableRect.height * dividerPos)
                 secondRect = CGRect(x: availableRect.minX, y: availableRect.minY + availableRect.height * dividerPos,
@@ -106,7 +106,7 @@ indirect enum SplitNode: Identifiable, Equatable {
             }
 
             return splitState.first.computePaneBounds(in: firstRect)
-                 + splitState.second.computePaneBounds(in: secondRect)
+                + splitState.second.computePaneBounds(in: secondRect)
         }
     }
 }

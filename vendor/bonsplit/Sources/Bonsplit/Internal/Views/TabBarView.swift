@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 private struct SelectedTabFramePreferenceKey: PreferenceKey {
@@ -27,8 +27,13 @@ final class TabBarLeadingInsetPassthroughView: NSView {
     private var observers: [NSObjectProtocol] = []
     private var lastPublishedInset: CGFloat?
 
-    override var mouseDownCanMoveWindow: Bool { false }
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    override var mouseDownCanMoveWindow: Bool {
+        false
+    }
+
+    override func hitTest(_: NSPoint) -> NSView? {
+        nil
+    }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -48,7 +53,7 @@ final class TabBarLeadingInsetPassthroughView: NSView {
     }
 
     func publishInsetIfNeeded() {
-        guard let window = self.window ?? observedWindow else { return }
+        guard let window = window ?? observedWindow else { return }
 
         let buttonTypes: [NSWindow.ButtonType] = [.closeButton, .miniaturizeButton, .zoomButton]
         let trafficLightMaxX = buttonTypes
@@ -76,7 +81,7 @@ final class TabBarLeadingInsetPassthroughView: NSView {
             NSWindow.didResizeNotification,
             NSWindow.didEndLiveResizeNotification,
             NSWindow.didBecomeKeyNotification,
-            NSWindow.didBecomeMainNotification,
+            NSWindow.didBecomeMainNotification
         ]
         observers = names.map { name in
             center.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
@@ -97,7 +102,7 @@ final class TabBarLeadingInsetPassthroughView: NSView {
 private struct TabBarLeadingInsetReader: NSViewRepresentable {
     @Binding var inset: CGFloat
 
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = TabBarLeadingInsetPassthroughView()
         view.setFrameSize(.zero)
         view.onInsetChange = { nextInset in
@@ -108,7 +113,7 @@ private struct TabBarLeadingInsetReader: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         guard let view = nsView as? TabBarLeadingInsetPassthroughView else { return }
         view.onInsetChange = { nextInset in
             if abs(nextInset - inset) > 0.5 {
@@ -167,7 +172,7 @@ struct TabContextMenuState {
 struct TabBarView: View {
     @Environment(BonsplitController.self) private var controller
     @Environment(SplitViewController.self) private var splitViewController
-    
+
     @Bindable var pane: PaneState
     let isFocused: Bool
     var showSplitButtons: Bool = true
@@ -334,13 +339,13 @@ struct TabBarView: View {
         )
         // Clear drop state when drag ends elsewhere (cancelled, dropped in another pane, etc.)
         .onChange(of: splitViewController.draggingTab) { _, newValue in
-#if DEBUG
-            dlog(
-                "tab.dragState pane=\(pane.id.id.uuidString.prefix(5)) " +
-                "draggingTab=\(newValue != nil ? 1 : 0) " +
-                "activeDragTab=\(splitViewController.activeDragTab != nil ? 1 : 0)"
-            )
-#endif
+            #if DEBUG
+                dlog(
+                    "tab.dragState pane=\(pane.id.id.uuidString.prefix(5)) " +
+                        "draggingTab=\(newValue != nil ? 1 : 0) " +
+                        "activeDragTab=\(splitViewController.activeDragTab != nil ? 1 : 0)"
+                )
+            #endif
             if newValue == nil {
                 dropTargetIndex = nil
                 dropLifecycle = .idle
@@ -380,9 +385,9 @@ struct TabBarView: View {
                 // Tab selection must be instant. Animating this transaction causes the pane
                 // content (often swapped via opacity) to crossfade, which is undesirable for
                 // terminal/browser surfaces.
-#if DEBUG
-                dlog("tab.select pane=\(pane.id.id.uuidString.prefix(5)) tab=\(tab.id.uuidString.prefix(5)) title=\"\(tab.title)\"")
-#endif
+                #if DEBUG
+                    dlog("tab.select pane=\(pane.id.id.uuidString.prefix(5)) tab=\(tab.id.uuidString.prefix(5)) title=\"\(tab.title)\"")
+                #endif
                 withTransaction(Transaction(animation: nil)) {
                     pane.selectTab(tab.id)
                     controller.focusPane(pane.id)
@@ -391,9 +396,9 @@ struct TabBarView: View {
             onClose: {
                 guard !tab.isPinned else { return }
                 // Close should be instant (no fade-out/removal animation).
-#if DEBUG
-                dlog("tab.close pane=\(pane.id.id.uuidString.prefix(5)) tab=\(tab.id.uuidString.prefix(5)) title=\"\(tab.title)\"")
-#endif
+                #if DEBUG
+                    dlog("tab.close pane=\(pane.id.id.uuidString.prefix(5)) tab=\(tab.id.uuidString.prefix(5)) title=\"\(tab.title)\"")
+                #endif
                 withTransaction(Transaction(animation: nil)) {
                     controller.onTabCloseRequest?(TabID(id: tab.id), pane.id)
                     _ = controller.closeTab(TabID(id: tab.id), inPane: pane.id)
@@ -474,11 +479,11 @@ struct TabBarView: View {
 
     private func createItemProvider(for tab: TabItem) -> NSItemProvider {
         #if DEBUG
-        NSLog("[Bonsplit Drag] createItemProvider for tab: \(tab.title)")
+            NSLog("[Bonsplit Drag] createItemProvider for tab: \(tab.title)")
         #endif
-#if DEBUG
-        dlog("tab.dragStart pane=\(pane.id.id.uuidString.prefix(5)) tab=\(tab.id.uuidString.prefix(5)) title=\"\(tab.title)\"")
-#endif
+        #if DEBUG
+            dlog("tab.dragStart pane=\(pane.id.id.uuidString.prefix(5)) tab=\(tab.id.uuidString.prefix(5)) title=\"\(tab.title)\"")
+        #endif
         // Clear any stale drop indicator from previous incomplete drag
         dropTargetIndex = nil
         dropLifecycle = .idle
@@ -507,9 +512,9 @@ struct TabBarView: View {
             DispatchQueue.main.async {
                 guard controller.dragGeneration == dragGen else { return }
                 if controller.draggingTab != nil || controller.activeDragTab != nil {
-#if DEBUG
-                    dlog("tab.dragCancel (stale draggingTab cleared)")
-#endif
+                    #if DEBUG
+                        dlog("tab.dragCancel (stale draggingTab cleared)")
+                    #endif
                     controller.draggingTab = nil
                     controller.dragSourcePaneId = nil
                     controller.activeDragTab = nil
@@ -529,19 +534,19 @@ struct TabBarView: View {
                 completion(data, nil)
                 return nil
             }
-#if DEBUG
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
-                let types = NSPasteboard(name: .drag).types?.map(\.rawValue).joined(separator: ",") ?? "-"
-                dlog("tab.dragPasteboard types=\(types)")
-            }
-#endif
+            #if DEBUG
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+                    let types = NSPasteboard(name: .drag).types?.map(\.rawValue).joined(separator: ",") ?? "-"
+                    dlog("tab.dragPasteboard types=\(types)")
+                }
+            #endif
             return provider
         }
         return NSItemProvider()
     }
 
     private func tabControlShortcutDigit(for index: Int, tabCount: Int) -> Int? {
-        for digit in 1...9 {
+        for digit in 1 ... 9 {
             if tabIndexForControlShortcutDigit(digit, tabCount: tabCount) == index {
                 return digit
             }
@@ -560,7 +565,6 @@ struct TabBarView: View {
 
     // MARK: - Drop Zone at End
 
-    @ViewBuilder
     private var dropZoneAfterTabs: some View {
         Rectangle()
             .fill(Color.clear)
@@ -587,7 +591,6 @@ struct TabBarView: View {
 
     // MARK: - Drop Indicator
 
-    @ViewBuilder
     private var dropIndicator: some View {
         Capsule()
             .fill(TabBarColors.dropIndicator(for: appearance))
@@ -659,7 +662,7 @@ struct TabBarView: View {
             LinearGradient(
                 colors: [
                     TabBarColors.barBackground(for: appearance),
-                    TabBarColors.barBackground(for: appearance).opacity(0),
+                    TabBarColors.barBackground(for: appearance).opacity(0)
                 ],
                 startPoint: .leading,
                 endPoint: .trailing
@@ -674,7 +677,7 @@ struct TabBarView: View {
             LinearGradient(
                 colors: [
                     TabBarColors.barBackground(for: appearance).opacity(0),
-                    TabBarColors.barBackground(for: appearance),
+                    TabBarColors.barBackground(for: appearance)
                 ],
                 startPoint: .leading,
                 endPoint: .trailing
@@ -699,7 +702,7 @@ struct TabBarView: View {
                 GeometryReader { geometry in
                     let separator = TabBarColors.separator(for: appearance)
                     let gapRange: ClosedRange<CGFloat>? = selectedTabFrameInBar.map { frame in
-                        frame.minX...frame.maxX
+                        frame.minX ... frame.maxX
                     }
                     let segments = TabBarStyling.separatorSegments(
                         totalWidth: geometry.size.width,
@@ -802,7 +805,7 @@ enum TabControlShortcutHintPolicy {
 private struct TabBarHostWindowReader: NSViewRepresentable {
     let onResolve: (NSWindow?) -> Void
 
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async { [weak view] in
             onResolve(view?.window)
@@ -810,7 +813,7 @@ private struct TabBarHostWindowReader: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         DispatchQueue.main.async { [weak nsView] in
             onResolve(nsView?.window)
         }
@@ -997,7 +1000,6 @@ private final class TabControlShortcutKeyMonitor: ObservableObject {
     }
 }
 
-
 /// Drop lifecycle state to prevent dropUpdated from re-setting state after performDrop
 enum TabDropLifecycle {
     case idle
@@ -1016,11 +1018,11 @@ struct TabDropDelegate: DropDelegate {
 
     func performDrop(info: DropInfo) -> Bool {
         #if DEBUG
-        NSLog("[Bonsplit Drag] performDrop called, targetIndex: \(targetIndex)")
+            NSLog("[Bonsplit Drag] performDrop called, targetIndex: \(targetIndex)")
         #endif
-#if DEBUG
-        dlog("tab.drop pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex)")
-#endif
+        #if DEBUG
+            dlog("tab.drop pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex)")
+        #endif
 
         // Ensure all drag/drop side-effects run on the main actor. SwiftUI can call these
         // callbacks off-main, and SplitViewController is @MainActor.
@@ -1033,9 +1035,11 @@ struct TabDropDelegate: DropDelegate {
         // Read from non-observable drag state — @Observable writes from createItemProvider
         // may not have propagated yet when performDrop runs.
         guard let draggedTab = controller.activeDragTab ?? controller.draggingTab,
-              let sourcePaneId = controller.activeDragSourcePaneId ?? controller.dragSourcePaneId else {
+              let sourcePaneId = controller.activeDragSourcePaneId ?? controller.dragSourcePaneId
+        else {
             guard let transfer = decodeTransfer(from: info),
-                  transfer.isFromCurrentProcess else {
+                  transfer.isFromCurrentProcess
+            else {
                 return false
             }
             let request = BonsplitController.ExternalTabDropRequest(
@@ -1087,14 +1091,14 @@ struct TabDropDelegate: DropDelegate {
         return true
     }
 
-    func dropEntered(info: DropInfo) {
+    func dropEntered(info _: DropInfo) {
         #if DEBUG
-        NSLog("[Bonsplit Drag] dropEntered at index: \(targetIndex)")
-        dlog(
-            "tab.dropEntered pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex) " +
-            "hasDrag=\(controller.draggingTab != nil ? 1 : 0) " +
-            "hasActive=\(controller.activeDragTab != nil ? 1 : 0)"
-        )
+            NSLog("[Bonsplit Drag] dropEntered at index: \(targetIndex)")
+            dlog(
+                "tab.dropEntered pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex) " +
+                    "hasDrag=\(controller.draggingTab != nil ? 1 : 0) " +
+                    "hasActive=\(controller.activeDragTab != nil ? 1 : 0)"
+            )
         #endif
         dropLifecycle = .hovering
         if shouldSuppressIndicatorForNoopSamePaneDrop() {
@@ -1104,10 +1108,10 @@ struct TabDropDelegate: DropDelegate {
         }
     }
 
-    func dropExited(info: DropInfo) {
+    func dropExited(info _: DropInfo) {
         #if DEBUG
-        NSLog("[Bonsplit Drag] dropExited from index: \(targetIndex)")
-        dlog("tab.dropExited pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex)")
+            NSLog("[Bonsplit Drag] dropExited from index: \(targetIndex)")
+            dlog("tab.dropExited pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex)")
         #endif
         dropLifecycle = .idle
         if dropTargetIndex == targetIndex {
@@ -1115,13 +1119,13 @@ struct TabDropDelegate: DropDelegate {
         }
     }
 
-    func dropUpdated(info: DropInfo) -> DropProposal? {
+    func dropUpdated(info _: DropInfo) -> DropProposal? {
         // Guard against dropUpdated firing after performDrop/dropExited
         // This is the key fix for the lingering indicator bug
         guard dropLifecycle == .hovering else {
-#if DEBUG
-            dlog("tab.dropUpdated.skip pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex) reason=lifecycle_idle")
-#endif
+            #if DEBUG
+                dlog("tab.dropUpdated.skip pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex) reason=lifecycle_idle")
+            #endif
             return DropProposal(operation: .move)
         }
         // Only update if this is the active target, and suppress same-pane no-op indicators.
@@ -1132,21 +1136,21 @@ struct TabDropDelegate: DropDelegate {
         } else if dropTargetIndex != targetIndex {
             dropTargetIndex = targetIndex
         }
-#if DEBUG
-        dlog(
-            "tab.dropUpdated pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex) " +
-            "dropTarget=\(dropTargetIndex.map(String.init) ?? "nil")"
-        )
-#endif
+        #if DEBUG
+            dlog(
+                "tab.dropUpdated pane=\(pane.id.id.uuidString.prefix(5)) targetIndex=\(targetIndex) " +
+                    "dropTarget=\(dropTargetIndex.map(String.init) ?? "nil")"
+            )
+        #endif
         return DropProposal(operation: .move)
     }
 
     func validateDrop(info: DropInfo) -> Bool {
         // Reject drops on inactive workspaces whose views are kept alive in a ZStack.
         guard controller.isInteractive else {
-#if DEBUG
-            dlog("tab.validateDrop pane=\(pane.id.id.uuidString.prefix(5)) allowed=0 reason=inactive")
-#endif
+            #if DEBUG
+                dlog("tab.validateDrop pane=\(pane.id.id.uuidString.prefix(5)) allowed=0 reason=inactive")
+            #endif
             return false
         }
         // The custom UTType alone is sufficient — only Bonsplit tab drags produce it.
@@ -1162,24 +1166,26 @@ struct TabDropDelegate: DropDelegate {
 
         // External drags (another Bonsplit controller) must include a payload from this process.
         guard let transfer = decodeTransfer(from: info),
-              transfer.isFromCurrentProcess else {
+              transfer.isFromCurrentProcess
+        else {
             return false
         }
-#if DEBUG
-        let hasDrag = controller.draggingTab != nil
-        let hasActive = controller.activeDragTab != nil
-        dlog(
-            "tab.validateDrop pane=\(pane.id.id.uuidString.prefix(5)) " +
-            "allowed=\(hasType ? 1 : 0) hasDrag=\(hasDrag ? 1 : 0) hasActive=\(hasActive ? 1 : 0)"
-        )
-#endif
+        #if DEBUG
+            let hasDrag = controller.draggingTab != nil
+            let hasActive = controller.activeDragTab != nil
+            dlog(
+                "tab.validateDrop pane=\(pane.id.id.uuidString.prefix(5)) " +
+                    "allowed=\(hasType ? 1 : 0) hasDrag=\(hasDrag ? 1 : 0) hasActive=\(hasActive ? 1 : 0)"
+            )
+        #endif
         return true
     }
 
     private func shouldSuppressIndicatorForNoopSamePaneDrop() -> Bool {
         guard let draggedTab = controller.draggingTab,
               controller.dragSourcePaneId == pane.id,
-              let sourceIndex = pane.tabs.firstIndex(where: { $0.id == draggedTab.id }) else {
+              let sourceIndex = pane.tabs.firstIndex(where: { $0.id == draggedTab.id })
+        else {
             return false
         }
         // Insertion indices are expressed in "original array" coordinates; after removal,
@@ -1189,13 +1195,14 @@ struct TabDropDelegate: DropDelegate {
 
     private func decodeTransfer(from string: String) -> TabTransferData? {
         guard let data = string.data(using: .utf8),
-              let transfer = try? JSONDecoder().decode(TabTransferData.self, from: data) else {
+              let transfer = try? JSONDecoder().decode(TabTransferData.self, from: data)
+        else {
             return nil
         }
         return transfer
     }
 
-    private func decodeTransfer(from info: DropInfo) -> TabTransferData? {
+    private func decodeTransfer(from _: DropInfo) -> TabTransferData? {
         let pasteboard = NSPasteboard(name: .drag)
         let type = NSPasteboard.PasteboardType(UTType.tabTransfer.identifier)
         if let data = pasteboard.data(forType: type),

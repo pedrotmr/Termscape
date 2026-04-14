@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Recursively renders a split node (pane or split)
 struct SplitNodeView<Content: View, EmptyContent: View>: View {
@@ -17,7 +17,7 @@ struct SplitNodeView<Content: View, EmptyContent: View>: View {
 
     var body: some View {
         switch node {
-        case .pane(let paneState):
+        case let .pane(paneState):
             // Wrap in NSHostingController for proper layout constraints
             SinglePaneWrapper(
                 pane: paneState,
@@ -27,7 +27,7 @@ struct SplitNodeView<Content: View, EmptyContent: View>: View {
                 contentViewLifecycle: contentViewLifecycle
             )
 
-        case .split(let splitState):
+        case let .split(splitState):
             SplitContainerView(
                 splitState: splitState,
                 controller: controller,
@@ -46,14 +46,19 @@ struct SplitNodeView<Content: View, EmptyContent: View>: View {
 
 /// Container NSView for a pane inside SinglePaneWrapper.
 class PaneDragContainerView: NSView {
-    override var mouseDownCanMoveWindow: Bool { false }
-    override var isOpaque: Bool { false }
+    override var mouseDownCanMoveWindow: Bool {
+        false
+    }
+
+    override var isOpaque: Bool {
+        false
+    }
 }
 
 /// Wrapper that uses NSHostingController for proper AppKit layout constraints
 struct SinglePaneWrapper<Content: View, EmptyContent: View>: NSViewRepresentable {
     @Environment(SplitViewController.self) private var controller
-    
+
     let pane: PaneState
     let contentBuilder: (TabItem, PaneID) -> Content
     let emptyPaneBuilder: (PaneID) -> EmptyContent

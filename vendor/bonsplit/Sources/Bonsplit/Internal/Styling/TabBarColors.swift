@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Native macOS colors for the tab bar
 enum TabBarColors {
@@ -220,10 +220,10 @@ private extension NSColor {
         let blue: CGFloat
         let alpha: CGFloat
         if hex.count == 8 {
-            red = CGFloat((rgba & 0xFF000000) >> 24) / 255.0
-            green = CGFloat((rgba & 0x00FF0000) >> 16) / 255.0
-            blue = CGFloat((rgba & 0x0000FF00) >> 8) / 255.0
-            alpha = CGFloat(rgba & 0x000000FF) / 255.0
+            red = CGFloat((rgba & 0xFF00_0000) >> 24) / 255.0
+            green = CGFloat((rgba & 0x00FF_0000) >> 16) / 255.0
+            blue = CGFloat((rgba & 0x0000_FF00) >> 8) / 255.0
+            alpha = CGFloat(rgba & 0x0000_00FF) / 255.0
         } else {
             red = CGFloat((rgba & 0xFF0000) >> 16) / 255.0
             green = CGFloat((rgba & 0x00FF00) >> 8) / 255.0

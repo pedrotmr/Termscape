@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 private enum TabControlShortcutHintDebugSettings {
     static let xKey = "shortcutHintPaneTabXOffset"
@@ -8,7 +8,7 @@ private enum TabControlShortcutHintDebugSettings {
     static let defaultX = 0.0
     static let defaultY = 0.0
     static let defaultAlwaysShow = false
-    static let range: ClosedRange<Double> = -20...20
+    static let range: ClosedRange<Double> = -20 ... 20
 
     static func clamped(_ value: Double) -> Double {
         min(max(value, range.lowerBound), range.upperBound)
@@ -229,7 +229,6 @@ struct TabItemView: View {
         return ceil(textWidth) + 8
     }
 
-    @ViewBuilder
     private var trailingAccessory: some View {
         ZStack(alignment: .center) {
             if let shortcutHintLabel {
@@ -272,7 +271,7 @@ struct TabItemView: View {
 
     private func updateGlobeFallback() {
         // Track load transitions so we can avoid an "empty placeholder -> globe" flash on brand-new tabs.
-        if lastIsLoadingObserved && !tab.isLoading {
+        if lastIsLoadingObserved, !tab.isLoading {
             lastLoadingStoppedAt = Date()
         }
         lastIsLoadingObserved = tab.isLoading
@@ -303,7 +302,7 @@ struct TabItemView: View {
 
     private func updateRenderedFaviconImage() {
         guard renderedFaviconData != tab.iconImageData ||
-                (renderedFaviconImage == nil && tab.iconImageData != nil) else { return }
+            (renderedFaviconImage == nil && tab.iconImageData != nil) else { return }
         renderedFaviconData = tab.iconImageData
         renderedFaviconImage = TabItemStyling.resolvedFaviconImage(
             existing: renderedFaviconImage,
@@ -350,14 +349,14 @@ struct TabItemView: View {
                 defaultValue: "Move to Left Pane",
                 action: .moveToLeftPane
             )
-                .disabled(!contextMenuState.canMoveToLeftPane)
+            .disabled(!contextMenuState.canMoveToLeftPane)
 
             localizedContextButton(
                 "command.moveTabToRightPane.title",
                 defaultValue: "Move to Right Pane",
                 action: .moveToRightPane
             )
-                .disabled(!contextMenuState.canMoveToRightPane)
+            .disabled(!contextMenuState.canMoveToRightPane)
         }
 
         Divider()
@@ -421,7 +420,6 @@ struct TabItemView: View {
         }
     }
 
-    @ViewBuilder
     private func localizedContextButton(
         _ titleKey: String,
         defaultValue: String,
@@ -437,7 +435,6 @@ struct TabItemView: View {
 
     // MARK: - Tab Background
 
-    @ViewBuilder
     private var tabBackground: some View {
         ZStack(alignment: .top) {
             // Background fill (hover)
@@ -467,7 +464,6 @@ struct TabItemView: View {
 
     // MARK: - Close Button / Dirty Indicator
 
-    @ViewBuilder
     private var closeOrDirtyIndicator: some View {
         ZStack {
             // Dirty indicator (shown when dirty and not hovering, hidden for selected tab)
@@ -576,7 +572,7 @@ private struct FaviconIconView: NSViewRepresentable {
         }
 
         @available(*, unavailable)
-        required init?(coder: NSCoder) {
+        required init?(coder _: NSCoder) {
             fatalError("init(coder:) has not been implemented")
         }
 
@@ -590,11 +586,11 @@ private struct FaviconIconView: NSViewRepresentable {
         }
     }
 
-    func makeNSView(context: Context) -> ContainerView {
+    func makeNSView(context _: Context) -> ContainerView {
         ContainerView(frame: .zero)
     }
 
-    func updateNSView(_ nsView: ContainerView, context: Context) {
+    func updateNSView(_ nsView: ContainerView, context _: Context) {
         image.isTemplate = false
         if nsView.imageView.image !== image {
             nsView.imageView.image = image
@@ -618,7 +614,9 @@ private struct MiddleClickMonitorView: NSViewRepresentable {
         }
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView(frame: .zero)
@@ -651,8 +649,8 @@ private struct MiddleClickMonitorView: NSViewRepresentable {
     }
 }
 
-extension TabContextAction {
-    fileprivate var defaultContextMenuSystemImage: String {
+private extension TabContextAction {
+    var defaultContextMenuSystemImage: String {
         switch self {
         case .rename: "pencil"
         case .clearName: "text.badge.xmark"

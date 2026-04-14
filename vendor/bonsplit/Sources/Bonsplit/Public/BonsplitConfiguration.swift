@@ -26,7 +26,6 @@ public enum NewTabPosition: Sendable {
 
 /// Configuration for the split tab bar appearance and behavior
 public struct BonsplitConfiguration: Sendable {
-
     // MARK: - Behavior
 
     /// Whether to allow creating splits
@@ -101,8 +100,8 @@ public struct BonsplitConfiguration: Sendable {
 
 // MARK: - Appearance Configuration
 
-extension BonsplitConfiguration {
-    public struct SplitButtonTooltips: Sendable, Equatable {
+public extension BonsplitConfiguration {
+    struct SplitButtonTooltips: Sendable, Equatable {
         public var newTerminal: String
         public var newBrowser: String
         public var splitRight: String
@@ -123,7 +122,7 @@ extension BonsplitConfiguration {
         }
     }
 
-    public struct Appearance: Sendable {
+    struct Appearance: Sendable {
         public struct ChromeColors: Sendable {
             /// Optional hex color (`#RRGGBB` or `#RRGGBBAA`) for tab/pane chrome backgrounds.
             /// When unset, Bonsplit uses native system colors.

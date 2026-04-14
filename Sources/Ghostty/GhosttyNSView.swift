@@ -19,7 +19,7 @@ final class GhosttyNSView: NSView, NSTextInputClient {
 
     private var trackingArea: NSTrackingArea?
     private var windowObserver: NSObjectProtocol?
-    private var markedText: NSAttributedString = NSAttributedString()
+    private var markedText: NSAttributedString = .init()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -83,14 +83,16 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         updateSurfaceSize()
     }
 
-    override var isOpaque: Bool { false }
+    override var isOpaque: Bool {
+        false
+    }
 
     func updateSurfaceSize() {
         guard let surface = terminalSurface?.surface else { return }
         let scale = window?.backingScaleFactor ?? layer?.contentsScale ?? NSScreen.main?.backingScaleFactor ?? 1.0
         let w = pixelDimension(from: bounds.width * scale)
         let h = pixelDimension(from: bounds.height * scale)
-        guard w > 0 && h > 0 else { return }
+        guard w > 0, h > 0 else { return }
         ghostty_surface_set_size(surface, w, h)
         ghostty_surface_set_content_scale(surface, scale, scale)
         needsDisplay = true
@@ -105,14 +107,16 @@ final class GhosttyNSView: NSView, NSTextInputClient {
 
     // MARK: - Drawing
 
-    override func draw(_ dirtyRect: NSRect) {
+    override func draw(_: NSRect) {
         guard let surface = terminalSurface?.surface else { return }
         ghostty_surface_draw(surface)
     }
 
     // MARK: - Focus
 
-    override var acceptsFirstResponder: Bool { true }
+    override var acceptsFirstResponder: Bool {
+        true
+    }
 
     override func becomeFirstResponder() -> Bool {
         guard super.becomeFirstResponder() else { return false }
@@ -128,20 +132,20 @@ final class GhosttyNSView: NSView, NSTextInputClient {
 
     // MARK: - Keyboard input
 
-    // Key codes that should always bypass IME and go directly to Ghostty.
+    /// Key codes that should always bypass IME and go directly to Ghostty.
     private static let directKeyCodes: Set<UInt16> = [
-        36,  // Return
-        48,  // Tab
-        51,  // Backspace / Delete
-        53,  // Escape
-        76,  // Numpad Enter
+        36, // Return
+        48, // Tab
+        51, // Backspace / Delete
+        53, // Escape
+        76, // Numpad Enter
         117, // Forward Delete
         // Arrow keys
         123, 124, 125, 126,
         // Home, End, Page Up, Page Down
         115, 116, 119, 121,
         // F1–F20
-        96, 97, 98, 99, 100, 101, 103, 109, 111, 118, 120, 122,
+        96, 97, 98, 99, 100, 101, 103, 109, 111, 118, 120, 122
     ]
 
     override func keyDown(with event: NSEvent) {
@@ -160,13 +164,13 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         let hasSystemMod = !flags.intersection([.control, .command, .option]).isEmpty
         let isSpecialKey = Self.directKeyCodes.contains(event.keyCode)
 
-        if (hasSystemMod || isSpecialKey) && !hasMarkedText() {
+        if hasSystemMod || isSpecialKey, !hasMarkedText() {
             sendKeyDirectly(event, surface: surface, includeText: !isSpecialKey)
             return
         }
 
         // Normal path: IME / NSTextInputClient for regular printable text
-        self.inputContext?.handleEvent(event)
+        inputContext?.handleEvent(event)
     }
 
     private func sendKeyDirectly(_ event: NSEvent, surface: ghostty_surface_t, includeText: Bool) {
@@ -214,11 +218,11 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         // Determine if modifier was pressed or released
         let flag: NSEvent.ModifierFlags
         switch event.keyCode {
-        case 56, 60: flag = .shift    // left/right shift
-        case 59, 62: flag = .control  // left/right control
-        case 58, 61: flag = .option   // left/right option
-        case 55, 54: flag = .command  // left/right command
-        default:     flag = []
+        case 56, 60: flag = .shift // left/right shift
+        case 59, 62: flag = .control // left/right control
+        case 58, 61: flag = .option // left/right option
+        case 55, 54: flag = .command // left/right command
+        default: flag = []
         }
         keyEvent.action = event.modifierFlags.contains(flag) ? GHOSTTY_ACTION_PRESS : GHOSTTY_ACTION_RELEASE
         _ = ghostty_surface_key(surface, keyEvent)
@@ -226,7 +230,7 @@ final class GhosttyNSView: NSView, NSTextInputClient {
 
     // MARK: - NSTextInputClient (for composed input / IME)
 
-    func insertText(_ string: Any, replacementRange: NSRange) {
+    func insertText(_ string: Any, replacementRange _: NSRange) {
         guard let surface = terminalSurface?.surface else { return }
         let text: String
         if let attrStr = string as? NSAttributedString {
@@ -249,7 +253,7 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         }
     }
 
-    func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+    func setMarkedText(_ string: Any, selectedRange _: NSRange, replacementRange _: NSRange) {
         if let attrStr = string as? NSAttributedString {
             markedText = attrStr
         } else if let str = string as? String {
@@ -261,16 +265,34 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         markedText = NSAttributedString()
     }
 
-    func selectedRange() -> NSRange { NSRange(location: NSNotFound, length: 0) }
+    func selectedRange() -> NSRange {
+        NSRange(location: NSNotFound, length: 0)
+    }
+
     func markedRange() -> NSRange {
         guard markedText.length > 0 else { return NSRange(location: NSNotFound, length: 0) }
         return NSRange(location: 0, length: markedText.length)
     }
-    func hasMarkedText() -> Bool { markedText.length > 0 }
-    func attributedSubstring(forProposedRange range: NSRange, actualRange: NSRangePointer?) -> NSAttributedString? { nil }
-    func validAttributesForMarkedText() -> [NSAttributedString.Key] { [] }
-    func firstRect(forCharacterRange range: NSRange, actualRange: NSRangePointer?) -> NSRect { .zero }
-    func characterIndex(for point: NSPoint) -> Int { NSNotFound }
+
+    func hasMarkedText() -> Bool {
+        markedText.length > 0
+    }
+
+    func attributedSubstring(forProposedRange _: NSRange, actualRange _: NSRangePointer?) -> NSAttributedString? {
+        nil
+    }
+
+    func validAttributesForMarkedText() -> [NSAttributedString.Key] {
+        []
+    }
+
+    func firstRect(forCharacterRange _: NSRange, actualRange _: NSRangePointer?) -> NSRect {
+        .zero
+    }
+
+    func characterIndex(for _: NSPoint) -> Int {
+        NSNotFound
+    }
 
     // MARK: - Mouse input
 
@@ -388,9 +410,9 @@ final class GhosttyNSView: NSView, NSTextInputClient {
 
     private func modsFromEvent(_ event: NSEvent) -> ghostty_input_mods_e {
         var mods = GHOSTTY_MODS_NONE.rawValue
-        if event.modifierFlags.contains(.shift)   { mods |= GHOSTTY_MODS_SHIFT.rawValue }
+        if event.modifierFlags.contains(.shift) { mods |= GHOSTTY_MODS_SHIFT.rawValue }
         if event.modifierFlags.contains(.control) { mods |= GHOSTTY_MODS_CTRL.rawValue }
-        if event.modifierFlags.contains(.option)  { mods |= GHOSTTY_MODS_ALT.rawValue }
+        if event.modifierFlags.contains(.option) { mods |= GHOSTTY_MODS_ALT.rawValue }
         if event.modifierFlags.contains(.command) { mods |= GHOSTTY_MODS_SUPER.rawValue }
         return ghostty_input_mods_e(rawValue: mods)
     }
@@ -400,7 +422,8 @@ final class GhosttyNSView: NSView, NSTextInputClient {
               chars.count == 1,
               let scalar = chars.unicodeScalars.first,
               scalar.value >= 0x20,
-              !(scalar.value >= 0xF700 && scalar.value <= 0xF8FF) else {
+              !(scalar.value >= 0xF700 && scalar.value <= 0xF8FF)
+        else {
             return 0
         }
         return scalar.value

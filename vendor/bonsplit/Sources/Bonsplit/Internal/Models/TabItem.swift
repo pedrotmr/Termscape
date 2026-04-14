@@ -73,16 +73,16 @@ struct TabItem: Identifiable, Hashable, Codable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = try c.decode(UUID.self, forKey: .id)
-        self.title = try c.decode(String.self, forKey: .title)
-        self.hasCustomTitle = try c.decodeIfPresent(Bool.self, forKey: .hasCustomTitle) ?? false
-        self.icon = try c.decodeIfPresent(String.self, forKey: .icon)
-        self.iconImageData = try c.decodeIfPresent(Data.self, forKey: .iconImageData)
-        self.kind = try c.decodeIfPresent(String.self, forKey: .kind)
-        self.isDirty = try c.decodeIfPresent(Bool.self, forKey: .isDirty) ?? false
-        self.showsNotificationBadge = try c.decodeIfPresent(Bool.self, forKey: .showsNotificationBadge) ?? false
-        self.isLoading = try c.decodeIfPresent(Bool.self, forKey: .isLoading) ?? false
-        self.isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
+        id = try c.decode(UUID.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        hasCustomTitle = try c.decodeIfPresent(Bool.self, forKey: .hasCustomTitle) ?? false
+        icon = try c.decodeIfPresent(String.self, forKey: .icon)
+        iconImageData = try c.decodeIfPresent(Data.self, forKey: .iconImageData)
+        kind = try c.decodeIfPresent(String.self, forKey: .kind)
+        isDirty = try c.decodeIfPresent(Bool.self, forKey: .isDirty) ?? false
+        showsNotificationBadge = try c.decodeIfPresent(Bool.self, forKey: .showsNotificationBadge) ?? false
+        isLoading = try c.decodeIfPresent(Bool.self, forKey: .isLoading) ?? false
+        isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -132,10 +132,10 @@ struct TabTransferData: Codable, Transferable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.tab = try container.decode(TabItem.self, forKey: .tab)
-        self.sourcePaneId = try container.decode(UUID.self, forKey: .sourcePaneId)
+        tab = try container.decode(TabItem.self, forKey: .tab)
+        sourcePaneId = try container.decode(UUID.self, forKey: .sourcePaneId)
         // Legacy payloads won't include this field. Treat as foreign process to reject cross-instance drops.
-        self.sourceProcessId = try container.decodeIfPresent(Int32.self, forKey: .sourceProcessId) ?? -1
+        sourceProcessId = try container.decodeIfPresent(Int32.self, forKey: .sourceProcessId) ?? -1
     }
 
     func encode(to encoder: Encoder) throws {

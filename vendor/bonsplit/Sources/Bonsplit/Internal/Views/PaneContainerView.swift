@@ -1,15 +1,23 @@
+import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
-import AppKit
 
 private final class TabBarInteractionContainerView: NSView {
     private var eventMonitor: Any?
     private weak var monitoredWindow: NSWindow?
     private var previousWindowMovableState: Bool?
 
-    override var mouseDownCanMoveWindow: Bool { false }
-    override func isAccessibilityElement() -> Bool { true }
-    override func accessibilityRole() -> NSAccessibility.Role? { .group }
+    override var mouseDownCanMoveWindow: Bool {
+        false
+    }
+
+    override func isAccessibilityElement() -> Bool {
+        true
+    }
+
+    override func accessibilityRole() -> NSAccessibility.Role? {
+        .group
+    }
 
     deinit {
         removeEventMonitor()
@@ -139,14 +147,14 @@ private struct TabBarHostingWrapper<Content: View>: NSViewRepresentable {
             hostingView.topAnchor.constraint(equalTo: containerView.topAnchor),
             hostingView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             hostingView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
         ])
 
         context.coordinator.hostingView = hostingView
         return containerView
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_: NSView, context: Context) {
         context.coordinator.hostingView?.rootView = content
     }
 
@@ -267,18 +275,8 @@ private struct PaneDropPlaceholderOverlay: View {
 
 struct PaneDropInteractionContainer<Content: View, DropLayer: View>: View {
     let activeDropZone: DropZone?
-    let content: Content
-    let dropLayer: (CGSize) -> DropLayer
-
-    init(
-        activeDropZone: DropZone?,
-        @ViewBuilder content: () -> Content,
-        @ViewBuilder dropLayer: @escaping (CGSize) -> DropLayer
-    ) {
-        self.activeDropZone = activeDropZone
-        self.content = content()
-        self.dropLayer = dropLayer
-    }
+    @ViewBuilder let content: Content
+    @ViewBuilder let dropLayer: (CGSize) -> DropLayer
 
     var body: some View {
         GeometryReader { geometry in
@@ -337,36 +335,35 @@ struct PaneContainerView<Content: View, EmptyContent: View>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Clear drop state when drag ends elsewhere (cancelled, dropped in another pane, etc.)
         .onChange(of: controller.draggingTab) { _, newValue in
-#if DEBUG
-            dlog(
-                "pane.dragState pane=\(pane.id.id.uuidString.prefix(5)) " +
-                "draggingTab=\(newValue != nil ? 1 : 0) " +
-                "activeDragTab=\(controller.activeDragTab != nil ? 1 : 0) " +
-                "dropHit=\(isTabDragActive ? 1 : 0)"
-            )
-#endif
+            #if DEBUG
+                dlog(
+                    "pane.dragState pane=\(pane.id.id.uuidString.prefix(5)) " +
+                        "draggingTab=\(newValue != nil ? 1 : 0) " +
+                        "activeDragTab=\(controller.activeDragTab != nil ? 1 : 0) " +
+                        "dropHit=\(isTabDragActive ? 1 : 0)"
+                )
+            #endif
             if newValue == nil {
                 activeDropZone = nil
                 dropLifecycle = .idle
             }
         }
         .onChange(of: activeDropZone) { oldValue, newValue in
-#if DEBUG
-            let oldZone = oldValue.map { String(describing: $0) } ?? "none"
-            let newZone = newValue.map { String(describing: $0) } ?? "none"
-            let selected = pane.selectedTab ?? pane.tabs.first
-            let icon = selected?.icon ?? "nil"
-            dlog(
-                "pane.overlayZone pane=\(pane.id.id.uuidString.prefix(5)) " +
-                "old=\(oldZone) new=\(newZone) selectedIcon=\(icon)"
-            )
-#endif
+            #if DEBUG
+                let oldZone = oldValue.map { String(describing: $0) } ?? "none"
+                let newZone = newValue.map { String(describing: $0) } ?? "none"
+                let selected = pane.selectedTab ?? pane.tabs.first
+                let icon = selected?.icon ?? "nil"
+                dlog(
+                    "pane.overlayZone pane=\(pane.id.id.uuidString.prefix(5)) " +
+                        "old=\(oldZone) new=\(newZone) selectedIcon=\(icon)"
+                )
+            #endif
         }
     }
 
     // MARK: - Content Area with Drop Zones
 
-    @ViewBuilder
     private var contentAreaWithDropZones: some View {
         PaneDropInteractionContainer(activeDropZone: activeDropZone) {
             contentArea
@@ -378,7 +375,6 @@ struct PaneContainerView<Content: View, EmptyContent: View>: View {
 
     // MARK: - Content Area
 
-    @ViewBuilder
     private var contentArea: some View {
         Group {
             if pane.tabs.isEmpty {
@@ -435,7 +431,6 @@ struct PaneContainerView<Content: View, EmptyContent: View>: View {
 
     // MARK: - Drop Zones Layer
 
-    @ViewBuilder
     private func dropZonesLayer(size: CGSize) -> some View {
         // Keep tap-to-focus and drag-drop routing as separate layers.
         //
@@ -446,9 +441,9 @@ struct PaneContainerView<Content: View, EmptyContent: View>: View {
         ZStack {
             Color.clear
                 .onTapGesture {
-#if DEBUG
-                    dlog("pane.focus pane=\(pane.id.id.uuidString.prefix(5))")
-#endif
+                    #if DEBUG
+                        dlog("pane.focus pane=\(pane.id.id.uuidString.prefix(5))")
+                    #endif
                     controller.focusPane(pane.id)
                 }
                 .allowsHitTesting(!isTabDragActive)
@@ -467,7 +462,6 @@ struct PaneContainerView<Content: View, EmptyContent: View>: View {
 
     // MARK: - Empty Pane View
 
-    @ViewBuilder
     private var emptyPaneView: some View {
         emptyPaneBuilder(pane.id)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -484,7 +478,7 @@ struct UnifiedPaneDropDelegate: DropDelegate {
     @Binding var activeDropZone: DropZone?
     @Binding var dropLifecycle: PaneDropLifecycle
 
-    // Calculate zone based on position within the view
+    /// Calculate zone based on position within the view
     private func zoneForLocation(_ location: CGPoint) -> DropZone {
         let edgeRatio: CGFloat = 0.25
         let horizontalEdge = max(80, size.width * edgeRatio)
@@ -507,7 +501,8 @@ struct UnifiedPaneDropDelegate: DropDelegate {
     private func effectiveZone(for info: DropInfo) -> DropZone {
         let defaultZone = zoneForLocation(info.location)
         guard let draggedTab = controller.activeDragTab ?? controller.draggingTab,
-              let sourcePaneId = controller.activeDragSourcePaneId ?? controller.dragSourcePaneId else {
+              let sourcePaneId = controller.activeDragSourcePaneId ?? controller.dragSourcePaneId
+        else {
             return defaultZone
         }
         guard let adjacentPaneMoveZone = adjacentPaneMoveZone(
@@ -526,7 +521,8 @@ struct UnifiedPaneDropDelegate: DropDelegate {
         defaultZone: DropZone
     ) -> DropZone? {
         guard draggedTab.kind == "terminal",
-              sourcePaneId != pane.id else {
+              sourcePaneId != pane.id
+        else {
             return nil
         }
         if defaultZone == .left,
@@ -550,21 +546,23 @@ struct UnifiedPaneDropDelegate: DropDelegate {
         }
 
         let zone = effectiveZone(for: info)
-#if DEBUG
-        dlog(
-            "pane.drop pane=\(pane.id.id.uuidString.prefix(5)) zone=\(zone) " +
-            "source=\(controller.dragSourcePaneId?.id.uuidString.prefix(5) ?? "nil") " +
-            "hasDrag=\(controller.draggingTab != nil ? 1 : 0) " +
-            "hasActive=\(controller.activeDragTab != nil ? 1 : 0)"
-        )
-#endif
+        #if DEBUG
+            dlog(
+                "pane.drop pane=\(pane.id.id.uuidString.prefix(5)) zone=\(zone) " +
+                    "source=\(controller.dragSourcePaneId?.id.uuidString.prefix(5) ?? "nil") " +
+                    "hasDrag=\(controller.draggingTab != nil ? 1 : 0) " +
+                    "hasActive=\(controller.activeDragTab != nil ? 1 : 0)"
+            )
+        #endif
 
         // Read from non-observable drag state — @Observable writes from createItemProvider
         // may not have propagated yet when performDrop runs.
         guard let draggedTab = controller.activeDragTab ?? controller.draggingTab,
-              let sourcePaneId = controller.activeDragSourcePaneId ?? controller.dragSourcePaneId else {
+              let sourcePaneId = controller.activeDragSourcePaneId ?? controller.dragSourcePaneId
+        else {
             guard let transfer = decodeTransfer(from: info),
-                  transfer.isFromCurrentProcess else {
+                  transfer.isFromCurrentProcess
+            else {
                 return false
             }
             let destination: BonsplitController.ExternalTabDropRequest.Destination
@@ -612,26 +610,26 @@ struct UnifiedPaneDropDelegate: DropDelegate {
                 }
             }
         } else if let orientation = zone.orientation {
-#if DEBUG
-            dlog(
-                "pane.drop.splitRequest targetPane=\(pane.id.id.uuidString.prefix(5)) " +
-                "sourcePane=\(sourcePaneId.id.uuidString.prefix(5)) zone=\(zone) " +
-                "orientation=\(orientation) insertFirst=\(zone.insertsFirst ? 1 : 0) " +
-                "draggedTab=\(draggedTab.id.uuidString.prefix(5))"
-            )
-#endif
+            #if DEBUG
+                dlog(
+                    "pane.drop.splitRequest targetPane=\(pane.id.id.uuidString.prefix(5)) " +
+                        "sourcePane=\(sourcePaneId.id.uuidString.prefix(5)) zone=\(zone) " +
+                        "orientation=\(orientation) insertFirst=\(zone.insertsFirst ? 1 : 0) " +
+                        "draggedTab=\(draggedTab.id.uuidString.prefix(5))"
+                )
+            #endif
             let newPaneId = bonsplitController.splitPane(
                 pane.id,
                 orientation: orientation,
                 movingTab: TabID(id: draggedTab.id),
                 insertFirst: zone.insertsFirst
             )
-#if DEBUG
-            dlog(
-                "pane.drop.splitResult targetPane=\(pane.id.id.uuidString.prefix(5)) " +
-                "newPane=\(newPaneId?.id.uuidString.prefix(5) ?? "nil")"
-            )
-#endif
+            #if DEBUG
+                dlog(
+                    "pane.drop.splitResult targetPane=\(pane.id.id.uuidString.prefix(5)) " +
+                        "newPane=\(newPaneId?.id.uuidString.prefix(5) ?? "nil")"
+                )
+            #endif
         }
 
         return true
@@ -641,45 +639,45 @@ struct UnifiedPaneDropDelegate: DropDelegate {
         dropLifecycle = .hovering
         let zone = effectiveZone(for: info)
         activeDropZone = zone
-#if DEBUG
-        dlog(
-            "pane.dropEntered pane=\(pane.id.id.uuidString.prefix(5)) zone=\(zone) " +
-            "hasDrag=\(controller.draggingTab != nil ? 1 : 0) " +
-            "hasActive=\(controller.activeDragTab != nil ? 1 : 0)"
-        )
-#endif
+        #if DEBUG
+            dlog(
+                "pane.dropEntered pane=\(pane.id.id.uuidString.prefix(5)) zone=\(zone) " +
+                    "hasDrag=\(controller.draggingTab != nil ? 1 : 0) " +
+                    "hasActive=\(controller.activeDragTab != nil ? 1 : 0)"
+            )
+        #endif
     }
 
-    func dropExited(info: DropInfo) {
+    func dropExited(info _: DropInfo) {
         dropLifecycle = .idle
         activeDropZone = nil
-#if DEBUG
-        dlog("pane.dropExited pane=\(pane.id.id.uuidString.prefix(5))")
-#endif
+        #if DEBUG
+            dlog("pane.dropExited pane=\(pane.id.id.uuidString.prefix(5))")
+        #endif
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
         // Guard against dropUpdated firing after performDrop/dropExited
         guard dropLifecycle == .hovering else {
-#if DEBUG
-            dlog("pane.dropUpdated.skip pane=\(pane.id.id.uuidString.prefix(5)) reason=lifecycle_idle")
-#endif
+            #if DEBUG
+                dlog("pane.dropUpdated.skip pane=\(pane.id.id.uuidString.prefix(5)) reason=lifecycle_idle")
+            #endif
             return DropProposal(operation: .move)
         }
         let zone = effectiveZone(for: info)
         activeDropZone = zone
-#if DEBUG
-        dlog("pane.dropUpdated pane=\(pane.id.id.uuidString.prefix(5)) zone=\(zone)")
-#endif
+        #if DEBUG
+            dlog("pane.dropUpdated pane=\(pane.id.id.uuidString.prefix(5)) zone=\(zone)")
+        #endif
         return DropProposal(operation: .move)
     }
 
     func validateDrop(info: DropInfo) -> Bool {
         // Reject drops on inactive workspaces whose views are kept alive in a ZStack.
         guard controller.isInteractive else {
-#if DEBUG
-            dlog("pane.validateDrop pane=\(pane.id.id.uuidString.prefix(5)) allowed=0 reason=inactive")
-#endif
+            #if DEBUG
+                dlog("pane.validateDrop pane=\(pane.id.id.uuidString.prefix(5)) allowed=0 reason=inactive")
+            #endif
             return false
         }
         // The custom UTType alone is sufficient — only Bonsplit tab drags produce it.
@@ -695,29 +693,31 @@ struct UnifiedPaneDropDelegate: DropDelegate {
 
         // External drags (another Bonsplit controller) must include a payload from this process.
         guard let transfer = decodeTransfer(from: info),
-              transfer.isFromCurrentProcess else {
+              transfer.isFromCurrentProcess
+        else {
             return false
         }
-#if DEBUG
-        let hasDrag = controller.draggingTab != nil
-        let hasActive = controller.activeDragTab != nil
-        dlog(
-            "pane.validateDrop pane=\(pane.id.id.uuidString.prefix(5)) " +
-            "allowed=\(hasType ? 1 : 0) hasDrag=\(hasDrag ? 1 : 0) hasActive=\(hasActive ? 1 : 0)"
-        )
-#endif
+        #if DEBUG
+            let hasDrag = controller.draggingTab != nil
+            let hasActive = controller.activeDragTab != nil
+            dlog(
+                "pane.validateDrop pane=\(pane.id.id.uuidString.prefix(5)) " +
+                    "allowed=\(hasType ? 1 : 0) hasDrag=\(hasDrag ? 1 : 0) hasActive=\(hasActive ? 1 : 0)"
+            )
+        #endif
         return true
     }
 
     private func decodeTransfer(from string: String) -> TabTransferData? {
         guard let data = string.data(using: .utf8),
-              let transfer = try? JSONDecoder().decode(TabTransferData.self, from: data) else {
+              let transfer = try? JSONDecoder().decode(TabTransferData.self, from: data)
+        else {
             return nil
         }
         return transfer
     }
 
-    private func decodeTransfer(from info: DropInfo) -> TabTransferData? {
+    private func decodeTransfer(from _: DropInfo) -> TabTransferData? {
         let pasteboard = NSPasteboard(name: .drag)
         let type = NSPasteboard.PasteboardType(UTType.tabTransfer.identifier)
         if let data = pasteboard.data(forType: type),

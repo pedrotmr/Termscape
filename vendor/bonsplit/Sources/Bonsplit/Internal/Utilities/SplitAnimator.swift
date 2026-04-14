@@ -1,12 +1,11 @@
-import Foundation
 import AppKit
-import QuartzCore
 import CoreVideo
+import Foundation
+import QuartzCore
 
 /// Animates split view divider positions with display-synced updates and pixel-perfect positioning
 @MainActor
 final class SplitAnimator {
-
     // MARK: - Types
 
     private struct Animation {
@@ -28,6 +27,7 @@ final class SplitAnimator {
 
     /// Default animation duration in seconds
     nonisolated static let defaultAnimationDuration: CFTimeInterval = 0.16
+
     // MARK: - Initialization
 
     private init() {

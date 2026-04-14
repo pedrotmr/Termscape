@@ -119,8 +119,8 @@ final class GhosttyApp {
         }
 
         if let created = ghostty_app_new(&runtimeConfig, primaryConfig) {
-            self.app = created
-            self.config = primaryConfig
+            app = created
+            config = primaryConfig
             NotificationCenter.default.post(name: .ghosttyConfigDidReload, object: nil)
         } else {
             ghostty_config_free(primaryConfig)
@@ -131,8 +131,8 @@ final class GhosttyApp {
                 print("Failed to create ghostty app")
                 return
             }
-            self.app = created
-            self.config = fallbackConfig
+            app = created
+            config = fallbackConfig
             NotificationCenter.default.post(name: .ghosttyConfigDidReload, object: nil)
         }
 
@@ -161,7 +161,7 @@ final class GhosttyApp {
     }
 
     /// Ghostty invokes `action_cb` from an arbitrary thread; keep this `nonisolated` and hop to the main queue for AppKit and `surfaceRefsByHandle`.
-    nonisolated private static func handleRuntimeAction(target: ghostty_target_s, action: ghostty_action_s) -> Bool {
+    private nonisolated static func handleRuntimeAction(target: ghostty_target_s, action: ghostty_action_s) -> Bool {
         switch action.tag {
         case GHOSTTY_ACTION_QUIT:
             DispatchQueue.main.async {
@@ -204,7 +204,7 @@ final class GhosttyApp {
         return surface
     }
 
-    nonisolated private static func surfaceHandle(for surface: ghostty_surface_t) -> UInt {
+    private nonisolated static func surfaceHandle(for surface: ghostty_surface_t) -> UInt {
         UInt(bitPattern: surface)
     }
 }

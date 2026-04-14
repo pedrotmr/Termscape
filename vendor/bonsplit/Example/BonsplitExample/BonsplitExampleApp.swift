@@ -1,5 +1,5 @@
-import SwiftUI
 import Bonsplit
+import SwiftUI
 
 @main
 struct BonsplitExampleApp: App {

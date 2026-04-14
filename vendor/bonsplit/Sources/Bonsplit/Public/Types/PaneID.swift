@@ -5,7 +5,7 @@ public struct PaneID: Hashable, Codable, Sendable, CustomStringConvertible {
     public let id: UUID
 
     public init() {
-        self.id = UUID()
+        id = UUID()
     }
 
     public init(id: UUID) {

@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import Bonsplit
+import SwiftUI
 
 struct DebugWindowView: View {
     @ObservedObject var debugState: DebugState
@@ -89,7 +89,7 @@ struct SplitControlsView: View {
         switch node {
         case .pane:
             EmptyView()
-        case .split(let split):
+        case let .split(split):
             VStack(alignment: .leading, spacing: 4) {
                 DividerSlider(split: split, debugState: debugState)
                 SplitControlsView(node: split.first, debugState: debugState)
@@ -107,7 +107,7 @@ struct DividerSlider: View {
     init(split: ExternalSplitNode, debugState: DebugState) {
         self.split = split
         self.debugState = debugState
-        self._position = State(initialValue: split.dividerPosition)
+        _position = State(initialValue: split.dividerPosition)
     }
 
     var body: some View {
@@ -122,7 +122,7 @@ struct DividerSlider: View {
                 Text(String(format: "%.2f", position))
                     .font(.caption2.monospaced())
             }
-            Slider(value: $position, in: 0.1...0.9)
+            Slider(value: $position, in: 0.1 ... 0.9)
                 .onChange(of: position) { _, newValue in
                     if let id = UUID(uuidString: split.id) {
                         debugState.setDividerPosition(CGFloat(newValue), splitId: id)
@@ -180,7 +180,7 @@ struct UtilityWindowModifier: ViewModifier {
 }
 
 struct WindowAccessor: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
             if let window = view.window {
@@ -190,7 +190,7 @@ struct WindowAccessor: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {}
+    func updateNSView(_: NSView, context _: Context) {}
 }
 
 #Preview {

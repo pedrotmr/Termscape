@@ -1,5 +1,5 @@
-import SwiftUI
 import Bonsplit
+import SwiftUI
 
 /// Content associated with a tab
 struct TabContent {
@@ -26,8 +26,8 @@ class AppState: ObservableObject {
             // Use keepAllAlive to preserve scroll position, @State, and focus when switching tabs
             contentViewLifecycle: .keepAllAlive
         )
-        self.controller = BonsplitController(configuration: config)
-        self.controller.delegate = self
+        controller = BonsplitController(configuration: config)
+        controller.delegate = self
     }
 
     // MARK: - Tab Operations
@@ -92,7 +92,7 @@ class AppState: ObservableObject {
 
 @MainActor
 extension AppState: BonsplitDelegate {
-    func splitTabBar(_ controller: BonsplitController,
+    func splitTabBar(_: BonsplitController,
                      shouldCloseTab tab: Bonsplit.Tab,
                      inPane pane: PaneID) -> Bool {
         debugState?.log("🔔 shouldCloseTab: \"\(tab.title)\" in pane \(pane.hashValue)")
@@ -127,7 +127,7 @@ extension AppState: BonsplitDelegate {
         return true
     }
 
-    func splitTabBar(_ controller: BonsplitController,
+    func splitTabBar(_: BonsplitController,
                      didCloseTab tabId: TabID,
                      fromPane pane: PaneID) {
         debugState?.log("✅ didCloseTab: tab \(tabId.hashValue) from pane \(pane.hashValue)")
@@ -137,19 +137,19 @@ extension AppState: BonsplitDelegate {
         debugState?.refresh()
     }
 
-    func splitTabBar(_ controller: BonsplitController,
+    func splitTabBar(_: BonsplitController,
                      didSelectTab tab: Bonsplit.Tab,
-                     inPane pane: PaneID) {
+                     inPane _: PaneID) {
         // Update window title
         if let window = NSApp.keyWindow {
             window.title = tab.title
         }
     }
 
-    func splitTabBar(_ controller: BonsplitController,
-                     didSplitPane originalPane: PaneID,
+    func splitTabBar(_: BonsplitController,
+                     didSplitPane _: PaneID,
                      newPane: PaneID,
-                     orientation: SplitOrientation) {
+                     orientation _: SplitOrientation) {
         // Option 1: Auto-create a tab in the new pane
         newTab(inPane: newPane)
 
@@ -164,8 +164,8 @@ extension AppState: BonsplitDelegate {
         debugState?.currentTree = controller.treeSnapshot()
     }
 
-    func splitTabBar(_ controller: BonsplitController,
-                     shouldNotifyDuringDrag: Bool) -> Bool {
+    func splitTabBar(_: BonsplitController,
+                     shouldNotifyDuringDrag _: Bool) -> Bool {
         // Enable real-time notifications during drag
         return true
     }

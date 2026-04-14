@@ -3,7 +3,6 @@ import SwiftUI
 
 @Observable
 final class ThemeManager {
-
     var current: AppTheme {
         didSet {
             UserDefaults.standard.set(current.id, forKey: "termscape.selectedThemeId")
@@ -25,8 +24,8 @@ final class ThemeManager {
     init() {
         let savedId = UserDefaults.standard.string(forKey: "termscape.selectedThemeId")
         let overrides = UserDefaults.standard.object(forKey: "termscape.overridesTerminalColors") as? Bool ?? true
-        self.current = AppTheme.all.first { $0.id == savedId } ?? .tobacco
-        self.overridesTerminalColors = overrides
+        current = AppTheme.all.first { $0.id == savedId } ?? .tobacco
+        overridesTerminalColors = overrides
         applyTerminalThemeIfEnabled()
     }
 

@@ -20,7 +20,7 @@ struct SplitViewContainer<Content: View, EmptyContent: View>: View {
                 .background(TabBarColors.paneBackground(for: appearance))
                 .focusable()
                 .focusEffectDisabled()
-                .onChange(of: geometry.size) { _, newSize in
+                .onChange(of: geometry.size) { _, _ in
                     updateContainerFrame(geometry: geometry)
                 }
                 .onAppear {
@@ -33,7 +33,7 @@ struct SplitViewContainer<Content: View, EmptyContent: View>: View {
         // Get frame in global coordinate space
         let frame = geometry.frame(in: .global)
         controller.containerFrame = frame
-        onGeometryChange?(false)  // Container resize is not a drag
+        onGeometryChange?(false) // Container resize is not a drag
     }
 
     @ViewBuilder

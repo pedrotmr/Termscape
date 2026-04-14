@@ -57,13 +57,13 @@ struct PaneLayoutEngine {
         spans: inout [String: (xFraction: CGFloat, widthFraction: CGFloat)]
     ) {
         switch node {
-        case .pane(let pane):
+        case let .pane(pane):
             spans[pane.id] = (
                 xFraction: xFraction,
                 widthFraction: widthFraction
             )
-        case .split(let split) where split.orientation == "horizontal":
-            let divider = CGFloat(split.dividerPosition).clamped(to: 0.0001...0.9999)
+        case let .split(split) where split.orientation == "horizontal":
+            let divider = CGFloat(split.dividerPosition).clamped(to: 0.0001 ... 0.9999)
             let firstWidthFraction = widthFraction * divider
             let secondWidthFraction = widthFraction - firstWidthFraction
 
@@ -79,7 +79,7 @@ struct PaneLayoutEngine {
                 widthFraction: secondWidthFraction,
                 spans: &spans
             )
-        case .split(let split):
+        case let .split(split):
             appendHorizontalFractions(
                 for: split.first,
                 xFraction: xFraction,

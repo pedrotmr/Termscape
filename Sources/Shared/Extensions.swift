@@ -58,9 +58,9 @@ extension Color {
             return
         }
         self.init(
-            red:   Double((rgb & 0xFF0000) >> 16) / 255.0,
-            green: Double((rgb & 0x00FF00) >> 8)  / 255.0,
-            blue:  Double( rgb & 0x0000FF)         / 255.0
+            red: Double((rgb & 0xFF0000) >> 16) / 255.0,
+            green: Double((rgb & 0x00FF00) >> 8) / 255.0,
+            blue: Double(rgb & 0x0000FF) / 255.0
         )
     }
 }

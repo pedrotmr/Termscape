@@ -42,16 +42,16 @@ public struct Tab: Identifiable, Hashable, Sendable {
         self.isPinned = isPinned
     }
 
-    internal init(from tabItem: TabItem) {
-        self.id = TabID(id: tabItem.id)
-        self.title = tabItem.title
-        self.hasCustomTitle = tabItem.hasCustomTitle
-        self.icon = tabItem.icon
-        self.iconImageData = tabItem.iconImageData
-        self.kind = tabItem.kind
-        self.isDirty = tabItem.isDirty
-        self.showsNotificationBadge = tabItem.showsNotificationBadge
-        self.isLoading = tabItem.isLoading
-        self.isPinned = tabItem.isPinned
+    init(from tabItem: TabItem) {
+        id = TabID(id: tabItem.id)
+        title = tabItem.title
+        hasCustomTitle = tabItem.hasCustomTitle
+        icon = tabItem.icon
+        iconImageData = tabItem.iconImageData
+        kind = tabItem.kind
+        isDirty = tabItem.isDirty
+        showsNotificationBadge = tabItem.showsNotificationBadge
+        isLoading = tabItem.isLoading
+        isPinned = tabItem.isPinned
     }
 }

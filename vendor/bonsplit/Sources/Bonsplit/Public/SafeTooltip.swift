@@ -15,17 +15,17 @@ private struct SafeTooltipModifier: ViewModifier {
 private struct SafeTooltipViewRepresentable: NSViewRepresentable {
     let text: String?
 
-    func makeNSView(context: Context) -> SafeTooltipView {
+    func makeNSView(context _: Context) -> SafeTooltipView {
         let view = SafeTooltipView()
         view.updateTooltip(text)
         return view
     }
 
-    func updateNSView(_ nsView: SafeTooltipView, context: Context) {
+    func updateNSView(_ nsView: SafeTooltipView, context _: Context) {
         nsView.updateTooltip(text)
     }
 
-    static func dismantleNSView(_ nsView: SafeTooltipView, coordinator: ()) {
+    static func dismantleNSView(_ nsView: SafeTooltipView, coordinator _: ()) {
         nsView.invalidateTooltip()
     }
 }
@@ -36,9 +36,11 @@ private final class SafeTooltipView: NSView {
     private var registeredText: String?
     private var tooltipText: String?
 
-    override var isOpaque: Bool { false }
+    override var isOpaque: Bool {
+        false
+    }
 
-    override func hitTest(_ point: NSPoint) -> NSView? {
+    override func hitTest(_: NSPoint) -> NSView? {
         nil
     }
 
@@ -89,7 +91,8 @@ private final class SafeTooltipView: NSView {
     private func refreshTooltipRegistration() {
         guard let tooltipText,
               window != nil,
-              superview != nil else {
+              superview != nil
+        else {
             invalidateTooltip()
             return
         }
@@ -114,10 +117,10 @@ private final class SafeTooltipView: NSView {
 
     @objc
     func view(
-        _ view: NSView,
-        stringForToolTip tag: NSView.ToolTipTag,
-        point: NSPoint,
-        userData data: UnsafeMutableRawPointer?
+        _: NSView,
+        stringForToolTip _: NSView.ToolTipTag,
+        point _: NSPoint,
+        userData _: UnsafeMutableRawPointer?
     ) -> String {
         tooltipText ?? ""
     }

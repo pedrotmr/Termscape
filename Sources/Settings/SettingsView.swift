@@ -4,7 +4,9 @@ struct SettingsView: View {
     @Environment(ThemeManager.self) var theme
     @Environment(\.dismiss) private var dismiss
 
-    private var t: AppTheme { theme.current }
+    private var t: AppTheme {
+        theme.current
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -51,7 +53,7 @@ struct SettingsView: View {
                         GridItem(.flexible(), spacing: 12),
                         GridItem(.flexible(), spacing: 12),
                         GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
                     ],
                     spacing: 16
                 ) {
@@ -160,7 +162,7 @@ private struct ThemeCard: View {
             VStack(spacing: 6) {
                 // Group header dots
                 HStack(spacing: 3) {
-                    ForEach(0..<3, id: \.self) { _ in
+                    ForEach(0 ..< 3, id: \.self) { _ in
                         RoundedRectangle(cornerRadius: 1)
                             .fill(themeOption.textFaint)
                             .frame(width: 8, height: 3)
@@ -171,7 +173,7 @@ private struct ThemeCard: View {
                 .padding(.top, 8)
 
                 // Workspace rows
-                ForEach(0..<3, id: \.self) { i in
+                ForEach(0 ..< 3, id: \.self) { i in
                     HStack(spacing: 4) {
                         Circle()
                             .fill(dotColors[i % dotColors.count])
@@ -269,12 +271,14 @@ private struct ThemeCard: View {
     private let dotColors: [Color] = [
         Color(red: 0.40, green: 0.60, blue: 1.00),
         Color(red: 0.35, green: 0.85, blue: 0.60),
-        Color(red: 1.00, green: 0.55, blue: 0.35),
+        Color(red: 1.00, green: 0.55, blue: 0.35)
     ]
 }
 
 // MARK: - NSColor → Color helper
 
 extension NSColor {
-    var color: Color { Color(self) }
+    var color: Color {
+        Color(self)
+    }
 }

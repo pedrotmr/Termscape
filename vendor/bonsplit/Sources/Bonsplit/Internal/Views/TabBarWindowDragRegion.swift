@@ -39,13 +39,13 @@ struct TabBarWindowDragRegion: NSViewRepresentable {
         self.onDoubleClick = onDoubleClick
     }
 
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = TabBarWindowDragRegionView()
         view.onDoubleClick = onDoubleClick
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         guard let nsView = nsView as? TabBarWindowDragRegionView else { return }
         nsView.onDoubleClick = onDoubleClick
     }
@@ -55,7 +55,9 @@ final class TabBarWindowDragRegionView: NSView {
     var onDoubleClick: (() -> Bool)?
     private var eventMonitor: Any?
 
-    override var mouseDownCanMoveWindow: Bool { false }
+    override var mouseDownCanMoveWindow: Bool {
+        false
+    }
 
     deinit {
         removeEventMonitor()
