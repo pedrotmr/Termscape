@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 import WebKit
 
@@ -587,7 +588,8 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate, WKUIDe
       }
     }
 
-    backObservation = webView.observe(\.canGoBack, options: [.new]) { [weak self] webView, _ in
+    backObservation = webView.observe(\.canGoBack, options: [.new]) {
+      [weak self] webView, _ in
       Task { @MainActor [weak self] in
         self?.hostedView.updateNavigationButtonState(
           canGoBack: webView.canGoBack,
@@ -684,16 +686,7 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate, WKUIDe
       return true
     }
 
-    let hostCandidate =
-      input
-      .split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)
-      .first
-      .map(String.init) ?? input
-    let hostWithoutPort =
-      hostCandidate
-      .split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-      .first
-      .map(String.init) ?? hostCandidate
+    let hostWithoutPort = extractedHost(from: input)
 
     guard hostWithoutPort.contains(".") else {
       return false
@@ -708,30 +701,48 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate, WKUIDe
   }
 
   private static func isLocalhostOrIPAddress(_ input: String) -> Bool {
-    let hostCandidate =
-      input
-      .split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)
-      .first
-      .map(String.init) ?? input
-    let hostWithoutPort =
-      hostCandidate
-      .split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-      .first
-      .map(String.init)
-      ?? hostCandidate
-      .lowercased()
+    let hostWithoutPort = extractedHost(from: input).lowercased()
 
     if hostWithoutPort == "localhost" {
       return true
     }
 
-    let octets = hostWithoutPort.split(separator: ".", omittingEmptySubsequences: false)
-    guard octets.count == 4 else { return false }
-    for octet in octets {
-      guard let value = Int(octet), (0...255).contains(value) else {
-        return false
-      }
+    var ipv4Address = in_addr()
+    if hostWithoutPort.withCString({ inet_pton(AF_INET, $0, &ipv4Address) }) == 1 {
+      return true
     }
-    return true
+
+    var ipv6Address = in6_addr()
+    return hostWithoutPort.withCString({ inet_pton(AF_INET6, $0, &ipv6Address) }) == 1
+  }
+
+  private static func extractedHost(from input: String) -> String {
+    let hostCandidate =
+      input
+      .split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)
+      .first
+      .map(String.init) ?? input
+
+    if hostCandidate.hasPrefix("["),
+      let closingBracket = hostCandidate.firstIndex(of: "]")
+    {
+      return String(
+        hostCandidate[hostCandidate.index(after: hostCandidate.startIndex)..<closingBracket]
+      )
+    }
+
+    let colonCount = hostCandidate.filter { $0 == ":" }.count
+    if colonCount > 1 {
+      return hostCandidate
+    }
+
+    if colonCount == 1 {
+      return hostCandidate
+        .split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        .first
+        .map(String.init) ?? hostCandidate
+    }
+
+    return hostCandidate
   }
 }
