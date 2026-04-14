@@ -81,10 +81,7 @@ run_fix() {
   fi
 
   echo "Running swiftlint --fix on ${#LINT_TARGETS[@]} target(s)"
-  local target
-  for target in "${LINT_TARGETS[@]}"; do
-    swiftlint --fix --path "$target"
-  done
+  swiftlint --fix "${LINT_TARGETS[@]}"
 }
 
 run_check() {
