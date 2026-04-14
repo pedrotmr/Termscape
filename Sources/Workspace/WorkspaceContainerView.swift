@@ -189,7 +189,7 @@ struct WorkspaceContainerView: View {
         case .terminal:
             tab.queueWorkingDirectoryForNextTab(sourceWorkingDirectory, inPane: newPaneId)
         case .browser:
-            tab.queueBrowserURLForNextTab(sourceBrowserURL ?? WorkspaceTab.defaultBrowserHomeURL, inPane: newPaneId)
+            tab.queueBrowserURLForNextTab(sourceBrowserURL, inPane: newPaneId)
         }
 
         // Create a Bonsplit tab in the new pane. This fires didCreateTab → notifyLayoutChanged.

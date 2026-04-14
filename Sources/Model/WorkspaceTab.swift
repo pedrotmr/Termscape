@@ -31,8 +31,6 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     static let interactiveMinimumPaneWidth: CGFloat = 200
     static let interactiveMinimumPaneHeight: CGFloat = 200
     static let minimumViewportWidthForThreePaneEqualization: CGFloat = 1000
-    static let defaultBrowserHomeURL = URL(string: "https://duckduckgo.com")!
-
     let id: UUID
     @Published var title: String
     @Published var isPinned: Bool = false
@@ -61,6 +59,7 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     private var pendingWorkingDirectoryByTabId: [UUID: String] = [:]
     private var pendingBrowserURLByPaneId: [UUID: URL] = [:]
     private var pendingBrowserURLByTabId: [UUID: URL] = [:]
+    private var pendingBrowserAddressBarFocusTabIds: Set<UUID> = []
 
     init(
         title: String = "Terminal",
@@ -166,7 +165,7 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     }
 
     func createBrowserSurface(for tabId: TabID) -> BrowserSurface {
-        let initialURL = pendingBrowserURLByTabId.removeValue(forKey: tabId.uuid) ?? Self.defaultBrowserHomeURL
+        let initialURL = pendingBrowserURLByTabId.removeValue(forKey: tabId.uuid)
         let surface = BrowserSurface(workspaceId: workspaceId, initialURL: initialURL)
         browserSurfaces[tabId.uuid] = surface
         return surface
@@ -209,12 +208,16 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     func attachBrowserSurface(_ surface: BrowserSurface, to tabUUID: UUID) {
         browserSurfaces[tabUUID] = surface
         paneContentKindByTabId[tabUUID] = .browser
-        pendingBrowserURLByTabId[tabUUID] = surface.currentURL ?? Self.defaultBrowserHomeURL
+        pendingBrowserURLByTabId[tabUUID] = surface.currentURL
         bonsplitController.updateTab(
             TabID(uuid: tabUUID),
             icon: .some(WorkspacePaneContentKind.browser.defaultIcon),
             kind: .some(WorkspacePaneContentKind.browser.rawValue)
         )
+    }
+
+    func consumePendingBrowserAddressBarFocus(for tabUUID: UUID) -> Bool {
+        pendingBrowserAddressBarFocusTabIds.remove(tabUUID) != nil
     }
 
     func paneContentKind(for tabUUID: UUID, fallbackPaneId: String? = nil) -> WorkspacePaneContentKind {
@@ -349,7 +352,7 @@ final class WorkspaceTab: ObservableObject, Identifiable {
                 icon: .some(kind.defaultIcon),
                 kind: .some(kind.rawValue)
             )
-            pendingBrowserURLByTabId[tabUUID] = Self.defaultBrowserHomeURL
+            pendingBrowserAddressBarFocusTabIds.insert(tabUUID)
         }
     }
 
@@ -388,9 +391,8 @@ extension WorkspaceTab: BonsplitDelegate {
         case .browser:
             if let pendingURL = pendingBrowserURLByPaneId.removeValue(forKey: pane.id) {
                 pendingBrowserURLByTabId[tab.id.uuid] = pendingURL
-            } else if pendingBrowserURLByTabId[tab.id.uuid] == nil {
-                pendingBrowserURLByTabId[tab.id.uuid] = Self.defaultBrowserHomeURL
             }
+            pendingBrowserAddressBarFocusTabIds.insert(tab.id.uuid)
         }
         notifyLayoutChanged()
     }

@@ -207,6 +207,7 @@ final class BrowserSurfaceContainerView: NSView {
     var onContextMenu: ((NSEvent) -> Void)?
     var onSubmitAddress: ((String) -> Void)?
     var onToggleDeveloperTools: (() -> Void)?
+    var addressFocusView: NSView { addressField }
 
     init(webView: FocusableWKWebView) {
         self.webView = webView
@@ -461,6 +462,10 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate {
         webView
     }
 
+    var addressBarFocusTargetView: NSView {
+        hostedView.addressFocusView
+    }
+
     var onFocused: (() -> Void)? {
         get { forwardedOnFocused }
         set { forwardedOnFocused = newValue }
@@ -471,7 +476,7 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate {
         set { forwardedOnContextMenu = newValue }
     }
 
-    init(workspaceId: UUID, initialURL: URL) {
+    init(workspaceId: UUID, initialURL: URL?) {
         id = UUID()
         self.workspaceId = workspaceId
 
@@ -510,7 +515,9 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate {
 
         observeWebViewState()
         hostedView.updateDeveloperToolsButtonState(isActive: developerToolsVisible)
-        load(initialURL)
+        if let initialURL {
+            load(initialURL)
+        }
     }
 
     func load(_ url: URL) {

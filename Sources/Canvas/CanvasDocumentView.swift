@@ -231,10 +231,11 @@ final class CanvasDocumentView: NSView {
                     surface.onURLChange = { _ in
                         NotificationCenter.default.post(name: .workspacePersistenceNeeded, object: nil)
                     }
+                    let shouldFocusAddressBar = tab.consumePendingBrowserAddressBarFocus(for: selectedTabUUID)
 
                     hosted = HostedPaneView(
                         rootView: hostedView,
-                        focusView: surface.focusTargetView,
+                        focusView: shouldFocusAddressBar ? surface.addressBarFocusTargetView : surface.focusTargetView,
                         kind: .browser,
                         applyTheme: { color in hostedView.setThemeBackground(color) },
                         ensureReadyForFocus: {}
