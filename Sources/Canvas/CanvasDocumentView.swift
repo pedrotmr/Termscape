@@ -2,14 +2,23 @@ import AppKit
 import Bonsplit
 import QuartzCore
 
-/// NSView that positions terminal surface views absolutely based on the Bonsplit layout.
+/// NSView that positions pane content views absolutely based on the Bonsplit layout.
 final class CanvasDocumentView: NSView {
-    private var hostedViews: [String: GhosttySurfaceScrollView] = [:]
+    private struct HostedPaneView {
+        let rootView: NSView
+        let focusView: NSView
+        let kind: WorkspacePaneContentKind
+        let applyTheme: (NSColor) -> Void
+        let ensureReadyForFocus: () -> Void
+    }
+
+    private var hostedViews: [String: HostedPaneView] = [:]
     private var dividerViews: [String: PaneDividerView] = [:]
 
-    /// Retained during a context menu interaction so the Clear action can reach the focused surface.
+    /// Retained during a context menu interaction so actions can operate on the focused pane.
     private weak var contextMenuTab: WorkspaceTab?
     private weak var currentTab: WorkspaceTab?
+    private var contextMenuCanClear = false
 
     private var currentCanvasMatte: NSColor = AppTheme.tobacco.canvasMatte
     private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
@@ -34,6 +43,14 @@ final class CanvasDocumentView: NSView {
         let firstWidth: CGFloat
     }
 
+    private struct TrailingEdgeDragState {
+        let tree: ExternalTreeNode
+        let targetNode: ExternalTreeNode
+        let targetPaneIds: Set<String>
+        let baselinePaneWidths: [String: CGFloat]
+        let targetWidth: CGFloat
+    }
+
     #if DEBUG
         private struct DragTelemetry {
             var startTime: CFTimeInterval
@@ -44,6 +61,8 @@ final class CanvasDocumentView: NSView {
     #endif
 
     private var horizontalDragStateBySplitId: [String: HorizontalDragState] = [:]
+    private var trailingEdgeDragState: TrailingEdgeDragState?
+    private var trailingResizeHandleView: PaneTrailingResizeHandleView?
     #if DEBUG
         private var dragTelemetryBySplitId: [String: DragTelemetry] = [:]
     #endif
@@ -74,8 +93,8 @@ final class CanvasDocumentView: NSView {
         currentPaneBackground = paneBackground
         layer?.backgroundColor = canvasMatte.cgColor
 
-        for (_, view) in hostedViews {
-            view.setBackgroundColor(paneBackground)
+        for (_, hosted) in hostedViews {
+            hosted.applyTheme(paneBackground)
         }
     }
 
@@ -131,48 +150,102 @@ final class CanvasDocumentView: NSView {
                   let selectedTabUUID = UUID(uuidString: selectedTabIdStr)
             else { continue }
 
-            let surface: TerminalSurface
-            if let existing = tab.surfaces[selectedTabUUID] {
-                surface = existing
-            } else {
-                let tabId = TabID(uuid: selectedTabUUID)
-                surface = tab.createSurface(for: tabId)
-            }
+            let selectedTabId = TabID(uuid: selectedTabUUID)
+            let contentKind = tab.paneContentKind(for: selectedTabUUID, fallbackPaneId: pane.paneId)
+            let hosted: HostedPaneView
+            switch contentKind {
+            case .terminal:
+                let surface = tab.surfaces[selectedTabUUID] ?? tab.createSurface(for: selectedTabId)
 
-            let hostedView: GhosttySurfaceScrollView
-            if let existing = hostedViews[pane.paneId], existing === surface.hostedView {
-                hostedView = existing
-            } else {
-                hostedViews[pane.paneId]?.removeFromSuperview()
-                hostedView = surface.hostedView
-                hostedViews[pane.paneId] = hostedView
-                hostedView.setBackgroundColor(currentPaneBackground)
-                addSubview(hostedView)
+                if let existing = hostedViews[pane.paneId], existing.rootView === surface.hostedView {
+                    hosted = existing
+                } else {
+                    hostedViews[pane.paneId]?.rootView.removeFromSuperview()
+                    let hostedView = surface.hostedView
+                    hostedView.setBackgroundColor(currentPaneBackground)
+                    let paneIdStr = pane.paneId
+                    hostedView.surfaceView.onFocused = { [weak tab] in
+                        guard let tab, let paneUUID = UUID(uuidString: paneIdStr) else { return }
+                        tab.bonsplitController.focusPane(PaneID(id: paneUUID))
+                    }
+                    hostedView.surfaceView.onContextMenu = { [weak self, weak tab] event in
+                        guard let self, let tab else { return }
+                        self.contextMenuTab = tab
+                        self.contextMenuCanClear = true
+                        NSMenu.popUpContextMenu(
+                            self.buildContextMenu(isMultiPane: isMultiPane, canClear: true),
+                            with: event,
+                            for: self
+                        )
+                    }
 
-                // Wire callbacks only when attaching a new view (avoid allocation churn per layout pass).
-                let paneIdStr = pane.paneId
-                hostedView.surfaceView.onFocused = { [weak tab] in
-                    guard let tab, let paneUUID = UUID(uuidString: paneIdStr) else { return }
-                    tab.bonsplitController.focusPane(PaneID(id: paneUUID))
-                }
-
-                hostedView.surfaceView.onContextMenu = { [weak self, weak tab] event in
-                    guard let self, let tab else { return }
-                    self.contextMenuTab = tab
-                    NSMenu.popUpContextMenu(
-                        self.buildContextMenu(isMultiPane: isMultiPane), with: event, for: self
+                    hosted = HostedPaneView(
+                        rootView: hostedView,
+                        focusView: hostedView.surfaceView,
+                        kind: .terminal,
+                        applyTheme: { color in hostedView.setBackgroundColor(color) },
+                        ensureReadyForFocus: {
+                            if hostedView.surfaceView.terminalSurface?.surface == nil {
+                                hostedView.surfaceView.terminalSurface?.attachToView(hostedView.surfaceView)
+                            }
+                        }
                     )
+                    hostedViews[pane.paneId] = hosted
+                    addSubview(hostedView)
+                }
+
+                // Deliver any pending input (e.g. clone command) once the surface exists.
+                if let pending = tab.pendingInputOnceAttached, surface.surface != nil {
+                    surface.sendText(pending)
+                    tab.pendingInputOnceAttached = nil
+                }
+            case .browser:
+                let surface = tab.browserSurfaces[selectedTabUUID] ?? tab.createBrowserSurface(for: selectedTabId)
+
+                if let existing = hostedViews[pane.paneId], existing.rootView === surface.hostedView {
+                    hosted = existing
+                } else {
+                    hostedViews[pane.paneId]?.rootView.removeFromSuperview()
+                    let hostedView = surface.hostedView
+                    hostedView.setThemeBackground(currentPaneBackground)
+                    let paneIdStr = pane.paneId
+                    surface.onFocused = { [weak tab] in
+                        guard let tab, let paneUUID = UUID(uuidString: paneIdStr) else { return }
+                        tab.bonsplitController.focusPane(PaneID(id: paneUUID))
+                    }
+                    surface.onContextMenu = { [weak self, weak tab] event in
+                        guard let self, let tab else { return }
+                        self.contextMenuTab = tab
+                        self.contextMenuCanClear = false
+                        NSMenu.popUpContextMenu(
+                            self.buildContextMenu(isMultiPane: isMultiPane, canClear: false),
+                            with: event,
+                            for: self
+                        )
+                    }
+                    surface.onTitleChange = { [weak tab] title in
+                        guard let tab else { return }
+                        tab.bonsplitController.updateTab(selectedTabId, title: title)
+                        NotificationCenter.default.post(name: .workspacePersistenceNeeded, object: nil)
+                    }
+                    surface.onURLChange = { _ in
+                        NotificationCenter.default.post(name: .workspacePersistenceNeeded, object: nil)
+                    }
+
+                    hosted = HostedPaneView(
+                        rootView: hostedView,
+                        focusView: surface.focusTargetView,
+                        kind: .browser,
+                        applyTheme: { color in hostedView.setThemeBackground(color) },
+                        ensureReadyForFocus: {}
+                    )
+                    hostedViews[pane.paneId] = hosted
+                    addSubview(hostedView)
                 }
             }
 
-            hostedView.frame = displayFrame
-            applyPaneChrome(to: hostedView, focused: isFocused)
-
-            // Deliver any pending input (e.g. clone command) once the surface exists.
-            if let pending = tab.pendingInputOnceAttached, surface.surface != nil {
-                surface.sendText(pending)
-                tab.pendingInputOnceAttached = nil
-            }
+            hosted.rootView.frame = displayFrame
+            applyPaneChrome(to: hosted.rootView, focused: isFocused)
 
             if isFocused {
                 focusedRect = displayFrame
@@ -181,7 +254,7 @@ final class CanvasDocumentView: NSView {
 
         let removed = Set(hostedViews.keys).subtracting(activePaneIds)
         for paneId in removed {
-            hostedViews[paneId]?.removeFromSuperview()
+            hostedViews[paneId]?.rootView.removeFromSuperview()
             hostedViews.removeValue(forKey: paneId)
         }
 
@@ -242,6 +315,39 @@ final class CanvasDocumentView: NSView {
             addSubview(dividerView, positioned: .above, relativeTo: nil)
         }
 
+        if let trailingDescriptor = computeTrailingResizeDescriptor(
+            from: tree,
+            region: innerLayoutRegion
+        ) {
+            let handleView: PaneTrailingResizeHandleView
+            if let existing = trailingResizeHandleView {
+                handleView = existing
+            } else {
+                let created = PaneTrailingResizeHandleView(frame: trailingDescriptor.frame)
+                created.onPressFocus = { [weak self] in
+                    self?.focusPaneForTrailingResizeInteraction()
+                }
+                created.onDragBegan = { [weak self] in
+                    self?.handleTrailingResizeDragBegan()
+                }
+                created.onDragDeltaPixels = { [weak self] deltaPixels in
+                    self?.handleTrailingResizeDragDeltaPixels(deltaPixels)
+                }
+                created.onDragEnd = { [weak self] didDrag in
+                    self?.handleTrailingResizeDragEnd(didDrag: didDrag)
+                }
+                trailingResizeHandleView = created
+                handleView = created
+                addSubview(handleView)
+            }
+            handleView.frame = trailingDescriptor.frame
+            addSubview(handleView, positioned: .above, relativeTo: nil)
+        } else {
+            trailingResizeHandleView?.removeFromSuperview()
+            trailingResizeHandleView = nil
+            trailingEdgeDragState = nil
+        }
+
         let removedDividers = Set(dividerViews.keys).subtracting(activeSplitIds)
         for splitId in removedDividers {
             dividerViews[splitId]?.removeFromSuperview()
@@ -257,7 +363,7 @@ final class CanvasDocumentView: NSView {
         return focusedRect
     }
 
-    /// Bonsplit tracks logical pane focus, but `GhosttyNSView` only becomes `firstResponder` on click.
+    /// Bonsplit tracks logical pane focus, but AppKit first responder may lag behind.
     /// After split / new tab / focus changes, keep keyboard input on the focused pane without stealing
     /// focus from sidebar or other UI outside this canvas.
     private func syncFirstResponderWithFocusedPane(snapshot: LayoutSnapshot) {
@@ -266,7 +372,7 @@ final class CanvasDocumentView: NSView {
               let hosted = hostedViews[focusedPaneId]
         else { return }
 
-        let target = hosted.surfaceView
+        let target = hosted.focusView
         if window.firstResponder === target { return }
 
         if let view = window.firstResponder as? NSView,
@@ -276,9 +382,7 @@ final class CanvasDocumentView: NSView {
             return
         }
 
-        if target.terminalSurface?.surface == nil {
-            target.terminalSurface?.attachToView(target)
-        }
+        hosted.ensureReadyForFocus()
         window.makeFirstResponder(target)
     }
 
@@ -292,6 +396,10 @@ final class CanvasDocumentView: NSView {
         let parentSpanInDragAxis: CGFloat
         let minPosition: CGFloat
         let maxPosition: CGFloat
+    }
+
+    private struct TrailingResizeDescriptor {
+        let frame: CGRect
     }
 
     private enum SplitAxis {
@@ -464,6 +572,89 @@ final class CanvasDocumentView: NSView {
         currentTab?.notifyLayoutChanged()
     }
 
+    private func focusPaneForTrailingResizeInteraction() {
+        guard let tab = currentTab else { return }
+        let tree = tab.bonsplitController.treeSnapshot()
+        guard let targetNode = rightmostResizableNode(in: tree) else { return }
+        let targetPaneIds = HorizontalPaneSizingEngine.paneIDs(in: targetNode)
+        guard !targetPaneIds.isEmpty else { return }
+
+        let snapshot = tab.bonsplitController.layoutSnapshot()
+        let targetPaneId: String?
+        if let focusedPaneId = snapshot.focusedPaneId, targetPaneIds.contains(focusedPaneId) {
+            targetPaneId = focusedPaneId
+        } else {
+            targetPaneId =
+                snapshot.panes.first(where: { targetPaneIds.contains($0.paneId) })?.paneId
+                    ?? targetPaneIds.sorted().last
+        }
+
+        guard let targetPaneId,
+              let paneUUID = UUID(uuidString: targetPaneId)
+        else { return }
+        tab.bonsplitController.focusPane(PaneID(id: paneUUID))
+    }
+
+    private func handleTrailingResizeDragBegan() {
+        guard let tab = currentTab else { return }
+        let tree = tab.bonsplitController.treeSnapshot()
+        guard let targetNode = rightmostResizableNode(in: tree) else { return }
+
+        let snapshot = tab.bonsplitController.layoutSnapshot()
+        let paneWidths = HorizontalPaneSizingEngine.paneWidths(from: snapshot)
+        let targetPaneIds = HorizontalPaneSizingEngine.paneIDs(in: targetNode)
+        let targetWidth = subtreeWidth(for: targetNode, paneWidths: paneWidths)
+        guard !targetPaneIds.isEmpty, targetWidth > 0 else { return }
+
+        trailingEdgeDragState = TrailingEdgeDragState(
+            tree: tree,
+            targetNode: targetNode,
+            targetPaneIds: targetPaneIds,
+            baselinePaneWidths: paneWidths,
+            targetWidth: targetWidth
+        )
+    }
+
+    private func handleTrailingResizeDragDeltaPixels(_ deltaPixels: CGFloat) {
+        guard let tab = currentTab,
+              let state = trailingEdgeDragState
+        else { return }
+
+        let interactiveMinimum = tab.bonsplitController.configuration.appearance.minimumPaneWidth
+        let minimumTargetWidth = HorizontalPaneSizingEngine.minimumRequiredWidth(
+            for: state.targetNode,
+            minimumPaneWidth: interactiveMinimum
+        )
+
+        let targetWidth = max(state.targetWidth + deltaPixels, minimumTargetWidth)
+        guard state.targetWidth > 0 else { return }
+        let scale = targetWidth / state.targetWidth
+
+        var desiredPaneWidths = state.baselinePaneWidths
+        for paneId in state.targetPaneIds {
+            if let baselineWidth = state.baselinePaneWidths[paneId] {
+                desiredPaneWidths[paneId] = max(baselineWidth * scale, 1)
+            }
+        }
+
+        let plan = HorizontalPaneSizingEngine.buildPlan(
+            tree: state.tree,
+            desiredPaneWidths: desiredPaneWidths,
+            fallbackPaneWidth: interactiveMinimum
+        )
+
+        applyHorizontalSizingPlan(plan, to: tab)
+        (enclosingScrollView as? CanvasScrollView)?.updateLayout(for: tab, options: [])
+    }
+
+    private func handleTrailingResizeDragEnd(didDrag: Bool) {
+        if didDrag {
+            focusPaneForTrailingResizeInteraction()
+        }
+        trailingEdgeDragState = nil
+        currentTab?.notifyLayoutChanged()
+    }
+
     private func applyHorizontalSizingPlan(_ plan: HorizontalSizingPlan, to tab: WorkspaceTab) {
         for (splitId, position) in plan.splitPositions {
             _ = tab.bonsplitController.setDividerPosition(position, forSplit: splitId)
@@ -628,6 +819,35 @@ final class CanvasDocumentView: NSView {
         }
     }
 
+    private func computeTrailingResizeDescriptor(
+        from node: ExternalTreeNode,
+        region: CGRect
+    ) -> TrailingResizeDescriptor? {
+        guard rightmostResizableNode(in: node) != nil else { return nil }
+        let frame = CGRect(
+            x: region.maxX - PaneTrailingResizeHandleView.hitThickness / 2,
+            y: region.minY,
+            width: PaneTrailingResizeHandleView.hitThickness,
+            height: region.height
+        )
+        return TrailingResizeDescriptor(frame: frame)
+    }
+
+    private func rightmostResizableNode(in node: ExternalTreeNode) -> ExternalTreeNode? {
+        guard HorizontalPaneSizingEngine.containsHorizontalSplit(in: node) else { return nil }
+
+        switch node {
+        case .pane:
+            return node
+        case let .split(split):
+            if split.orientation == "horizontal" {
+                return rightmostResizableNode(in: split.second) ?? split.second
+            }
+            // Vertical stack occupies one shared column width, so resize the whole stack.
+            return node
+        }
+    }
+
     private func clampedDividerBounds(
         first: ExternalTreeNode,
         second: ExternalTreeNode,
@@ -687,49 +907,79 @@ final class CanvasDocumentView: NSView {
             ? CanvasPaneChrome.outerInsetTight : CanvasPaneChrome.outerInsetLoose
     }
 
-    private func applyPaneChrome(to view: GhosttySurfaceScrollView, focused: Bool) {
+    private func applyPaneChrome(to view: NSView, focused: Bool) {
+        _ = focused
         view.wantsLayer = true
         guard let layer = view.layer else { return }
         layer.cornerRadius = CanvasPaneChrome.cornerRadius
         layer.masksToBounds = true
-        if focused {
-            layer.borderWidth = CanvasPaneChrome.borderWidthFocused
-            layer.borderColor = currentAccentColor.withAlphaComponent(0.85).cgColor
-        } else {
-            layer.borderWidth = CanvasPaneChrome.borderWidthNormal
-            layer.borderColor = NSColor.labelColor.withAlphaComponent(0.18).cgColor
-        }
+        layer.borderWidth = CanvasPaneChrome.borderWidthNormal
+        layer.borderColor = NSColor.labelColor.withAlphaComponent(0.18).cgColor
     }
 
     // MARK: - Context menu
 
-    private func buildContextMenu(isMultiPane: Bool) -> NSMenu {
+    private func buildContextMenu(isMultiPane: Bool, canClear: Bool) -> NSMenu {
         let menu = NSMenu(title: "")
         menu.autoenablesItems = false
 
+        let newTerminalItem = makeItem(
+            "New Terminal Tab",
+            icon: "terminal",
+            action: #selector(menuNewTab(_:))
+        )
+        newTerminalItem.keyEquivalent = "t"
+        newTerminalItem.keyEquivalentModifierMask = .command
+        menu.addItem(newTerminalItem)
+        menu.addItem(
+            makeItem("New Browser Tab", icon: "globe", action: #selector(menuNewBrowserTab(_:)))
+        )
+        menu.addItem(.separator())
+
+        let splitRightItem = makeItem(
+            "Split Terminal Right",
+            icon: "rectangle.split.2x1",
+            action: #selector(menuSplitRight(_:))
+        )
+        splitRightItem.keyEquivalent = "d"
+        splitRightItem.keyEquivalentModifierMask = .command
+        menu.addItem(splitRightItem)
+        let splitDownItem = makeItem(
+            "Split Terminal Down",
+            icon: "rectangle.split.1x2",
+            action: #selector(menuSplitDown(_:))
+        )
+        splitDownItem.keyEquivalent = "d"
+        splitDownItem.keyEquivalentModifierMask = [.command, .shift]
+        menu.addItem(splitDownItem)
+        menu.addItem(.separator())
         menu.addItem(
             makeItem(
-                "Split Horizontally", icon: "rectangle.split.2x1", action: #selector(menuSplitRight(_:))
+                "Split Browser Right",
+                icon: "globe",
+                action: #selector(menuSplitBrowserRight(_:))
             )
         )
         menu.addItem(
             makeItem(
-                "Split Vertically", icon: "rectangle.split.1x2", action: #selector(menuSplitDown(_:))
+                "Split Browser Down",
+                icon: "globe",
+                action: #selector(menuSplitBrowserDown(_:))
+            )
+        )
+
+        menu.addItem(.separator())
+        menu.addItem(
+            makeItem(
+                "Move to New Tab", icon: "arrow.up.right.square", action: #selector(menuMoveToNewTab(_:))
             )
         )
         menu.addItem(.separator())
-        menu.addItem(makeItem("New Tab", icon: "plus.rectangle", action: #selector(menuNewTab(_:))))
-        if isMultiPane {
-            menu.addItem(
-                makeItem(
-                    "Move to New Tab", icon: "arrow.up.right.square", action: #selector(menuMoveToNewTab(_:))
-                )
-            )
-        }
-        menu.addItem(.separator())
+
         let clearItem = makeItem("Clear", icon: "eraser.fill", action: #selector(menuClear(_:)))
         clearItem.keyEquivalent = "k"
         clearItem.keyEquivalentModifierMask = .command
+        clearItem.isEnabled = canClear
         menu.addItem(clearItem)
         let closeTitle = isMultiPane ? "Close Pane" : "Close Tab"
         menu.addItem(makeItem(closeTitle, icon: "xmark", action: #selector(menuClose(_:))))
@@ -755,8 +1005,20 @@ final class CanvasDocumentView: NSView {
         NotificationCenter.default.post(name: .splitDown, object: nil)
     }
 
+    @objc private func menuSplitBrowserRight(_: Any?) {
+        NotificationCenter.default.post(name: .splitBrowserRight, object: nil)
+    }
+
+    @objc private func menuSplitBrowserDown(_: Any?) {
+        NotificationCenter.default.post(name: .splitBrowserDown, object: nil)
+    }
+
     @objc private func menuNewTab(_: Any?) {
         NotificationCenter.default.post(name: .newTab, object: nil)
+    }
+
+    @objc private func menuNewBrowserTab(_: Any?) {
+        NotificationCenter.default.post(name: .newBrowserTab, object: nil)
     }
 
     @objc private func menuMoveToNewTab(_: Any?) {
@@ -765,9 +1027,28 @@ final class CanvasDocumentView: NSView {
         guard let focusedPaneId = snapshot.focusedPaneId,
               let pane = snapshot.panes.first(where: { $0.paneId == focusedPaneId }),
               let selectedTabId = pane.selectedTabId,
-              let tabUUID = UUID(uuidString: selectedTabId),
-              let surface = tab.surfaces.removeValue(forKey: tabUUID)
+              let tabUUID = UUID(uuidString: selectedTabId)
         else { return }
+
+        let kind = tab.paneContentKind(for: tabUUID, fallbackPaneId: focusedPaneId)
+        let key = Notification.Name.MoveToNewTabKey.self
+        let userInfo: [String: Any]
+        switch kind {
+        case .terminal:
+            guard let surface = tab.detachTerminalSurface(for: tabUUID) else { return }
+            userInfo = [
+                key.surface: surface,
+                key.sourceTab: tab,
+                key.contentKind: kind.rawValue
+            ]
+        case .browser:
+            guard let surface = tab.detachBrowserSurface(for: tabUUID) else { return }
+            userInfo = [
+                key.browserSurface: surface,
+                key.sourceTab: tab,
+                key.contentKind: kind.rawValue
+            ]
+        }
 
         // Close the source pane if it's not the only one.
         // (For single-pane, the workspace tab itself is closed by the notification handler.)
@@ -776,16 +1057,9 @@ final class CanvasDocumentView: NSView {
             tab.bonsplitController.closePane(PaneID(id: paneUUID))
         }
 
-        let key = Notification.Name.MoveToNewTabKey.self
-        NotificationCenter.default.post(
-            name: .moveToNewTab,
-            object: nil,
-            userInfo: [
-                key.surface: surface,
-                key.sourceTab: tab,
-                key.closeSourceTab: isSinglePane,
-            ]
-        )
+        var payload = userInfo
+        payload[key.closeSourceTab] = isSinglePane
+        NotificationCenter.default.post(name: .moveToNewTab, object: nil, userInfo: payload)
     }
 
     @objc private func menuClose(_: Any?) {
@@ -793,6 +1067,7 @@ final class CanvasDocumentView: NSView {
     }
 
     @objc private func menuClear(_: Any?) {
+        guard contextMenuCanClear else { return }
         guard let tab = contextMenuTab else { return }
         let snapshot = tab.bonsplitController.layoutSnapshot()
         guard let focusedPaneId = snapshot.focusedPaneId,
@@ -802,5 +1077,71 @@ final class CanvasDocumentView: NSView {
               let surface = tab.surfaces[tabUUID]
         else { return }
         surface.performClearScreen()
+    }
+}
+
+/// Invisible trailing-edge hit target that resizes the rightmost pane column width.
+private final class PaneTrailingResizeHandleView: NSView {
+    static let hitThickness: CGFloat = 10
+
+    var onPressFocus: (() -> Void)?
+    var onDragBegan: (() -> Void)?
+    var onDragDeltaPixels: ((CGFloat) -> Void)?
+    var onDragEnd: ((Bool) -> Void)?
+
+    private var isTrackingPointer = false
+    private var dragStartPointInParent: CGPoint?
+    private var hasDragMovement = false
+
+    override var isFlipped: Bool {
+        true
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("init(coder:) not supported")
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .resizeLeftRight)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        isTrackingPointer = true
+        dragStartPointInParent = dragPoint(inParentFor: event)
+        hasDragMovement = false
+        onPressFocus?()
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard isTrackingPointer else { return }
+        guard let startPoint = dragStartPointInParent else { return }
+        let currentPoint = dragPoint(inParentFor: event)
+        let deltaPixels = currentPoint.x - startPoint.x
+        if !hasDragMovement, abs(deltaPixels) >= 1 {
+            hasDragMovement = true
+            onDragBegan?()
+        }
+        onDragDeltaPixels?(deltaPixels)
+    }
+
+    override func mouseUp(with _: NSEvent) {
+        finishDragging()
+    }
+
+    private func finishDragging() {
+        guard isTrackingPointer else { return }
+        isTrackingPointer = false
+        dragStartPointInParent = nil
+        onDragEnd?(hasDragMovement)
+    }
+
+    private func dragPoint(inParentFor event: NSEvent) -> CGPoint {
+        let localPoint = convert(event.locationInWindow, from: nil)
+        return superview?.convert(localPoint, from: self) ?? localPoint
     }
 }

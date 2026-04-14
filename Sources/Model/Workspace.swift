@@ -49,16 +49,24 @@ final class Workspace: ObservableObject, Identifiable {
         NotificationCenter.default.post(name: .workspacePersistenceNeeded, object: nil)
     }
 
-    func addTab(title: String = "Terminal") -> WorkspaceTab {
+    func addTab(
+        title: String = WorkspacePaneContentKind.terminal.defaultTitle,
+        initialPaneKind: WorkspacePaneContentKind = .terminal
+    ) -> WorkspaceTab {
         let tab = WorkspaceTab(
             title: title,
             workspaceURL: rootURL,
-            workspaceId: id
+            workspaceId: id,
+            initialPaneKind: initialPaneKind
         )
         tabs.append(tab)
         selectedTabId = tab.id
         Self.notifyPersistenceNeeded()
         return tab
+    }
+
+    func addBrowserTab() -> WorkspaceTab {
+        addTab(title: WorkspacePaneContentKind.browser.defaultTitle, initialPaneKind: .browser)
     }
 
     func closeTab(_ tabId: UUID) {

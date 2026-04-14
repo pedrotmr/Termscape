@@ -27,6 +27,7 @@
 		82AB12FA9FDF7A82442EA627 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */; };
 		8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D13644947346C5C3B6824FE /* GhosttyApp.swift */; };
 		91A95B45D79D5332ABCDBFE7 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40BBEA2DF39DEE65354CC615 /* Carbon.framework */; };
+		92D82089611E60F0D5B9F2B2 /* BrowserSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7F44744BDDA3921B7EA0E4 /* BrowserSurface.swift */; };
 		A281C9EF6A66477745FE7D94 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDB98A780A647FB766C3C871 /* IOKit.framework */; };
 		A455E4D9B7AC72FDF38F977B /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D7D60369E322A18AEA2A1F /* ThemeManager.swift */; };
 		A56FDF195CBDFD989D590227 /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6154D233FD80A8532C48D13B /* Group.swift */; };
@@ -47,6 +48,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0B7F44744BDDA3921B7EA0E4 /* BrowserSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserSurface.swift; sourceTree = "<group>"; };
 		1874CAFE46683ABFBF03FA05 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		261561B96E12B36929EF6FA5 /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
 		2E620B88920BF3FEC0CF27BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -106,6 +108,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2CEE55F4B2EABEA7198F90B3 /* Browser */ = {
+			isa = PBXGroup;
+			children = (
+				0B7F44744BDDA3921B7EA0E4 /* BrowserSurface.swift */,
+			);
+			path = Browser;
+			sourceTree = "<group>";
+		};
 		389D67107D4B7BC3AC3D5CB2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -138,7 +148,9 @@
 			isa = PBXGroup;
 			children = (
 				CEC52450D30A600055DE6004 /* App */,
+				2CEE55F4B2EABEA7198F90B3 /* Browser */,
 				E62C744F57052191974364A7 /* Canvas */,
+				F54D4463AD904E5C093C7229 /* Editor */,
 				3E5A5EDBE7CEB9E82DC86E17 /* Ghostty */,
 				F0544DB374E15EA8F2D25D52 /* Model */,
 				922FA80F045DB9BDEB076283 /* Settings */,
@@ -253,6 +265,13 @@
 			path = Model;
 			sourceTree = "<group>";
 		};
+		F54D4463AD904E5C093C7229 /* Editor */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Editor;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -357,6 +376,7 @@
 				071EFC7EAF6E69A812304318 /* AppState.swift in Sources */,
 				D05705721001037CB61371FD /* AppTheme.swift in Sources */,
 				04F6E0A7ABEA08C3ADE169E6 /* AppUpdater.swift in Sources */,
+				92D82089611E60F0D5B9F2B2 /* BrowserSurface.swift in Sources */,
 				F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */,
 				B5496ECAF40081BD5375BCB1 /* CanvasHostingView.swift in Sources */,
 				7B10CB53D1B2501FDEC7601A /* CanvasScrollView.swift in Sources */,

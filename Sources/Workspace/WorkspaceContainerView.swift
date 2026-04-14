@@ -13,6 +13,9 @@ struct WorkspaceContainerView: View {
                     .onReceive(NotificationCenter.default.publisher(for: .newTab)) { _ in
                         _ = workspace.addTab()
                     }
+                    .onReceive(NotificationCenter.default.publisher(for: .newBrowserTab)) { _ in
+                        _ = workspace.addBrowserTab()
+                    }
                     .onReceive(NotificationCenter.default.publisher(for: .closeTab)) { _ in
                         // If this tab has multiple panes, Cmd+W closes the focused pane.
                         // Only close the whole tab when it's down to a single pane.
@@ -27,10 +30,16 @@ struct WorkspaceContainerView: View {
                         }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .splitRight)) { _ in
-                        splitPane(tab: tab, orientation: .horizontal)
+                        splitPane(tab: tab, orientation: .horizontal, contentKind: .terminal)
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .splitDown)) { _ in
-                        splitPane(tab: tab, orientation: .vertical)
+                        splitPane(tab: tab, orientation: .vertical, contentKind: .terminal)
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: .splitBrowserRight)) { _ in
+                        splitPane(tab: tab, orientation: .horizontal, contentKind: .browser)
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: .splitBrowserDown)) { _ in
+                        splitPane(tab: tab, orientation: .vertical, contentKind: .browser)
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .moveToNewTab)) { notif in
                         movePaneToNewTab(notif: notif)
@@ -45,41 +54,69 @@ struct WorkspaceContainerView: View {
         }
     }
 
-    /// Move a pane's terminal surface into a brand-new workspace tab, preserving the live session.
+    /// Move a pane's focused content surface into a brand-new workspace tab, preserving live state.
     /// The surface is extracted from the source tab before Bonsplit can tear it down, then injected
     /// into the initial pane of the newly created workspace tab.
     private func movePaneToNewTab(notif: NotificationCenter.Publisher.Output) {
         let key = Notification.Name.MoveToNewTabKey.self
-        guard let surface = notif.userInfo?[key.surface] as? TerminalSurface,
-              let sourceTab = notif.userInfo?[key.sourceTab] as? WorkspaceTab
+        guard let sourceTab = notif.userInfo?[key.sourceTab] as? WorkspaceTab
         else { return }
+
+        let contentKind = WorkspacePaneContentKind(
+            rawValue: (notif.userInfo?[key.contentKind] as? String) ?? ""
+        ) ?? .terminal
 
         let shouldCloseSource = notif.userInfo?[key.closeSourceTab] as? Bool ?? false
         if shouldCloseSource {
             workspace.closeTab(sourceTab.id)
         }
 
-        let newTab = workspace.addTab()
-
-        // Bonsplit auto-creates an initial pane+tab on init. Inject our surface under that tab's
-        // UUID so the canvas reuses the live hostedView instead of spawning a fresh terminal.
-        let initialSnapshot = newTab.bonsplitController.layoutSnapshot()
-        if let firstPane = initialSnapshot.panes.first,
-           let tabIdStr = firstPane.selectedTabId,
-           let tabUUID = UUID(uuidString: tabIdStr)
-        {
-            newTab.surfaces[tabUUID] = surface
+        switch contentKind {
+        case .terminal:
+            guard let surface = notif.userInfo?[key.surface] as? TerminalSurface else { return }
+            let newTab = workspace.addTab(
+                title: WorkspacePaneContentKind.terminal.defaultTitle,
+                initialPaneKind: .terminal
+            )
+            let initialSnapshot = newTab.bonsplitController.layoutSnapshot()
+            if let firstPane = initialSnapshot.panes.first,
+               let tabIdStr = firstPane.selectedTabId,
+               let tabUUID = UUID(uuidString: tabIdStr) {
+                newTab.attachTerminalSurface(surface, to: tabUUID)
+            }
+        case .browser:
+            guard let surface = notif.userInfo?[key.browserSurface] as? BrowserSurface else { return }
+            let newTab = workspace.addTab(
+                title: WorkspacePaneContentKind.browser.defaultTitle,
+                initialPaneKind: .browser
+            )
+            newTab.title = WorkspacePaneContentKind.browser.defaultTitle
+            let initialSnapshot = newTab.bonsplitController.layoutSnapshot()
+            if let firstPane = initialSnapshot.panes.first,
+               let tabIdStr = firstPane.selectedTabId,
+               let tabUUID = UUID(uuidString: tabIdStr) {
+                newTab.attachBrowserSurface(surface, to: tabUUID)
+            }
         }
     }
 
-    /// Split the current pane and immediately create a terminal tab in the new empty pane.
+    /// Split the current pane and immediately create content in the new empty pane.
     /// Bonsplit creates new panes with no tabs — we must add one so the canvas can
-    /// attach a TerminalSurface to it.
-    private func splitPane(tab: WorkspaceTab, orientation: SplitOrientation) {
+    /// attach the correct surface type to it.
+    private func splitPane(
+        tab: WorkspaceTab,
+        orientation: SplitOrientation,
+        contentKind: WorkspacePaneContentKind
+    ) {
         let beforeSnapshot = tab.bonsplitController.layoutSnapshot()
         let beforeTree = tab.bonsplitController.treeSnapshot()
         let targetPaneId = tab.bonsplitController.focusedPaneId
         let sourceWorkingDirectory = focusedSurfaceWorkingDirectory(
+            tab: tab,
+            targetPaneId: targetPaneId,
+            snapshot: beforeSnapshot
+        )
+        let sourceBrowserURL = focusedBrowserURL(
             tab: tab,
             targetPaneId: targetPaneId,
             snapshot: beforeSnapshot
@@ -148,13 +185,18 @@ struct WorkspaceContainerView: View {
             }
         }
 
-        // Create a Bonsplit tab in the new pane. This fires didCreateTab → notifyLayoutChanged
-        // → CanvasDocumentView creates a TerminalSurface for the new pane.
-        tab.queueWorkingDirectoryForNextTab(sourceWorkingDirectory, inPane: newPaneId)
+        switch contentKind {
+        case .terminal:
+            tab.queueWorkingDirectoryForNextTab(sourceWorkingDirectory, inPane: newPaneId)
+        case .browser:
+            tab.queueBrowserURLForNextTab(sourceBrowserURL ?? WorkspaceTab.defaultBrowserHomeURL, inPane: newPaneId)
+        }
+
+        // Create a Bonsplit tab in the new pane. This fires didCreateTab → notifyLayoutChanged.
         tab.bonsplitController.createTab(
-            title: "Terminal",
-            icon: "terminal",
-            kind: "terminal",
+            title: contentKind.defaultTitle,
+            icon: contentKind.defaultIcon,
+            kind: contentKind.rawValue,
             inPane: newPaneId
         )
     }
@@ -228,5 +270,21 @@ struct WorkspaceContainerView: View {
         }
 
         return sourceSurface.splitWorkingDirectory
+    }
+
+    private func focusedBrowserURL(
+        tab: WorkspaceTab,
+        targetPaneId: PaneID?,
+        snapshot: LayoutSnapshot
+    ) -> URL? {
+        guard let targetPaneId else { return nil }
+        guard let sourcePane = snapshot.panes.first(where: { $0.paneId == targetPaneId.id.uuidString }),
+              let selectedTabId = sourcePane.selectedTabId,
+              let tabUUID = UUID(uuidString: selectedTabId)
+        else {
+            return nil
+        }
+
+        return tab.browserURL(for: tabUUID)
     }
 }

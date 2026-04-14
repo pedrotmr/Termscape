@@ -32,23 +32,26 @@ struct TabBarView: View {
             separator
 
             // New tab button
-            TabBarIconButton(systemImage: "plus", help: "New Tab (⌘T)", theme: t) {
+            TabBarIconButton(systemImage: "terminal", help: "New Terminal Tab (⌘T)", theme: t) {
                 _ = workspace.addTab()
             }
 
-            separator
+            TabBarIconButton(systemImage: "globe", help: "New Browser Tab", theme: t) {
+                NotificationCenter.default.post(name: .newBrowserTab, object: nil)
+            }
 
             // Split pane buttons
-            TabBarIconButton(systemImage: "square.split.2x1", help: "Split Right (⌘D)", theme: t) {
+            TabBarIconButton(systemImage: "square.split.2x1", help: "Split Terminal Right (⌘D)", theme: t) {
                 NotificationCenter.default.post(name: .splitRight, object: nil)
             }
-            TabBarIconButton(systemImage: "square.split.1x2", help: "Split Down (⌘⇧D)", theme: t) {
+            TabBarIconButton(systemImage: "square.split.1x2", help: "Split Terminal Down (⌘⇧D)", theme: t) {
                 NotificationCenter.default.post(name: .splitDown, object: nil)
             }
             .padding(.trailing, 6)
         }
         .frame(height: 38)
         .background(t.surface)
+        .zIndex(50)
         .overlay(alignment: .bottom) {
             Rectangle().fill(t.border).frame(height: 1)
         }
@@ -248,6 +251,7 @@ private struct TabBarIconButton: View {
     let action: () -> Void
 
     @State private var isHovered = false
+    @State private var tooltipVisible = false
 
     var body: some View {
         Button(action: action) {
@@ -260,7 +264,37 @@ private struct TabBarIconButton: View {
         }
         .buttonStyle(.plain)
         .help(help)
-        .onHover { isHovered = $0 }
+        .overlay(alignment: .bottomTrailing) {
+            if tooltipVisible {
+                Text(help)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(theme.text)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(theme.elevated)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(theme.border, lineWidth: 1)
+                    )
+                    .fixedSize(horizontal: true, vertical: true)
+                    .lineLimit(1)
+                    .offset(y: 30)
+                    .allowsHitTesting(false)
+                    .zIndex(1000)
+            }
+        }
+        .zIndex(tooltipVisible ? 1000 : 0)
+        .onHover { hovering in
+            isHovered = hovering
+            if hovering {
+                tooltipVisible = true
+            } else {
+                tooltipVisible = false
+            }
+        }
         .animation(.easeInOut(duration: 0.12), value: isHovered)
     }
 }

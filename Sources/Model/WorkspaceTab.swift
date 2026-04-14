@@ -2,12 +2,36 @@ import Bonsplit
 import Foundation
 import SwiftUI
 
+enum WorkspacePaneContentKind: String, Codable {
+    case terminal
+    case browser
+
+    var defaultTitle: String {
+        switch self {
+        case .terminal:
+            return "Terminal"
+        case .browser:
+            return "Browser"
+        }
+    }
+
+    var defaultIcon: String {
+        switch self {
+        case .terminal:
+            return "terminal"
+        case .browser:
+            return "globe"
+        }
+    }
+}
+
 @MainActor
 final class WorkspaceTab: ObservableObject, Identifiable {
     static let splitInsertionMinimumPaneWidth: CGFloat = 600
     static let interactiveMinimumPaneWidth: CGFloat = 200
     static let interactiveMinimumPaneHeight: CGFloat = 200
     static let minimumViewportWidthForThreePaneEqualization: CGFloat = 1000
+    static let defaultBrowserHomeURL = URL(string: "https://duckduckgo.com")!
 
     let id: UUID
     @Published var title: String
@@ -21,6 +45,9 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     /// Terminal surfaces keyed by Bonsplit TabID's UUID.
     var surfaces: [UUID: TerminalSurface] = [:]
 
+    /// Browser surfaces keyed by Bonsplit TabID's UUID.
+    var browserSurfaces: [UUID: BrowserSurface] = [:]
+
     /// Text to send to the first surface once it attaches (e.g. a clone command).
     var pendingInputOnceAttached: String?
 
@@ -29,10 +56,18 @@ final class WorkspaceTab: ObservableObject, Identifiable {
 
     private let workspaceURL: URL?
     private var lastThreePaneStretchUsesThirds: Bool?
+    private var paneContentKindByTabId: [UUID: WorkspacePaneContentKind] = [:]
     private var pendingWorkingDirectoryByPaneId: [UUID: String] = [:]
     private var pendingWorkingDirectoryByTabId: [UUID: String] = [:]
+    private var pendingBrowserURLByPaneId: [UUID: URL] = [:]
+    private var pendingBrowserURLByTabId: [UUID: URL] = [:]
 
-    init(title: String = "Terminal", workspaceURL: URL?, workspaceId: UUID) {
+    init(
+        title: String = "Terminal",
+        workspaceURL: URL?,
+        workspaceId: UUID,
+        initialPaneKind: WorkspacePaneContentKind = .terminal
+    ) {
         id = UUID()
         self.title = title
         self.workspaceURL = workspaceURL
@@ -49,6 +84,8 @@ final class WorkspaceTab: ObservableObject, Identifiable {
         // Wire delegate so canvas redraws on layout and focus changes (splits, resizes, closes, pane focus)
         // The delegate is held weakly by BonsplitController, so no retain cycle.
         bonsplitController.delegate = self
+
+        configureInitialPaneKind(initialPaneKind)
     }
 
     /// Restore tab identity, canvas width, Bonsplit tree, and per-pane cwd from persistence (surfaces are created lazily).
@@ -71,12 +108,48 @@ final class WorkspaceTab: ObservableObject, Identifiable {
         bonsplitController.replaceRootTree(with: snapshot.tree, focusedPaneId: focus)
         bonsplitController.delegate = self
 
+        let allTabIDs = Set(Self.collectTabUUIDs(from: snapshot.tree))
+        if let kindMap = snapshot.tabKindByTabId, !kindMap.isEmpty {
+            for (idStr, rawKind) in kindMap {
+                guard allTabIDs.contains(idStr),
+                      let uuid = UUID(uuidString: idStr),
+                      let kind = WorkspacePaneContentKind(rawValue: rawKind)
+                else { continue }
+                paneContentKindByTabId[uuid] = kind
+                bonsplitController.updateTab(
+                    TabID(uuid: uuid),
+                    icon: .some(kind.defaultIcon),
+                    kind: .some(kind.rawValue)
+                )
+            }
+        } else {
+            // Legacy saves had no per-pane kind metadata; default all panes to terminal.
+            for idStr in allTabIDs {
+                guard let uuid = UUID(uuidString: idStr) else { continue }
+                paneContentKindByTabId[uuid] = .terminal
+                bonsplitController.updateTab(
+                    TabID(uuid: uuid),
+                    icon: .some(WorkspacePaneContentKind.terminal.defaultIcon),
+                    kind: .some(WorkspacePaneContentKind.terminal.rawValue)
+                )
+            }
+        }
+
         if let map = snapshot.workingDirectoryByTerminalTabId {
             for (idStr, rawPath) in map {
                 guard let uuid = UUID(uuidString: idStr),
                       let normalized = TerminalSurface.normalizeWorkingDirectoryPath(rawPath)
                 else { continue }
                 pendingWorkingDirectoryByTabId[uuid] = normalized
+            }
+        }
+
+        if let map = snapshot.browserURLByTabId {
+            for (idStr, rawURL) in map {
+                guard let uuid = UUID(uuidString: idStr),
+                      let url = URL(string: rawURL)
+                else { continue }
+                pendingBrowserURLByTabId[uuid] = url
             }
         }
     }
@@ -92,6 +165,13 @@ final class WorkspaceTab: ObservableObject, Identifiable {
         return surface
     }
 
+    func createBrowserSurface(for tabId: TabID) -> BrowserSurface {
+        let initialURL = pendingBrowserURLByTabId.removeValue(forKey: tabId.uuid) ?? Self.defaultBrowserHomeURL
+        let surface = BrowserSurface(workspaceId: workspaceId, initialURL: initialURL)
+        browserSurfaces[tabId.uuid] = surface
+        return surface
+    }
+
     func queueWorkingDirectoryForNextTab(_ workingDirectory: String?, inPane paneId: PaneID) {
         guard let normalized = TerminalSurface.normalizeWorkingDirectoryPath(workingDirectory) else {
             return
@@ -99,9 +179,90 @@ final class WorkspaceTab: ObservableObject, Identifiable {
         pendingWorkingDirectoryByPaneId[paneId.id] = normalized
     }
 
+    func queueBrowserURLForNextTab(_ url: URL?, inPane paneId: PaneID) {
+        guard let url else { return }
+        pendingBrowserURLByPaneId[paneId.id] = url
+    }
+
+    func browserURL(for tabUUID: UUID) -> URL? {
+        browserSurfaces[tabUUID]?.currentURL ?? pendingBrowserURLByTabId[tabUUID]
+    }
+
+    func detachTerminalSurface(for tabUUID: UUID) -> TerminalSurface? {
+        surfaces.removeValue(forKey: tabUUID)
+    }
+
+    func detachBrowserSurface(for tabUUID: UUID) -> BrowserSurface? {
+        browserSurfaces.removeValue(forKey: tabUUID)
+    }
+
+    func attachTerminalSurface(_ surface: TerminalSurface, to tabUUID: UUID) {
+        surfaces[tabUUID] = surface
+        paneContentKindByTabId[tabUUID] = .terminal
+        bonsplitController.updateTab(
+            TabID(uuid: tabUUID),
+            icon: .some(WorkspacePaneContentKind.terminal.defaultIcon),
+            kind: .some(WorkspacePaneContentKind.terminal.rawValue)
+        )
+    }
+
+    func attachBrowserSurface(_ surface: BrowserSurface, to tabUUID: UUID) {
+        browserSurfaces[tabUUID] = surface
+        paneContentKindByTabId[tabUUID] = .browser
+        pendingBrowserURLByTabId[tabUUID] = surface.currentURL ?? Self.defaultBrowserHomeURL
+        bonsplitController.updateTab(
+            TabID(uuid: tabUUID),
+            icon: .some(WorkspacePaneContentKind.browser.defaultIcon),
+            kind: .some(WorkspacePaneContentKind.browser.rawValue)
+        )
+    }
+
+    func paneContentKind(for tabUUID: UUID, fallbackPaneId: String? = nil) -> WorkspacePaneContentKind {
+        if let kind = paneContentKindByTabId[tabUUID] {
+            return kind
+        }
+
+        let resolvedKind: WorkspacePaneContentKind
+        if let fallbackPaneId,
+           let paneUUID = UUID(uuidString: fallbackPaneId),
+           let selected = bonsplitController.selectedTab(inPane: PaneID(id: paneUUID)),
+           selected.id.uuid == tabUUID,
+           let kindRaw = selected.kind,
+           let parsed = WorkspacePaneContentKind(rawValue: kindRaw) {
+            resolvedKind = parsed
+        } else {
+            resolvedKind = .terminal
+        }
+
+        paneContentKindByTabId[tabUUID] = resolvedKind
+        return resolvedKind
+    }
+
+    func setPaneContentKind(_ kind: WorkspacePaneContentKind, for tabId: TabID) {
+        paneContentKindByTabId[tabId.uuid] = kind
+        bonsplitController.updateTab(
+            tabId,
+            icon: .some(kind.defaultIcon),
+            kind: .some(kind.rawValue)
+        )
+    }
+
     func removeSurface(for tabId: TabID) {
         surfaces[tabId.uuid]?.teardown()
         surfaces.removeValue(forKey: tabId.uuid)
+    }
+
+    func removeBrowserSurface(for tabId: TabID) {
+        browserSurfaces[tabId.uuid]?.teardown()
+        browserSurfaces.removeValue(forKey: tabId.uuid)
+    }
+
+    func removePaneContent(for tabId: TabID) {
+        removeSurface(for: tabId)
+        removeBrowserSurface(for: tabId)
+        paneContentKindByTabId.removeValue(forKey: tabId.uuid)
+        pendingWorkingDirectoryByTabId.removeValue(forKey: tabId.uuid)
+        pendingBrowserURLByTabId.removeValue(forKey: tabId.uuid)
     }
 
     func invalidateThreePaneStretchCache() {
@@ -157,11 +318,54 @@ final class WorkspaceTab: ObservableObject, Identifiable {
             surface.teardown()
         }
         surfaces.removeAll()
+        for surface in browserSurfaces.values {
+            surface.teardown()
+        }
+        browserSurfaces.removeAll()
+    }
+
+    private func configureInitialPaneKind(_ kind: WorkspacePaneContentKind) {
+        let snapshot = bonsplitController.layoutSnapshot()
+        guard let firstPane = snapshot.panes.first,
+              let selectedTabId = firstPane.selectedTabId,
+              let tabUUID = UUID(uuidString: selectedTabId)
+        else {
+            return
+        }
+
+        let tabId = TabID(uuid: tabUUID)
+        paneContentKindByTabId[tabUUID] = kind
+        switch kind {
+        case .terminal:
+            bonsplitController.updateTab(
+                tabId,
+                icon: .some(kind.defaultIcon),
+                kind: .some(kind.rawValue)
+            )
+        case .browser:
+            bonsplitController.updateTab(
+                tabId,
+                title: kind.defaultTitle,
+                icon: .some(kind.defaultIcon),
+                kind: .some(kind.rawValue)
+            )
+            pendingBrowserURLByTabId[tabUUID] = Self.defaultBrowserHomeURL
+        }
+    }
+
+    private static func collectTabUUIDs(from node: ExternalTreeNode) -> [String] {
+        switch node {
+        case let .pane(pane):
+            return pane.tabs.map(\.id)
+        case let .split(split):
+            return collectTabUUIDs(from: split.first) + collectTabUUIDs(from: split.second)
+        }
     }
 }
 
 // MARK: - BonsplitDelegate
 
+@MainActor
 extension WorkspaceTab: BonsplitDelegate {
     /// Post the notification that CanvasHostingView listens for, triggering a canvas relayout.
     func notifyLayoutChanged() {
@@ -173,8 +377,20 @@ extension WorkspaceTab: BonsplitDelegate {
     func splitTabBar(
         _: BonsplitController, didCreateTab tab: Bonsplit.Tab, inPane pane: PaneID
     ) {
-        if let pendingWorkingDirectory = pendingWorkingDirectoryByPaneId.removeValue(forKey: pane.id) {
-            pendingWorkingDirectoryByTabId[tab.id.uuid] = pendingWorkingDirectory
+        let kind = WorkspacePaneContentKind(rawValue: tab.kind ?? "") ?? .terminal
+        paneContentKindByTabId[tab.id.uuid] = kind
+
+        switch kind {
+        case .terminal:
+            if let pendingWorkingDirectory = pendingWorkingDirectoryByPaneId.removeValue(forKey: pane.id) {
+                pendingWorkingDirectoryByTabId[tab.id.uuid] = pendingWorkingDirectory
+            }
+        case .browser:
+            if let pendingURL = pendingBrowserURLByPaneId.removeValue(forKey: pane.id) {
+                pendingBrowserURLByTabId[tab.id.uuid] = pendingURL
+            } else if pendingBrowserURLByTabId[tab.id.uuid] == nil {
+                pendingBrowserURLByTabId[tab.id.uuid] = Self.defaultBrowserHomeURL
+            }
         }
         notifyLayoutChanged()
     }
@@ -192,7 +408,7 @@ extension WorkspaceTab: BonsplitDelegate {
     func splitTabBar(
         _: BonsplitController, didCloseTab tabId: TabID, fromPane _: PaneID
     ) {
-        removeSurface(for: tabId)
+        removePaneContent(for: tabId)
     }
 
     func splitTabBar(_: BonsplitController, didClosePane _: PaneID) {
