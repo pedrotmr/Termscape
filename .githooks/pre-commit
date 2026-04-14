@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mapfile -t STAGED_SWIFT_FILES < <(
+  git diff --cached --name-only --diff-filter=ACMR \
+    | grep -E '\.swift$' \
+    | grep -v '^vendor/' || true
+)
+
+if [[ ${#STAGED_SWIFT_FILES[@]} -eq 0 ]]; then
+  exit 0
+fi
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+echo "Running style auto-fix before commit..."
+Scripts/dev/style.sh fix "${STAGED_SWIFT_FILES[@]}"
+
+# Re-stage updates made by formatters.
+git add -- "${STAGED_SWIFT_FILES[@]}"

@@ -1,0 +1,56 @@
+name: Style
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  style:
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16"
+
+      - name: Install SwiftFormat and SwiftLint
+        run: brew install swiftformat swiftlint
+
+      - name: Run style checks for changed Swift files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            RANGE="origin/${{ github.base_ref }}...HEAD"
+          else
+            if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+              RANGE="$(git rev-list --max-parents=0 HEAD)..HEAD"
+            else
+              RANGE="${{ github.event.before }}...${{ github.sha }}"
+            fi
+          fi
+
+          mapfile -t SWIFT_FILES < <(
+            git diff --name-only --diff-filter=ACMR "$RANGE" \
+              | grep -E '\.swift$' \
+              | grep -v '^vendor/' || true
+          )
+
+          if [[ ${#SWIFT_FILES[@]} -eq 0 ]]; then
+            echo "No changed Swift files to check."
+            exit 0
+          fi
+
+          printf 'Checking %s Swift file(s)\n' "${#SWIFT_FILES[@]}"
+          Scripts/dev/style.sh check "${SWIFT_FILES[@]}"
