@@ -248,7 +248,7 @@ final class CanvasDocumentView: NSView {
       }
 
       hosted.rootView.frame = displayFrame
-      applyPaneChrome(to: hosted.rootView, focused: isFocused)
+      applyPaneChrome(to: hosted.rootView, focused: isFocused && isMultiPane)
 
       if isFocused {
         focusedRect = displayFrame
@@ -912,13 +912,17 @@ final class CanvasDocumentView: NSView {
   }
 
   private func applyPaneChrome(to view: NSView, focused: Bool) {
-    _ = focused
     view.wantsLayer = true
     guard let layer = view.layer else { return }
     layer.cornerRadius = CanvasPaneChrome.cornerRadius
     layer.masksToBounds = true
-    layer.borderWidth = CanvasPaneChrome.borderWidthNormal
-    layer.borderColor = NSColor.labelColor.withAlphaComponent(0.18).cgColor
+    if focused {
+      layer.borderWidth = CanvasPaneChrome.borderWidthFocused
+      layer.borderColor = currentAccentColor.withAlphaComponent(0.85).cgColor
+    } else {
+      layer.borderWidth = CanvasPaneChrome.borderWidthNormal
+      layer.borderColor = NSColor.labelColor.withAlphaComponent(0.18).cgColor
+    }
   }
 
   // MARK: - Context menu
