@@ -88,10 +88,10 @@ struct WorkspaceTabSnapshot: Codable {
 
             if kind == .browser,
                let browserURL = tab.browserURL(for: u)?.absoluteString,
-               !browserURL.isEmpty {
+               !browserURL.isEmpty
+            {
                 browserURLMap[idStr] = browserURL
             }
-
         }
         workingDirectoryByTerminalTabId = cwdMap.isEmpty ? nil : cwdMap
         tabKindByTabId = kindMap.isEmpty ? nil : kindMap
