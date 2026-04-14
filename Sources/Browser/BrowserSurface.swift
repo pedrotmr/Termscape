@@ -588,7 +588,7 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate, WKUIDe
       }
     }
 
-    backObservation = webView.observe(\.canGoBack, options: [.new]) {
+    backObservation = webView.observe(\.canGoBack, options: [.new, .initial]) {
       [weak self] webView, _ in
       Task { @MainActor [weak self] in
         self?.hostedView.updateNavigationButtonState(
@@ -598,7 +598,7 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate, WKUIDe
       }
     }
 
-    forwardObservation = webView.observe(\.canGoForward, options: [.new]) {
+    forwardObservation = webView.observe(\.canGoForward, options: [.new, .initial]) {
       [weak self] webView, _ in
       Task { @MainActor [weak self] in
         self?.hostedView.updateNavigationButtonState(
