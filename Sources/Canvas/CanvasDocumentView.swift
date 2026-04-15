@@ -1003,7 +1003,10 @@ final class CanvasDocumentView: NSView {
         clearItem.isEnabled = canClear
         menu.addItem(clearItem)
         let closeTitle = isMultiPane ? "Close Pane" : "Close Tab"
-        menu.addItem(makeItem(closeTitle, icon: "xmark", action: #selector(menuClose(_:))))
+        let closeItem = makeItem(closeTitle, icon: "xmark", action: #selector(menuClose(_:)))
+        closeItem.keyEquivalent = "w"
+        closeItem.keyEquivalentModifierMask = .command
+        menu.addItem(closeItem)
 
         return menu
     }

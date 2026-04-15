@@ -5,6 +5,7 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     weak static var shared: AppDelegate?
     let appState = AppState()
+    private var closeShortcutMonitor: Any?
 
     override init() {
         super.init()
@@ -19,6 +20,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Ensure startup has an active workspace when no saved workspaces exist.
         appState.ensureStartupWorkspaceIfNeeded()
+        installCloseShortcutMonitor()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
@@ -40,6 +42,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_: Notification) {
+        if let closeShortcutMonitor {
+            NSEvent.removeMonitor(closeShortcutMonitor)
+            self.closeShortcutMonitor = nil
+        }
         appState.persist()
+    }
+
+    private func installCloseShortcutMonitor() {
+        closeShortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let chord = flags.intersection([.command, .shift, .option, .control])
+
+            // Route Cmd+W to pane/tab close and prevent the default "Close Window" behavior.
+            if chord == .command, event.keyCode == 13 {
+                NotificationCenter.default.post(name: .closeTab, object: nil)
+                return nil
+            }
+
+            return event
+        }
     }
 }
