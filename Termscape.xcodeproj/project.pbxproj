@@ -25,15 +25,18 @@
 		7D6081722E151B340D1D4103 /* GhosttyNSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F188918092D5460D7741715F /* GhosttyNSView.swift */; };
 		81285CE453E1FCD649984304 /* HorizontalPaneSizingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AE8AD69F5F1B66526D750 /* HorizontalPaneSizingEngine.swift */; };
 		82AB12FA9FDF7A82442EA627 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */; };
+		863B40612AFB5F5C30B15E8D /* EditorRootContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98785A10618A04A23591C720 /* EditorRootContractTests.swift */; };
 		8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D13644947346C5C3B6824FE /* GhosttyApp.swift */; };
 		91A95B45D79D5332ABCDBFE7 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40BBEA2DF39DEE65354CC615 /* Carbon.framework */; };
 		92D82089611E60F0D5B9F2B2 /* BrowserSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7F44744BDDA3921B7EA0E4 /* BrowserSurface.swift */; };
+		9F0E2BFDD3710439BDD4F582 /* EditorSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 302DCA5B1F5E47F86106FFE1 /* EditorSurface.swift */; };
 		A281C9EF6A66477745FE7D94 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDB98A780A647FB766C3C871 /* IOKit.framework */; };
 		A455E4D9B7AC72FDF38F977B /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D7D60369E322A18AEA2A1F /* ThemeManager.swift */; };
 		A56FDF195CBDFD989D590227 /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6154D233FD80A8532C48D13B /* Group.swift */; };
 		B045B96BAB54CC6AB1E08598 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FDDA40E9167FCA2B07A49D /* AppDelegate.swift */; };
 		B184EB64AECBEAB1A3D595B7 /* Bonsplit in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB81227AC7007DCFCCC0E17 /* Bonsplit */; };
 		B5496ECAF40081BD5375BCB1 /* CanvasHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9A490C0C4E8F18D189614E /* CanvasHostingView.swift */; };
+		C3DDC6C17F98FFABF4FB61D8 /* FileTreeIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6A69410181B2B6E5FE3C4E8 /* FileTreeIndexTests.swift */; };
 		C48E523E7A43B6C64861501A /* GroupRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AF240872C7EB5781E7A324 /* GroupRowView.swift */; };
 		C547CF5EA1325ED1A2135184 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBED15E036B70096FCF5B1A8 /* TabBarView.swift */; };
 		D05705721001037CB61371FD /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1874CAFE46683ABFBF03FA05 /* AppTheme.swift */; };
@@ -42,16 +45,30 @@
 		D3F9DF29D650B72780F0F094 /* TerminalSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = A978683BBD9E259E5D3F7546 /* TerminalSurface.swift */; };
 		D65C5CCAA7A8E8F657636424 /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261561B96E12B36929EF6FA5 /* Workspace.swift */; };
 		DB05AB6321B71628FA374250 /* PaneLayoutEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */; };
+		E08DA3AA2BBF2D6956659B52 /* FileTreeIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BC22503F07454B1D3B8181E /* FileTreeIndex.swift */; };
 		EB7CADE425DAF9E7F92DB400 /* PaneDividerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48594151CBFD24181532EB5E /* PaneDividerView.swift */; };
+		ECE95BA7DB8C782A576A96BA /* EditorRootContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4C047FCDA4785B60AF2CF8 /* EditorRootContract.swift */; };
 		F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5A15956DECE42BC68D182 /* Extensions.swift */; };
 		F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BC76D05DE1768A3847203F59 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0AA290F4011BE244FCDC589E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 17B95977CB7C98B397E3B2CF;
+			remoteInfo = Termscape;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		0B7F44744BDDA3921B7EA0E4 /* BrowserSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserSurface.swift; sourceTree = "<group>"; };
 		1874CAFE46683ABFBF03FA05 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		261561B96E12B36929EF6FA5 /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
+		2BC22503F07454B1D3B8181E /* FileTreeIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTreeIndex.swift; sourceTree = "<group>"; };
 		2E620B88920BF3FEC0CF27BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		302DCA5B1F5E47F86106FFE1 /* EditorSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorSurface.swift; sourceTree = "<group>"; };
 		3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyThemeWriter.swift; sourceTree = "<group>"; };
 		40BBEA2DF39DEE65354CC615 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
@@ -65,8 +82,10 @@
 		6D13644947346C5C3B6824FE /* GhosttyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyApp.swift; sourceTree = "<group>"; };
 		71FDDA40E9167FCA2B07A49D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		74D7D60369E322A18AEA2A1F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		7D4C047FCDA4785B60AF2CF8 /* EditorRootContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorRootContract.swift; sourceTree = "<group>"; };
 		8CCACB7F0513F9521697FA12 /* Termscape.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termscape.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		921AE8AD69F5F1B66526D750 /* HorizontalPaneSizingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalPaneSizingEngine.swift; sourceTree = "<group>"; };
+		98785A10618A04A23591C720 /* EditorRootContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorRootContractTests.swift; sourceTree = "<group>"; };
 		A265BCC5F2838C098FFAE4DF /* WorkspaceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTab.swift; sourceTree = "<group>"; };
 		A3C6290AEA74AE75AC7B213D /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		A515485939A32E03853D1B61 /* WorkspaceRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRowView.swift; sourceTree = "<group>"; };
@@ -78,9 +97,11 @@
 		CBED15E036B70096FCF5B1A8 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
 		CC9A490C0C4E8F18D189614E /* CanvasHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasHostingView.swift; sourceTree = "<group>"; };
 		CEEB21FE82C91F1001D7F142 /* WorkspaceContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceContainerView.swift; sourceTree = "<group>"; };
+		D6A69410181B2B6E5FE3C4E8 /* FileTreeIndexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTreeIndexTests.swift; sourceTree = "<group>"; };
 		DE1B6A129784A486481CDF45 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		DF437AE72351424B0EFEDBFD /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		EC9B81CDEA8E4836331A2E6D /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
+		EC9CAE583DACC3C22A6AE447 /* TermscapeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TermscapeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneLayoutEngine.swift; sourceTree = "<group>"; };
 		EDB98A780A647FB766C3C871 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		F0718C3F7D167C201BB85AF9 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
@@ -116,6 +137,15 @@
 			path = Browser;
 			sourceTree = "<group>";
 		};
+		2D174A06DA4E931B597F2A1E /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				98785A10618A04A23591C720 /* EditorRootContractTests.swift */,
+				D6A69410181B2B6E5FE3C4E8 /* FileTreeIndexTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 		389D67107D4B7BC3AC3D5CB2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -140,6 +170,7 @@
 			isa = PBXGroup;
 			children = (
 				8CCACB7F0513F9521697FA12 /* Termscape.app */,
+				EC9CAE583DACC3C22A6AE447 /* TermscapeTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -200,6 +231,7 @@
 				EAB51A3EF89724D77E81B463 /* Packages */,
 				389D67107D4B7BC3AC3D5CB2 /* Resources */,
 				516EC5E7CD9E6C1D48EE92A0 /* Sources */,
+				2D174A06DA4E931B597F2A1E /* Tests */,
 				8A507A3643C09F5AD3D498E2 /* Frameworks */,
 				475B6F8C1239BE3FA7B91A29 /* Products */,
 			);
@@ -268,6 +300,9 @@
 		F54D4463AD904E5C093C7229 /* Editor */ = {
 			isa = PBXGroup;
 			children = (
+				7D4C047FCDA4785B60AF2CF8 /* EditorRootContract.swift */,
+				302DCA5B1F5E47F86106FFE1 /* EditorSurface.swift */,
+				2BC22503F07454B1D3B8181E /* FileTreeIndex.swift */,
 			);
 			path = Editor;
 			sourceTree = "<group>";
@@ -297,6 +332,24 @@
 			productReference = 8CCACB7F0513F9521697FA12 /* Termscape.app */;
 			productType = "com.apple.product-type.application";
 		};
+		48C09725B22A6E76DE878146 /* TermscapeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF9CFDBEA6453E237FE05DFB /* Build configuration list for PBXNativeTarget "TermscapeTests" */;
+			buildPhases = (
+				4E52D219058378615373D1ED /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C10A31E3605E83250A168D34 /* PBXTargetDependency */,
+			);
+			name = TermscapeTests;
+			packageProductDependencies = (
+			);
+			productName = TermscapeTests;
+			productReference = EC9CAE583DACC3C22A6AE447 /* TermscapeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -307,6 +360,10 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					17B95977CB7C98B397E3B2CF = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					48C09725B22A6E76DE878146 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
@@ -331,6 +388,7 @@
 			projectRoot = "";
 			targets = (
 				17B95977CB7C98B397E3B2CF /* Termscape */,
+				48C09725B22A6E76DE878146 /* TermscapeTests */,
 			);
 		};
 /* End PBXProject section */
@@ -368,6 +426,15 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		4E52D219058378615373D1ED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				863B40612AFB5F5C30B15E8D /* EditorRootContractTests.swift in Sources */,
+				C3DDC6C17F98FFABF4FB61D8 /* FileTreeIndexTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		FC96B910328FF9EE83DA2379 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -380,7 +447,10 @@
 				F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */,
 				B5496ECAF40081BD5375BCB1 /* CanvasHostingView.swift in Sources */,
 				7B10CB53D1B2501FDEC7601A /* CanvasScrollView.swift in Sources */,
+				ECE95BA7DB8C782A576A96BA /* EditorRootContract.swift in Sources */,
+				9F0E2BFDD3710439BDD4F582 /* EditorSurface.swift in Sources */,
 				F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */,
+				E08DA3AA2BBF2D6956659B52 /* FileTreeIndex.swift in Sources */,
 				8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */,
 				7D6081722E151B340D1D4103 /* GhosttyNSView.swift in Sources */,
 				14274E56A429DD44CEC3B341 /* GhosttySurfaceScrollView.swift in Sources */,
@@ -405,7 +475,33 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		C10A31E3605E83250A168D34 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 17B95977CB7C98B397E3B2CF /* Termscape */;
+			targetProxy = BC76D05DE1768A3847203F59 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		1972EFF0FCC25EB51887CA72 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.termscape.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Termscape.app/Contents/MacOS/Termscape";
+			};
+			name = Release;
+		};
 		197BF01B57D38E879C423248 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -555,6 +651,24 @@
 			};
 			name = Debug;
 		};
+		E41DB938744DA2D5E21B9A7D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.termscape.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Termscape.app/Contents/MacOS/Termscape";
+			};
+			name = Debug;
+		};
 		E908B17DB79274983396919B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -585,6 +699,15 @@
 			buildConfigurations = (
 				76EFED9937710FA06C5EE005 /* Debug */,
 				730196C099CAA9C6EA366817 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BF9CFDBEA6453E237FE05DFB /* Build configuration list for PBXNativeTarget "TermscapeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E41DB938744DA2D5E21B9A7D /* Debug */,
+				1972EFF0FCC25EB51887CA72 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
