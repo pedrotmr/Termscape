@@ -211,9 +211,9 @@ struct SidebarView: View {
         if group.id == draggingId { return groupDragTranslation }
         let draggedH = groupFrames[draggingId]?.height ?? 44
         if draggedIdx < proposed {
-            if index > draggedIdx && index <= proposed { return -draggedH }
+            if index > draggedIdx, index <= proposed { return -draggedH }
         } else if draggedIdx > proposed {
-            if index >= proposed && index < draggedIdx { return draggedH }
+            if index >= proposed, index < draggedIdx { return draggedH }
         }
         return 0
     }
@@ -332,9 +332,9 @@ struct SidebarView: View {
             let remIndex = rem.firstIndex(where: { $0.workspaceId.map { $0 == workspaceId } ?? false })
         else { return 0 }
         if fromFlat < toFlat {
-            if remIndex >= fromFlat && remIndex < toFlat { return -rowH }
+            if remIndex >= fromFlat, remIndex < toFlat { return -rowH }
         } else if fromFlat > toFlat {
-            if remIndex >= toFlat && remIndex < fromFlat { return rowH }
+            if remIndex >= toFlat, remIndex < fromFlat { return rowH }
         }
         return 0
     }

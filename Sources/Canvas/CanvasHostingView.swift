@@ -41,7 +41,7 @@ struct CanvasHostingView: NSViewRepresentable {
                 object: tab.bonsplitController,
                 queue: .main
             ) { [weak self] _ in
-                guard let self, let canvas = self.canvas else { return }
+                guard let self, let canvas else { return }
                 canvas.updateLayout(for: tab, options: .scrollFocusedPaneIntoView)
             }
         }
