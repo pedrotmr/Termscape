@@ -521,7 +521,7 @@ struct EditorSurfaceRootView: View {
     ) { alert in
       switch alert {
       case .closeDirty(let id, _):
-        Button("Save") { model.saveAndCloseTab(id: id) }
+        Button("Save") { Task { await model.saveAndCloseTab(id: id) } }
         Button("Don’t Save", role: .destructive) { model.discardAndCloseTab(id: id) }
         Button("Cancel", role: .cancel) { model.cancelPendingAlert() }
       case .saveConflict(let id, _, let closeAfter):
@@ -529,7 +529,7 @@ struct EditorSurfaceRootView: View {
           model.resolveConflictReloadFromDisk(documentId: id, closeAfterResolve: closeAfter)
         }
         Button("Overwrite") {
-          model.resolveConflictOverwrite(documentId: id, closeAfterResolve: closeAfter)
+          Task { await model.resolveConflictOverwrite(documentId: id, closeAfterResolve: closeAfter) }
         }
         Button("Cancel", role: .cancel) { model.cancelPendingAlert() }
       case .userMessage:
@@ -839,7 +839,9 @@ struct EditorSurfaceRootView: View {
         .padding(.vertical, 2)
       }
       HStack(spacing: 12) {
-        Button(action: { model.saveSelectedDocument() }) {
+        Button(action: {
+          Task { await model.saveSelectedDocument() }
+        }) {
           Image(systemName: "arrow.up.document")
         }
         .buttonStyle(.plain)
@@ -1009,7 +1011,7 @@ struct EditorSurfaceRootView: View {
         EditorCodeTextView(
           text: model.workingTextBinding(for: id),
           isEditable: true,
-          onSave: { model.saveSelectedDocument() }
+          onSave: { Task { await model.saveSelectedDocument() } }
         )
         .clipShape(Rectangle())
       } else {
@@ -1591,14 +1593,14 @@ extension EditorSurfaceViewModel {
     syncTabsFromStore()
   }
 
-  fileprivate func saveSelectedDocument() {
+  fileprivate func saveSelectedDocument() async {
     guard let id = selectedDocumentId else { return }
-    saveDocument(id: id, conflictClosesTab: false)
+    await saveDocument(id: id, conflictClosesTab: false)
   }
 
-  fileprivate func saveDocument(id: UUID, conflictClosesTab: Bool) {
+  fileprivate func saveDocument(id: UUID, conflictClosesTab: Bool) async {
     do {
-      _ = try documentStore.saveDocument(id: id)
+      _ = try await documentStore.saveDocument(id: id)
       syncTabsFromStore()
     } catch let save as EditorDocumentSaveError {
       switch save {
@@ -1633,9 +1635,9 @@ extension EditorSurfaceViewModel {
     }
   }
 
-  fileprivate func resolveConflictOverwrite(documentId: UUID, closeAfterResolve: Bool) {
+  fileprivate func resolveConflictOverwrite(documentId: UUID, closeAfterResolve: Bool) async {
     do {
-      _ = try documentStore.saveDocumentForcedOverwrite(id: documentId)
+      _ = try await documentStore.saveDocumentForcedOverwrite(id: documentId)
       syncTabsFromStore()
       if closeAfterResolve {
         closeTabDiscardingBuffer(id: documentId)
@@ -1655,9 +1657,9 @@ extension EditorSurfaceViewModel {
     closeTabDiscardingBuffer(id: id)
   }
 
-  fileprivate func saveAndCloseTab(id: UUID) {
+  fileprivate func saveAndCloseTab(id: UUID) async {
     do {
-      _ = try documentStore.saveDocument(id: id)
+      _ = try await documentStore.saveDocument(id: id)
       syncTabsFromStore()
       pendingAlert = nil
       closeTabDiscardingBuffer(id: id)

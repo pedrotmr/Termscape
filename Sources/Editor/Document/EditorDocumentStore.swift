@@ -144,7 +144,7 @@ final class EditorDocumentStore {
   }
 
   /// Persists `workingText` when safe. Throws `EditorDocumentSaveError.conflict` when disk diverged while dirty.
-  func saveDocument(id: UUID, fileManager: FileManager = .default) throws -> EditorDocumentSaveOutcome {
+  func saveDocument(id: UUID, fileManager: FileManager = .default) async throws -> EditorDocumentSaveOutcome {
     guard var b = buffersById[id] else { return .noChanges }
 
     let attrs = try? fileManager.attributesOfItem(atPath: b.fileURL.path)
@@ -180,34 +180,55 @@ final class EditorDocumentStore {
       return .noChanges
     }
 
+    let textToWrite = b.workingText
+    let url = b.fileURL
     do {
-      try b.workingText.write(to: b.fileURL, atomically: true, encoding: .utf8)
+      try await Self.writeUTF8AtomicallyOffMainThread(textToWrite, to: url)
     } catch {
-      throw EditorDocumentSaveError.writeFailed(b.fileURL, underlying: error.localizedDescription)
+      throw EditorDocumentSaveError.writeFailed(url, underlying: error.localizedDescription)
     }
 
-    let afterAttrs = try? fileManager.attributesOfItem(atPath: b.fileURL.path)
-    b.lastSyncedText = b.workingText
-    b.diskModificationDate = afterAttrs?[.modificationDate] as? Date
-    b.diskFileSize = (afterAttrs?[.size] as? NSNumber)?.int64Value ?? b.diskFileSize
-    buffersById[id] = b
+    let afterAttrs = try? fileManager.attributesOfItem(atPath: url.path)
+    guard var updated = buffersById[id] else { return .noChanges }
+    let fallbackSize = Self.utf8DiskByteCount(for: textToWrite)
+    updated.lastSyncedText = textToWrite
+    updated.diskModificationDate = afterAttrs?[.modificationDate] as? Date
+    updated.diskFileSize = (afterAttrs?[.size] as? NSNumber)?.int64Value ?? fallbackSize
+    buffersById[id] = updated
     return .wrote
   }
 
   /// Writes the working copy even when disk content diverged from `lastSyncedText`. Use only after explicit user opt-in.
-  func saveDocumentForcedOverwrite(id: UUID, fileManager: FileManager = .default) throws -> EditorDocumentSaveOutcome {
-    guard var b = buffersById[id] else { return .noChanges }
+  func saveDocumentForcedOverwrite(id: UUID, fileManager: FileManager = .default) async throws
+    -> EditorDocumentSaveOutcome
+  {
+    guard let b = buffersById[id] else { return .noChanges }
+    let textToWrite = b.workingText
+    let url = b.fileURL
     do {
-      try b.workingText.write(to: b.fileURL, atomically: true, encoding: .utf8)
+      try await Self.writeUTF8AtomicallyOffMainThread(textToWrite, to: url)
     } catch {
-      throw EditorDocumentSaveError.writeFailed(b.fileURL, underlying: error.localizedDescription)
+      throw EditorDocumentSaveError.writeFailed(url, underlying: error.localizedDescription)
     }
-    let afterAttrs = try? fileManager.attributesOfItem(atPath: b.fileURL.path)
-    b.lastSyncedText = b.workingText
-    b.diskModificationDate = afterAttrs?[.modificationDate] as? Date
-    b.diskFileSize = (afterAttrs?[.size] as? NSNumber)?.int64Value ?? b.diskFileSize
-    buffersById[id] = b
+    let afterAttrs = try? fileManager.attributesOfItem(atPath: url.path)
+    guard var updated = buffersById[id] else { return .noChanges }
+    let fallbackSize = Self.utf8DiskByteCount(for: textToWrite)
+    updated.lastSyncedText = textToWrite
+    updated.diskModificationDate = afterAttrs?[.modificationDate] as? Date
+    updated.diskFileSize = (afterAttrs?[.size] as? NSNumber)?.int64Value ?? fallbackSize
+    buffersById[id] = updated
     return .wrote
+  }
+
+  /// Byte length of `text` as UTF-8 on disk (matches what `String.write(..., encoding: .utf8)` writes).
+  private static func utf8DiskByteCount(for text: String) -> Int64 {
+    Int64(text.utf8.count)
+  }
+
+  private static func writeUTF8AtomicallyOffMainThread(_ text: String, to url: URL) async throws {
+    try await Task.detached {
+      try text.write(to: url, atomically: true, encoding: .utf8)
+    }.value
   }
 
   private static func readUTF8ForOpen(
