@@ -176,7 +176,7 @@ final class EditorSourceTextView: NSTextView {
     }
 
     let insertion = selectedRange().location
-    let lineAnchor = min(max(0, insertion), max(0, len - 1))
+    let lineAnchor = min(max(0, insertion), len)
     let ns = ts.string as NSString
     let lineRange = ns.lineRange(for: NSRange(location: lineAnchor, length: 0))
     let lineFill = NSColor.white.withAlphaComponent(0.055)
@@ -251,7 +251,7 @@ final class EditorLineNumberRulerView: NSRulerView {
     let insertion = tv.selectedRange().location
     let activeLogicalLine: Int = {
       guard docNSString.length > 0 else { return 1 }
-      let anchor = min(max(0, insertion), max(0, docNSString.length - 1))
+      let anchor = min(max(0, insertion), docNSString.length)
       return docNSString.logicalLineNumber(forUTF16Offset: anchor)
     }()
 

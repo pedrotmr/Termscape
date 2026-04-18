@@ -82,6 +82,8 @@ struct EditorDocumentBuffer: Identifiable, Equatable {
 final class EditorDocumentStore {
   private var buffersById: [UUID: EditorDocumentBuffer] = [:]
   private var orderedIds: [UUID] = []
+  /// Chains saves per buffer so concurrent `saveDocument` / `saveDocumentForcedOverwrite` calls cannot overlap detached writes.
+  private var saveSerializationTail: [UUID: Task<EditorDocumentSaveOutcome, Error>] = [:]
 
   var buffersInTabOrder: [EditorDocumentBuffer] {
     orderedIds.compactMap { buffersById[$0] }
@@ -95,7 +97,10 @@ final class EditorDocumentStore {
   func openDocument(at fileURL: URL, fileManager: FileManager = .default) throws -> UUID {
     let url = fileURL.standardizedFileURL
     var isDir: ObjCBool = false
-    guard fileManager.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue else {
+    guard fileManager.fileExists(atPath: url.path, isDirectory: &isDir) else {
+      throw EditorDocumentOpenError.fileNotFound(url)
+    }
+    guard !isDir.boolValue else {
       throw EditorDocumentOpenError.notAFile(url)
     }
     if let existing = orderedIds.compactMap({ buffersById[$0] }).first(where: {
@@ -130,6 +135,7 @@ final class EditorDocumentStore {
   func closeBuffer(id: UUID) {
     buffersById[id] = nil
     orderedIds.removeAll { $0 == id }
+    saveSerializationTail[id] = nil
   }
 
   /// Re-reads disk into the working buffer, discarding unsaved edits.
@@ -145,6 +151,12 @@ final class EditorDocumentStore {
 
   /// Persists `workingText` when safe. Throws `EditorDocumentSaveError.conflict` when disk diverged while dirty.
   func saveDocument(id: UUID, fileManager: FileManager = .default) async throws -> EditorDocumentSaveOutcome {
+    try await runSaveSerially(for: id) {
+      try await self.saveDocumentUnsynchronized(id: id, fileManager: fileManager)
+    }
+  }
+
+  private func saveDocumentUnsynchronized(id: UUID, fileManager: FileManager) async throws -> EditorDocumentSaveOutcome {
     guard var b = buffersById[id] else { return .noChanges }
 
     let attrs = try? fileManager.attributesOfItem(atPath: b.fileURL.path)
@@ -202,6 +214,14 @@ final class EditorDocumentStore {
   func saveDocumentForcedOverwrite(id: UUID, fileManager: FileManager = .default) async throws
     -> EditorDocumentSaveOutcome
   {
+    try await runSaveSerially(for: id) {
+      try await self.saveDocumentForcedOverwriteUnsynchronized(id: id, fileManager: fileManager)
+    }
+  }
+
+  private func saveDocumentForcedOverwriteUnsynchronized(id: UUID, fileManager: FileManager) async throws
+    -> EditorDocumentSaveOutcome
+  {
     guard let b = buffersById[id] else { return .noChanges }
     let textToWrite = b.workingText
     let url = b.fileURL
@@ -218,6 +238,21 @@ final class EditorDocumentStore {
     updated.diskFileSize = (afterAttrs?[.size] as? NSNumber)?.int64Value ?? fallbackSize
     buffersById[id] = updated
     return .wrote
+  }
+
+  private func runSaveSerially(
+    for bufferId: UUID,
+    _ body: @escaping @MainActor () async throws -> EditorDocumentSaveOutcome
+  ) async throws -> EditorDocumentSaveOutcome {
+    let predecessor = saveSerializationTail[bufferId]
+    let next = Task { @MainActor in
+      if let predecessor {
+        _ = try? await predecessor.value
+      }
+      return try await body()
+    }
+    saveSerializationTail[bufferId] = next
+    return try await next.value
   }
 
   /// Byte length of `text` as UTF-8 on disk (matches what `String.write(..., encoding: .utf8)` writes).

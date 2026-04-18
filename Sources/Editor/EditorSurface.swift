@@ -1011,6 +1011,7 @@ struct EditorSurfaceRootView: View {
           isEditable: true,
           onSave: { Task { await model.saveSelectedDocument() } }
         )
+        .id(id)
         .clipShape(Rectangle())
       } else {
         emptyEditorPlaceholder
