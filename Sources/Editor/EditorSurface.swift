@@ -2,6 +2,22 @@ import AppKit
 import Foundation
 import SwiftUI
 
+@MainActor
+private enum EditorPaneAlert: Identifiable, Equatable {
+  case closeDirty(documentId: UUID, title: String)
+  /// `closeAfterResolve`: true when the user was closing a dirty tab and save hit a disk conflict.
+  case saveConflict(documentId: UUID, diskPreview: String, closeAfterResolve: Bool)
+  case userMessage(title: String, detail: String)
+
+  var id: String {
+    switch self {
+    case .closeDirty(let id, _): return "close-\(id.uuidString)"
+    case .saveConflict(let id, _, let close): return "conflict-\(id.uuidString)-\(close)"
+    case .userMessage(let title, let detail): return "msg-\(title)-\(detail.hashValue)"
+    }
+  }
+}
+
 /// Drives `EditorSurfaceRootView` without replacing `NSHostingView.rootView`, so SwiftUI `@State`
 /// (tabs, expansion, hover) stays stable across editor state and file-tree refreshes.
 @MainActor
@@ -15,6 +31,12 @@ private final class EditorSurfaceViewModel: ObservableObject {
   /// Bumped after each successful `scheduleLoadChildren` merge so SwiftUI refreshes rows without remounting the tree.
   @Published var fileTreeContentRevision: UInt = 0
   @Published var sidebarSearchText: String = ""
+
+  let documentStore = EditorDocumentStore()
+  @Published var documentTabs: [EditorDocumentBuffer] = []
+  @Published var selectedDocumentId: UUID?
+  @Published var pendingAlert: EditorPaneAlert?
+  private var didSeedInitialDocuments = false
 
   var onFocus: () -> Void = {}
   var onContextMenu: (NSEvent) -> Void = { _ in }
@@ -83,7 +105,7 @@ final class EditorSurface {
 
   private func setPaneState(_ newState: State) {
     viewModel.editorState = newState
-    viewModel.fileTreeIndex = fileTreeIndex
+    syncFileTreeToViewModel()
   }
 
   private func syncFileTreeToViewModel() {
@@ -161,8 +183,6 @@ private enum EditorIDEChrome {
   static let searchFieldFill = Color.white.opacity(0.055)
   static let searchFieldStroke = Color.white.opacity(0.10)
   static let searchCornerRadius: CGFloat = 6
-  static let lineNumber = Color.white.opacity(0.28)
-  static let lineHighlight = Color.white.opacity(0.04)
   /// Disclosure triangles beside folders (fixed-width column avoids layout shift).
   static let disclosureTint = Color.white.opacity(0.45)
   static let treeDimmed = Color.white.opacity(0.32)
@@ -185,12 +205,6 @@ private enum EditorIDEChrome {
   static let fileSidebarDefaultWidth: CGFloat = 260
   static let fileSidebarMaxWidth: CGFloat = 560
   static let fileSidebarDividerHover = Color.white.opacity(0.26)
-}
-
-private struct EditorDocumentTab: Identifiable, Equatable {
-  let id: UUID
-  var title: String
-  var fullPath: String
 }
 
 private struct SidebarSearchTreeNode: Identifiable, Hashable {
@@ -372,8 +386,6 @@ struct EditorSurfaceRootView: View {
   @State private var expandedPaths: Set<String> = []
   @State private var didSeedRootExpansion = false
   @State private var hoveredPath: String?
-  @State private var documentTabs: [EditorDocumentTab] = []
-  @State private var selectedTabId: UUID?
   @State private var sidebarScrollTarget: String?
   @State private var hoveredBreadcrumbId: String?
   @State private var hoveredDocumentTabId: UUID?
@@ -394,13 +406,24 @@ struct EditorSurfaceRootView: View {
     model.standardizedRootPath
   }
 
-  private var selectedTab: EditorDocumentTab? {
-    guard let selectedTabId else { return documentTabs.first }
-    return documentTabs.first { $0.id == selectedTabId }
+  private var selectedDocument: EditorDocumentBuffer? {
+    if let id = model.selectedDocumentId {
+      return model.documentTabs.first { $0.id == id }
+    }
+    return model.documentTabs.first
   }
 
   private var breadcrumbRefreshToken: String {
-    "\(standardizedRoot)|\(selectedTab?.fullPath ?? standardizedRoot)"
+    "\(standardizedRoot)|\(selectedDocument?.standardizedPath ?? standardizedRoot)"
+  }
+
+  private var editorAlertTitle: String {
+    switch model.pendingAlert {
+    case .closeDirty: return "Save changes?"
+    case .saveConflict: return "File changed on disk"
+    case .userMessage(let title, _): return title
+    case .none: return ""
+    }
   }
 
   private var sidebarSearchQuery: String {
@@ -455,10 +478,7 @@ struct EditorSurfaceRootView: View {
     }
     .onChange(of: model.editorState) { _, new in
       guard new == .ready else { return }
-      if documentTabs.isEmpty {
-        documentTabs = Self.defaultDocumentTabs(rootPath: standardizedRoot)
-        selectedTabId = documentTabs.first?.id
-      }
+      model.seedInitialDocumentsIfNeeded()
       scheduleRootTreeLoadIfReady()
       scheduleSidebarSearchIfNeeded()
     }
@@ -490,6 +510,40 @@ struct EditorSurfaceRootView: View {
       sidebarSearchTask?.cancel()
       sidebarSearchTask = nil
       sidebarSearchInFlight = false
+    }
+    .alert(
+      Text(editorAlertTitle),
+      isPresented: Binding(
+        get: { model.pendingAlert != nil },
+        set: { if !$0 { model.cancelPendingAlert() } }
+      ),
+      presenting: model.pendingAlert
+    ) { alert in
+      switch alert {
+      case .closeDirty(let id, _):
+        Button("Save") { model.saveAndCloseTab(id: id) }
+        Button("Don’t Save", role: .destructive) { model.discardAndCloseTab(id: id) }
+        Button("Cancel", role: .cancel) { model.cancelPendingAlert() }
+      case .saveConflict(let id, _, let closeAfter):
+        Button("Reload from Disk", role: .destructive) {
+          model.resolveConflictReloadFromDisk(documentId: id, closeAfterResolve: closeAfter)
+        }
+        Button("Overwrite") {
+          model.resolveConflictOverwrite(documentId: id, closeAfterResolve: closeAfter)
+        }
+        Button("Cancel", role: .cancel) { model.cancelPendingAlert() }
+      case .userMessage:
+        Button("OK", role: .cancel) { model.cancelPendingAlert() }
+      }
+    } message: { alert in
+      switch alert {
+      case .closeDirty(_, let title):
+        Text("You have unsaved changes in “\(title)”.")
+      case .saveConflict(_, let preview, _):
+        Text("Disk contents:\n\n\(preview)")
+      case .userMessage(_, let detail):
+        Text(detail)
+      }
     }
   }
 
@@ -768,7 +822,7 @@ struct EditorSurfaceRootView: View {
       Rectangle()
         .fill(EditorIDEChrome.hairline)
         .frame(height: 1)
-      editorBodyStub
+      editorBody
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
   }
@@ -777,7 +831,7 @@ struct EditorSurfaceRootView: View {
     HStack(spacing: 0) {
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 3) {
-          ForEach(documentTabs) { tab in
+          ForEach(model.documentTabs) { tab in
             tabChip(tab)
           }
         }
@@ -785,7 +839,11 @@ struct EditorSurfaceRootView: View {
         .padding(.vertical, 2)
       }
       HStack(spacing: 12) {
-        Image(systemName: "arrow.up.document")
+        Button(action: { model.saveSelectedDocument() }) {
+          Image(systemName: "arrow.up.document")
+        }
+        .buttonStyle(.plain)
+        .help("Save (⌘S)")
         Image(systemName: "chevron.left.forwardslash.chevron.right")
         Image(systemName: "rectangle.split.2x1")
       }
@@ -798,8 +856,8 @@ struct EditorSurfaceRootView: View {
     .background(EditorIDEChrome.tabInactive.opacity(0.35))
   }
 
-  private func tabChip(_ tab: EditorDocumentTab) -> some View {
-    let isSelected = tab.id == (selectedTabId ?? documentTabs.first?.id)
+  private func tabChip(_ tab: EditorDocumentBuffer) -> some View {
+    let isSelected = tab.id == (model.selectedDocumentId ?? model.documentTabs.first?.id)
     let isHovered = hoveredDocumentTabId == tab.id
     let labelColor = tabChipLabelColor(isSelected: isSelected, isHovered: isHovered)
     let closeColor =
@@ -814,8 +872,14 @@ struct EditorSurfaceRootView: View {
         .font(.system(size: 11, weight: isSelected ? .medium : .regular, design: .monospaced))
         .foregroundStyle(labelColor)
         .lineLimit(1)
+      if tab.isDirty {
+        Text("●")
+          .font(.system(size: 8, weight: .bold))
+          .foregroundStyle(EditorIDEChrome.muted.opacity(0.9))
+          .accessibilityLabel("Unsaved changes")
+      }
       Button {
-        closeTab(tab.id)
+        model.requestCloseTab(id: tab.id)
       } label: {
         Image(systemName: "xmark")
           .font(.system(size: 9, weight: .semibold))
@@ -823,9 +887,6 @@ struct EditorSurfaceRootView: View {
           .padding(2)
       }
       .buttonStyle(.plain)
-      .opacity(documentTabs.count > 1 ? 1 : 0.35)
-      .disabled(documentTabs.count <= 1)
-      .allowsHitTesting(documentTabs.count > 1)
     }
     .padding(.horizontal, 8)
     .padding(.vertical, 4)
@@ -846,7 +907,7 @@ struct EditorSurfaceRootView: View {
       }
     }
     .onTapGesture {
-      selectedTabId = tab.id
+      model.selectDocumentTab(id: tab.id)
     }
   }
 
@@ -942,42 +1003,33 @@ struct EditorSurfaceRootView: View {
     return hovered ? EditorIDEChrome.breadcrumbHoverMuted : EditorIDEChrome.muted
   }
 
-  private var editorBodyStub: some View {
-    HStack(alignment: .top, spacing: 0) {
-      VStack(alignment: .trailing, spacing: 0) {
-        ForEach(1..<8, id: \.self) { line in
-          Text("\(line)")
-            .font(.system(size: 11, design: .monospaced))
-            .foregroundStyle(EditorIDEChrome.lineNumber)
-            .frame(width: 40, alignment: .trailing)
-            .padding(.vertical, 1)
-            .background(line == 1 ? EditorIDEChrome.lineHighlight : Color.clear)
-        }
-        Spacer(minLength: 0)
-      }
-      .padding(.top, 10)
-      .frame(width: 44)
-      .background(EditorIDEChrome.canvas.opacity(0.55))
-
-      ScrollView {
-        VStack(alignment: .leading, spacing: 0) {
-          Text("// \(selectedTab?.title ?? "Untitled")")
-            .font(.system(size: 12, design: .monospaced))
-            .foregroundStyle(Color(red: 0.45, green: 0.72, blue: 0.48))
-            .padding(.top, 10)
-            .padding(.bottom, 6)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(EditorIDEChrome.lineHighlight)
-          Text("Select a file in the sidebar or a breadcrumb segment to expand folders here.")
-            .font(.system(size: 12, design: .monospaced))
-            .foregroundStyle(EditorIDEChrome.muted)
-            .padding(.top, 4)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
+  private var editorBody: some View {
+    Group {
+      if let id = model.selectedDocumentId, model.documentStore.buffer(id: id) != nil {
+        EditorCodeTextView(
+          text: model.workingTextBinding(for: id),
+          isEditable: true,
+          onSave: { model.saveSelectedDocument() }
+        )
+        .clipShape(Rectangle())
+      } else {
+        emptyEditorPlaceholder
       }
     }
     .background(EditorIDEChrome.canvas)
+  }
+
+  private var emptyEditorPlaceholder: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("No file open")
+        .font(.system(size: 11, weight: .semibold))
+        .foregroundStyle(EditorIDEChrome.text)
+      Text("Choose a file in the sidebar to start editing.")
+        .font(.system(size: 11, design: .monospaced))
+        .foregroundStyle(EditorIDEChrome.muted)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .padding(20)
   }
 
   // MARK: File tree rows
@@ -1042,8 +1094,8 @@ struct EditorSurfaceRootView: View {
     } else {
       let nodePath = URL(fileURLWithPath: node.path).standardizedFileURL.path
       let isSelected =
-        selectedTab.map {
-          URL(fileURLWithPath: $0.fullPath).standardizedFileURL.path == nodePath
+        selectedDocument.map {
+          $0.standardizedPath == nodePath
         } ?? false
       let isHovered = hoveredPath == node.path
       let isDotfile = node.name.hasPrefix(".")
@@ -1345,44 +1397,15 @@ struct EditorSurfaceRootView: View {
   }
 
   private func rebuildBreadcrumbItems() {
-    let path = selectedTab?.fullPath ?? standardizedRoot
+    let path = selectedDocument?.standardizedPath ?? standardizedRoot
     breadcrumbItems = computeBreadcrumbItems(forFilePath: path)
   }
 
   // MARK: Tabs & breadcrumbs behavior
 
-  private static func defaultDocumentTabs(rootPath: String) -> [EditorDocumentTab] {
-    let fm = FileManager.default
-    let nsRoot = rootPath as NSString
-    var tabs: [EditorDocumentTab] = []
-    for (fileName, title) in [(".gitignore", ".gitignore"), (".prettierignore", ".prettierignore")]
-    {
-      let fullPath = nsRoot.appendingPathComponent(fileName)
-      guard fm.fileExists(atPath: fullPath) else { continue }
-      tabs.append(EditorDocumentTab(id: UUID(), title: title, fullPath: fullPath))
-    }
-    return tabs
-  }
-
-  private func closeTab(_ id: UUID) {
-    guard documentTabs.count > 1 else { return }
-    documentTabs.removeAll { $0.id == id }
-    if selectedTabId == id {
-      selectedTabId = documentTabs.first?.id
-    }
-  }
-
   private func selectOrOpenFileTab(path: String, title: String) {
+    model.openFile(path: path, title: title)
     let standardized = URL(fileURLWithPath: path).standardizedFileURL.path
-    if let existing = documentTabs.firstIndex(where: {
-      URL(fileURLWithPath: $0.fullPath).standardizedFileURL.path == standardized
-    }) {
-      selectedTabId = documentTabs[existing].id
-    } else {
-      let tab = EditorDocumentTab(id: UUID(), title: title, fullPath: standardized)
-      documentTabs.append(tab)
-      selectedTabId = tab.id
-    }
     let parentDirectory = (standardized as NSString).deletingLastPathComponent
     revealDirectoryChain(
       endingAt: parentDirectory,
@@ -1512,6 +1535,166 @@ struct EditorSurfaceRootView: View {
           .buttonStyle(.bordered)
       }
       .padding(.top, 2)
+    }
+  }
+}
+
+@MainActor
+extension EditorSurfaceViewModel {
+  fileprivate func syncTabsFromStore() {
+    documentTabs = documentStore.buffersInTabOrder
+  }
+
+  fileprivate func seedInitialDocumentsIfNeeded() {
+    guard !didSeedInitialDocuments else { return }
+    didSeedInitialDocuments = true
+    let fm = FileManager.default
+    let nsRoot = standardizedRootPath as NSString
+    for fileName in [".gitignore", ".prettierignore"] {
+      let fullPath = nsRoot.appendingPathComponent(fileName)
+      guard fm.fileExists(atPath: fullPath) else { continue }
+      _ = try? documentStore.openDocument(at: URL(fileURLWithPath: fullPath))
+    }
+    syncTabsFromStore()
+    selectedDocumentId = documentTabs.first?.id
+  }
+
+  fileprivate func openFile(path: String, title: String) {
+    let standardized = URL(fileURLWithPath: path).standardizedFileURL.path
+    do {
+      let id = try documentStore.openDocument(at: URL(fileURLWithPath: standardized))
+      syncTabsFromStore()
+      selectedDocumentId = id
+    } catch {
+      let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+      pendingAlert = .userMessage(title: "Could not open \(title)", detail: msg)
+    }
+  }
+
+  fileprivate func selectDocumentTab(id: UUID) {
+    selectedDocumentId = id
+  }
+
+  fileprivate func workingTextBinding(for documentId: UUID) -> Binding<String> {
+    Binding(
+      get: { [weak self] in
+        self?.documentStore.buffer(id: documentId)?.workingText ?? ""
+      },
+      set: { [weak self] newValue in
+        self?.updateDocumentText(id: documentId, text: newValue)
+      }
+    )
+  }
+
+  fileprivate func updateDocumentText(id: UUID, text: String) {
+    documentStore.updateWorkingText(id: id, text: text)
+    syncTabsFromStore()
+  }
+
+  fileprivate func saveSelectedDocument() {
+    guard let id = selectedDocumentId else { return }
+    saveDocument(id: id, conflictClosesTab: false)
+  }
+
+  fileprivate func saveDocument(id: UUID, conflictClosesTab: Bool) {
+    do {
+      _ = try documentStore.saveDocument(id: id)
+      syncTabsFromStore()
+    } catch let save as EditorDocumentSaveError {
+      switch save {
+      case .conflict(let c):
+        let preview =
+          c.diskText.count > 1200
+          ? String(c.diskText.prefix(1200)) + "…"
+          : c.diskText
+        pendingAlert = .saveConflict(
+          documentId: id,
+          diskPreview: preview,
+          closeAfterResolve: conflictClosesTab
+        )
+      default:
+        pendingAlert = .userMessage(title: "Save failed", detail: save.localizedDescription)
+      }
+    } catch {
+      pendingAlert = .userMessage(title: "Save failed", detail: error.localizedDescription)
+    }
+  }
+
+  fileprivate func resolveConflictReloadFromDisk(documentId: UUID, closeAfterResolve: Bool) {
+    do {
+      try documentStore.reloadFromDisk(id: documentId)
+      syncTabsFromStore()
+      if closeAfterResolve {
+        closeTabDiscardingBuffer(id: documentId)
+      }
+      pendingAlert = nil
+    } catch {
+      pendingAlert = .userMessage(title: "Reload failed", detail: error.localizedDescription)
+    }
+  }
+
+  fileprivate func resolveConflictOverwrite(documentId: UUID, closeAfterResolve: Bool) {
+    do {
+      _ = try documentStore.saveDocumentForcedOverwrite(id: documentId)
+      syncTabsFromStore()
+      if closeAfterResolve {
+        closeTabDiscardingBuffer(id: documentId)
+      }
+      pendingAlert = nil
+    } catch {
+      pendingAlert = .userMessage(title: "Overwrite failed", detail: error.localizedDescription)
+    }
+  }
+
+  fileprivate func requestCloseTab(id: UUID) {
+    guard let buffer = documentStore.buffer(id: id) else { return }
+    if buffer.isDirty {
+      pendingAlert = .closeDirty(documentId: id, title: buffer.title)
+      return
+    }
+    closeTabDiscardingBuffer(id: id)
+  }
+
+  fileprivate func saveAndCloseTab(id: UUID) {
+    do {
+      _ = try documentStore.saveDocument(id: id)
+      syncTabsFromStore()
+      pendingAlert = nil
+      closeTabDiscardingBuffer(id: id)
+    } catch let save as EditorDocumentSaveError {
+      switch save {
+      case .conflict(let c):
+        let preview =
+          c.diskText.count > 1200
+          ? String(c.diskText.prefix(1200)) + "…"
+          : c.diskText
+        pendingAlert = .saveConflict(
+          documentId: id,
+          diskPreview: preview,
+          closeAfterResolve: true
+        )
+      default:
+        pendingAlert = .userMessage(title: "Save failed", detail: save.localizedDescription)
+      }
+    } catch {
+      pendingAlert = .userMessage(title: "Save failed", detail: error.localizedDescription)
+    }
+  }
+
+  fileprivate func discardAndCloseTab(id: UUID) {
+    closeTabDiscardingBuffer(id: id)
+    pendingAlert = nil
+  }
+
+  fileprivate func cancelPendingAlert() {
+    pendingAlert = nil
+  }
+
+  private func closeTabDiscardingBuffer(id: UUID) {
+    documentStore.closeBuffer(id: id)
+    syncTabsFromStore()
+    if selectedDocumentId == id {
+      selectedDocumentId = documentTabs.first?.id
     }
   }
 }
