@@ -1,0 +1,7 @@
+# Default SwiftLint rules are too strict for this WIP codebase. Start from a
+# small high-signal set; tighten over time (or add rules incrementally).
+only_rules:
+  - duplicate_imports
+
+excluded:
+  - vendor
