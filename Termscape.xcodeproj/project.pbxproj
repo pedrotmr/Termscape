@@ -49,6 +49,7 @@
 		EB7CADE425DAF9E7F92DB400 /* PaneDividerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48594151CBFD24181532EB5E /* PaneDividerView.swift */; };
 		ECE95BA7DB8C782A576A96BA /* EditorRootContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4C047FCDA4785B60AF2CF8 /* EditorRootContract.swift */; };
 		F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5A15956DECE42BC68D182 /* Extensions.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* HorizontalResizeDivider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D7 /* HorizontalResizeDivider.swift */; };
 		F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */; };
 /* End PBXBuildFile section */
 
@@ -92,6 +93,7 @@
 		A978683BBD9E259E5D3F7546 /* TerminalSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurface.swift; sourceTree = "<group>"; };
 		B30FED21AA1C9FB54E59D51A /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = GhosttyKit.xcframework; path = Resources/GhosttyKit.xcframework; sourceTree = "<group>"; };
 		B3D5A15956DECE42BC68D182 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C6D7 /* HorizontalResizeDivider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalResizeDivider.swift; sourceTree = "<group>"; };
 		BDB19A51E82EF41BDEBE2E6E /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		C332B2614A4DA5CF398B0077 /* TermscapeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermscapeApp.swift; sourceTree = "<group>"; };
 		CBED15E036B70096FCF5B1A8 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
@@ -197,6 +199,7 @@
 			children = (
 				1874CAFE46683ABFBF03FA05 /* AppTheme.swift */,
 				B3D5A15956DECE42BC68D182 /* Extensions.swift */,
+				B2C3D4E5F60718293A4B5C6D7 /* HorizontalResizeDivider.swift */,
 				74D7D60369E322A18AEA2A1F /* ThemeManager.swift */,
 			);
 			path = Shared;
@@ -451,6 +454,7 @@
 				9F0E2BFDD3710439BDD4F582 /* EditorSurface.swift in Sources */,
 				F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */,
 				E08DA3AA2BBF2D6956659B52 /* FileTreeIndex.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* HorizontalResizeDivider.swift in Sources */,
 				8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */,
 				7D6081722E151B340D1D4103 /* GhosttyNSView.swift in Sources */,
 				14274E56A429DD44CEC3B341 /* GhosttySurfaceScrollView.swift in Sources */,

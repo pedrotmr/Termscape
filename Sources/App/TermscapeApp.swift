@@ -171,26 +171,18 @@ struct ContentView: View {
 private struct SidebarDivider: View {
   @Environment(ThemeManager.self) var theme
   @Binding var sidebarWidth: CGFloat
-  @State private var isHovered = false
 
   private let minWidth: CGFloat = 180
-  private let maxWidth: CGFloat = 380
+  private let maxWidth: CGFloat = 520
 
   var body: some View {
-    Rectangle()
-      .fill(isHovered ? theme.current.accent.opacity(0.5) : theme.current.border)
-      .frame(width: 1)
-      .contentShape(Rectangle().inset(by: -4))
-      .onHover { isHovered = $0 }
-      .animation(.easeInOut(duration: 0.15), value: isHovered)
-      .gesture(
-        DragGesture(minimumDistance: 1)
-          .onChanged { value in
-            let proposed = sidebarWidth + value.translation.width
-            sidebarWidth = proposed.clamped(to: minWidth...maxWidth)
-          }
-      )
-      .cursor(.resizeLeftRight)
+    HorizontalResizeDivider(
+      width: $sidebarWidth,
+      minWidth: minWidth,
+      maxWidth: maxWidth,
+      idleColor: theme.current.border,
+      hoverColor: theme.current.accent.opacity(0.5)
+    )
   }
 }
 
