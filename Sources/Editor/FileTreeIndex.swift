@@ -15,7 +15,6 @@ private struct FileTreeSearchCatalogEntry: Sendable {
   let relativePath: String
   let relativeParentPath: String
   let hasHiddenPathSegment: Bool
-  let insideNodeModules: Bool
 }
 
 private enum FileTreeDirectoryScanner {
@@ -85,7 +84,6 @@ private enum FileTreeSearchScanner {
       let relativeEntryPath = relativePath(fromRoot: rootPath, absolutePath: path)
       let parentPath = (path as NSString).deletingLastPathComponent
       let relativeParentPath = relativePath(fromRoot: rootPath, absolutePath: parentPath)
-      let flags = pathFlags(relativePath: relativeEntryPath)
 
       entries.append(
         FileTreeSearchCatalogEntry(
@@ -95,8 +93,7 @@ private enum FileTreeSearchScanner {
           isDirectory: isDirectory == true,
           relativePath: relativeEntryPath,
           relativeParentPath: relativeParentPath,
-          hasHiddenPathSegment: flags.hasHiddenPathSegment,
-          insideNodeModules: flags.insideNodeModules
+          hasHiddenPathSegment: hasHiddenPathSegment(in: relativeEntryPath)
         )
       )
     }
@@ -116,22 +113,14 @@ private enum FileTreeSearchScanner {
     return rel
   }
 
-  nonisolated private static func pathFlags(
-    relativePath: String
-  ) -> (hasHiddenPathSegment: Bool, insideNodeModules: Bool) {
-    guard !relativePath.isEmpty else { return (false, false) }
-    var hasHiddenSegment = false
-    var insideNodeModules = false
+  nonisolated private static func hasHiddenPathSegment(in relativePath: String) -> Bool {
+    guard !relativePath.isEmpty else { return false }
     for component in relativePath.split(separator: "/", omittingEmptySubsequences: true) {
       if component.hasPrefix(".") && component != "." && component != ".." {
-        hasHiddenSegment = true
+        return true
       }
-      if String(component).localizedCaseInsensitiveCompare("node_modules") == .orderedSame {
-        insideNodeModules = true
-      }
-      if hasHiddenSegment && insideNodeModules { break }
     }
-    return (hasHiddenSegment, insideNodeModules)
+    return false
   }
 
   nonisolated static func gitIgnoredRelativePaths(
@@ -243,7 +232,6 @@ final class FileTreeIndex {
 
   struct SearchOptions: Hashable, Sendable {
     var includeHiddenEntries: Bool = false
-    var includeNodeModules: Bool = false
     var includeGitIgnoredEntries: Bool = false
   }
 
@@ -499,7 +487,6 @@ final class FileTreeIndex {
     for entry in entries {
       if Task.isCancelled { break }
       if !options.includeHiddenEntries && entry.hasHiddenPathSegment { continue }
-      if !options.includeNodeModules && entry.insideNodeModules { continue }
       if !entry.normalizedName.contains(needle) { continue }
       matches.append(entry)
     }
@@ -560,11 +547,9 @@ final class FileTreeIndex {
 
       let lhsDemoted =
         (options.includeHiddenEntries && lhs.hasHiddenPathSegment)
-        || (options.includeNodeModules && lhs.insideNodeModules)
         || (options.includeGitIgnoredEntries && ignoredPaths.contains(lhs.relativePath))
       let rhsDemoted =
         (options.includeHiddenEntries && rhs.hasHiddenPathSegment)
-        || (options.includeNodeModules && rhs.insideNodeModules)
         || (options.includeGitIgnoredEntries && ignoredPaths.contains(rhs.relativePath))
       if lhsDemoted != rhsDemoted { return !lhsDemoted && rhsDemoted }
 

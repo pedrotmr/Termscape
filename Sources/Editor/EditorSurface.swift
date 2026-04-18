@@ -275,11 +275,9 @@ struct EditorSurfaceRootView: View {
   }
 
   private var sidebarSearchOptions: FileTreeIndex.SearchOptions {
-    let includeGitignoredScope = sidebarSearchIncludeGitIgnoredEntries
-    return FileTreeIndex.SearchOptions(
+    FileTreeIndex.SearchOptions(
       includeHiddenEntries: sidebarSearchIncludeHiddenEntries,
-      includeNodeModules: includeGitignoredScope,
-      includeGitIgnoredEntries: includeGitignoredScope
+      includeGitIgnoredEntries: sidebarSearchIncludeGitIgnoredEntries
     )
   }
 

@@ -153,7 +153,7 @@ final class FileTreeIndexTests: XCTestCase {
     XCTAssertTrue(results.isEmpty)
   }
 
-  func testSearchDefaultsExcludeHiddenAndNodeModules() async throws {
+  func testSearchDefaultsExcludeHiddenPaths() async throws {
     let root = try makeTempDirectory()
     let hidden = root.appendingPathComponent(".env")
     let nodeModules = root.appendingPathComponent("node_modules", isDirectory: true)
@@ -168,10 +168,37 @@ final class FileTreeIndexTests: XCTestCase {
     let nodeModuleResults = await index.search(matching: "module-entry", limit: 20)
 
     XCTAssertFalse(hiddenResults.contains { $0.name == ".env" })
-    XCTAssertFalse(nodeModuleResults.contains { $0.name == "module-entry.js" })
+    XCTAssertTrue(
+      nodeModuleResults.contains { $0.name == "module-entry.js" },
+      "Paths under node_modules follow gitignore only; without a repo rule they are visible"
+    )
   }
 
-  func testSearchCanIncludeHiddenAndNodeModules() async throws {
+  func testSearchExcludesGitignoredNodeModulesByDefault() async throws {
+    let root = try makeTempDirectory()
+    try runGit(arguments: ["init", "-q"], at: root)
+
+    let nodeModules = root.appendingPathComponent("node_modules", isDirectory: true)
+    let nested = nodeModules.appendingPathComponent("pkg", isDirectory: true)
+    let moduleFile = nested.appendingPathComponent("module-entry.js")
+    let gitignore = root.appendingPathComponent(".gitignore")
+    try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+    try Data("export default 1".utf8).write(to: moduleFile)
+    try Data("node_modules/\n".utf8).write(to: gitignore)
+
+    let index = FileTreeIndex(rootPath: root.path)
+    let excluded = await index.search(matching: "module-entry", limit: 20)
+    XCTAssertFalse(excluded.contains { $0.name == "module-entry.js" })
+
+    let included = await index.search(
+      matching: "module-entry",
+      limit: 20,
+      options: FileTreeIndex.SearchOptions(includeGitIgnoredEntries: true)
+    )
+    XCTAssertTrue(included.contains { $0.name == "module-entry.js" })
+  }
+
+  func testSearchCanIncludeHiddenPaths() async throws {
     let root = try makeTempDirectory()
     let hidden = root.appendingPathComponent(".env")
     let nodeModules = root.appendingPathComponent("node_modules", isDirectory: true)
@@ -182,7 +209,7 @@ final class FileTreeIndexTests: XCTestCase {
     try Data("export default 1".utf8).write(to: moduleFile)
 
     let index = FileTreeIndex(rootPath: root.path)
-    let options = FileTreeIndex.SearchOptions(includeHiddenEntries: true, includeNodeModules: true)
+    let options = FileTreeIndex.SearchOptions(includeHiddenEntries: true)
     let hiddenResults = await index.search(matching: "env", limit: 20, options: options)
     let nodeModuleResults = await index.search(
       matching: "module-entry",
@@ -315,13 +342,17 @@ final class FileTreeIndexTests: XCTestCase {
   }
 
   @MainActor
-  private func loadChildrenAndWait(_ index: FileTreeIndex, path: String) async throws -> [FileTreeIndex.Node] {
+  private func loadChildrenAndWait(_ index: FileTreeIndex, path: String) async throws
+    -> [FileTreeIndex.Node]
+  {
     index.scheduleLoadChildren(for: path)
     return try await waitForChildrenCached(index, path: path)
   }
 
   @MainActor
-  private func waitForChildrenCached(_ index: FileTreeIndex, path: String) async throws -> [FileTreeIndex.Node] {
+  private func waitForChildrenCached(_ index: FileTreeIndex, path: String) async throws
+    -> [FileTreeIndex.Node]
+  {
     for _ in 0..<500 {
       if let children = index.cachedChildren(for: path) {
         return children
