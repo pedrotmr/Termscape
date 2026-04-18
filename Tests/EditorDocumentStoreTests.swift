@@ -4,12 +4,26 @@ import XCTest
 
 @MainActor
 final class EditorDocumentStoreTests: XCTestCase {
-  private func tempDir() throws -> URL {
-    FileManager.default.temporaryDirectory
-      .appendingPathComponent("termscape-doc-store-\(UUID().uuidString)", isDirectory: true)
+  private var tempDirsToCleanup: [URL] = []
+
+  override func tearDown() {
+    let fm = FileManager.default
+    for url in tempDirsToCleanup {
+      try? fm.removeItem(at: url)
+    }
+    tempDirsToCleanup.removeAll()
+    super.tearDown()
   }
 
-  func testOpenAndSaveClean() throws {
+  private func tempDir() throws -> URL {
+    let url =
+      FileManager.default.temporaryDirectory
+      .appendingPathComponent("termscape-doc-store-\(UUID().uuidString)", isDirectory: true)
+    tempDirsToCleanup.append(url)
+    return url
+  }
+
+  func testOpenAndSaveClean() async throws {
     let dir = try tempDir()
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let file = dir.appendingPathComponent("sample.txt")
@@ -19,11 +33,11 @@ final class EditorDocumentStoreTests: XCTestCase {
     let id = try store.openDocument(at: file)
     XCTAssertFalse(store.buffer(id: id)!.isDirty)
 
-    _ = try store.saveDocument(id: id)
+    _ = try await store.saveDocument(id: id)
     XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "hello")
   }
 
-  func testDirtyAfterEditAndSave() throws {
+  func testDirtyAfterEditAndSave() async throws {
     let dir = try tempDir()
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let file = dir.appendingPathComponent("edit.txt")
@@ -34,13 +48,13 @@ final class EditorDocumentStoreTests: XCTestCase {
     store.updateWorkingText(id: id, text: "ab")
     XCTAssertTrue(store.buffer(id: id)!.isDirty)
 
-    let outcome = try store.saveDocument(id: id)
+    let outcome = try await store.saveDocument(id: id)
     XCTAssertEqual(outcome, .wrote)
     XCTAssertFalse(store.buffer(id: id)!.isDirty)
     XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "ab")
   }
 
-  func testSaveConflictWhenDirtyAndDiskChanged() throws {
+  func testSaveConflictWhenDirtyAndDiskChanged() async throws {
     let dir = try tempDir()
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let file = dir.appendingPathComponent("race.txt")
@@ -52,8 +66,11 @@ final class EditorDocumentStoreTests: XCTestCase {
 
     try "v2-remote".write(to: file, atomically: true, encoding: .utf8)
 
-    XCTAssertThrowsError(try store.saveDocument(id: id)) { error in
-      guard case EditorDocumentSaveError.conflict(let c) = error else {
+    do {
+      _ = try await store.saveDocument(id: id)
+      XCTFail("expected conflict")
+    } catch let error as EditorDocumentSaveError {
+      guard case .conflict(let c) = error else {
         XCTFail("expected conflict, got \(error)")
         return
       }
@@ -61,7 +78,7 @@ final class EditorDocumentStoreTests: XCTestCase {
     }
   }
 
-  func testCleanBufferAutoReloadsWhenDiskContentChanges() throws {
+  func testCleanBufferAutoReloadsWhenDiskContentChanges() async throws {
     let dir = try tempDir()
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let file = dir.appendingPathComponent("sync.txt")
@@ -73,7 +90,7 @@ final class EditorDocumentStoreTests: XCTestCase {
 
     try "two".write(to: file, atomically: true, encoding: .utf8)
 
-    let outcome = try store.saveDocument(id: id)
+    let outcome = try await store.saveDocument(id: id)
     XCTAssertEqual(outcome, .reloadedCleanFromDisk)
     XCTAssertEqual(store.buffer(id: id)?.workingText, "two")
     XCTAssertFalse(store.buffer(id: id)!.isDirty)
@@ -105,7 +122,7 @@ final class EditorDocumentStoreTests: XCTestCase {
     }
   }
 
-  func testForcedOverwriteAfterConflict() throws {
+  func testForcedOverwriteAfterConflict() async throws {
     let dir = try tempDir()
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let file = dir.appendingPathComponent("force.txt")
@@ -116,9 +133,17 @@ final class EditorDocumentStoreTests: XCTestCase {
     store.updateWorkingText(id: id, text: "mine")
     try "other".write(to: file, atomically: true, encoding: .utf8)
 
-    XCTAssertThrowsError(try store.saveDocument(id: id))
+    do {
+      _ = try await store.saveDocument(id: id)
+      XCTFail("expected conflict before overwrite")
+    } catch let error as EditorDocumentSaveError {
+      guard case .conflict = error else {
+        XCTFail("expected conflict, got \(error)")
+        return
+      }
+    }
 
-    let outcome = try store.saveDocumentForcedOverwrite(id: id)
+    let outcome = try await store.saveDocumentForcedOverwrite(id: id)
     XCTAssertEqual(outcome, .wrote)
     XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "mine")
     XCTAssertFalse(store.buffer(id: id)!.isDirty)
