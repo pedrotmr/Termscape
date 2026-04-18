@@ -203,6 +203,143 @@ private struct SidebarSearchTreeNode: Identifiable, Hashable {
   var id: String { path }
 }
 
+/// Recursive search-result row without `AnyView` type erasure (see review: SwiftUI diffing).
+private struct SidebarSearchTreeRowView: View {
+  let node: SidebarSearchTreeNode
+  let level: Int
+  @Binding var hoveredPath: String?
+  let selectedFilePath: String?
+  let onDirectoryTap: (SidebarSearchTreeNode) -> Void
+  let onFileTap: (SidebarSearchTreeNode) -> Void
+
+  var body: some View {
+    let path = URL(fileURLWithPath: node.path).standardizedFileURL.path
+    let isSelectedFile =
+      selectedFilePath.map { $0 == path } ?? false
+    let isHovered = hoveredPath == node.path
+    let isDimmed = node.isDirectory && !node.isSearchMatch
+    let labelColor = Self.labelColor(isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed)
+    let iconColor = Self.iconColor(isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed)
+    let disclosureTint: Color =
+      (isDimmed && !isHovered)
+      ? EditorIDEChrome.treeDimmed
+      : Self.disclosureTint(isHovered: isHovered)
+
+    VStack(alignment: .leading, spacing: 2) {
+      Button {
+        if node.isDirectory {
+          onDirectoryTap(node)
+        } else {
+          onFileTap(node)
+        }
+      } label: {
+        HStack(alignment: .center, spacing: 6) {
+          if node.isDirectory {
+            SidebarDisclosureTriangle(
+              expanded: !node.children.isEmpty,
+              tint: disclosureTint
+            )
+          } else {
+            Self.fileIcon(for: node.name)
+              .font(.system(size: 11, weight: .regular))
+              .foregroundStyle(iconColor)
+              .frame(width: EditorIDEChrome.treeIconColumn, alignment: .center)
+          }
+          Text(node.name)
+            .font(.system(size: 11, weight: .regular, design: .monospaced))
+            .foregroundStyle(labelColor)
+            .lineLimit(1)
+            .truncationMode(.tail)
+        }
+        .padding(
+          .leading,
+          EditorIDEChrome.treeEdgeInset + CGFloat(level) * EditorIDEChrome.treeIndentStep
+        )
+        .padding(.vertical, 4)
+        .padding(.trailing, EditorIDEChrome.treeEdgeInset)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Self.rowBackground(isSelected: isSelectedFile, isHovered: isHovered))
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .id(node.path)
+      .onHover { isHovering in
+        if isHovering {
+          hoveredPath = node.path
+        } else if hoveredPath == node.path {
+          hoveredPath = nil
+        }
+      }
+
+      if node.isDirectory {
+        ForEach(node.children) { child in
+          SidebarSearchTreeRowView(
+            node: child,
+            level: level + 1,
+            hoveredPath: $hoveredPath,
+            selectedFilePath: selectedFilePath,
+            onDirectoryTap: onDirectoryTap,
+            onFileTap: onFileTap
+          )
+        }
+      }
+    }
+  }
+
+  private static func labelColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
+    if dimmed && !isSelected && !isHovered { return EditorIDEChrome.treeDimmed }
+    if isSelected { return EditorIDEChrome.text }
+    if isHovered { return EditorIDEChrome.breadcrumbHoverMuted }
+    return EditorIDEChrome.muted
+  }
+
+  private static func iconColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
+    if dimmed && !isSelected && !isHovered { return EditorIDEChrome.treeDimmed }
+    if isSelected { return EditorIDEChrome.text.opacity(0.88) }
+    if isHovered { return EditorIDEChrome.breadcrumbHoverMuted.opacity(0.95) }
+    return EditorIDEChrome.muted.opacity(0.92)
+  }
+
+  private static func disclosureTint(isHovered: Bool) -> Color {
+    if isHovered { return EditorIDEChrome.muted.opacity(1.05) }
+    return EditorIDEChrome.disclosureTint
+  }
+
+  @ViewBuilder
+  private static func rowBackground(isSelected: Bool, isHovered: Bool) -> some View {
+    if isSelected {
+      RoundedRectangle(cornerRadius: 5, style: .continuous)
+        .fill(EditorIDEChrome.fileRowSelectedFill)
+        .overlay(
+          RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .stroke(EditorIDEChrome.hairline, lineWidth: 1)
+        )
+    } else if isHovered {
+      RoundedRectangle(cornerRadius: 5, style: .continuous)
+        .fill(EditorIDEChrome.fileRowHoverFill)
+    } else {
+      Color.clear
+    }
+  }
+
+  private static func fileIcon(for name: String) -> Image {
+    let ext =
+      (name as NSString).pathExtension.isEmpty
+      ? ""
+      : (name as NSString).pathExtension.lowercased()
+    switch ext {
+    case "tsx", "jsx":
+      return Image(systemName: "atom")
+    case "ts", "js", "swift":
+      return Image(systemName: "curlybraces")
+    case "editorconfig", "dockerignore":
+      return Image(systemName: "gearshape")
+    default:
+      return Image(systemName: "doc.text")
+    }
+  }
+}
+
 private struct EditorBreadcrumbItem: Identifiable {
   let id: String
   let title: String
@@ -549,7 +686,29 @@ struct EditorSurfaceRootView: View {
             .padding(.top, 4)
         } else {
           ForEach(sidebarSearchTreeRoots) { node in
-            sidebarSearchTreeRow(node, level: 0)
+            SidebarSearchTreeRowView(
+              node: node,
+              level: 0,
+              hoveredPath: $hoveredPath,
+              selectedFilePath: selectedTab.map {
+                URL(fileURLWithPath: $0.fullPath).standardizedFileURL.path
+              },
+              onDirectoryTap: { n in
+                model.onFocus()
+                revealDirectoryChain(
+                  endingAt: n.path,
+                  includeHiddenEntries: sidebarSearchIncludeHiddenEntries
+                )
+                model.sidebarSearchText = ""
+                Task { @MainActor in
+                  sidebarScrollTarget = n.path
+                }
+              },
+              onFileTap: { n in
+                model.onFocus()
+                selectOrOpenFileTab(path: n.path, title: n.name)
+              }
+            )
           }
         }
       }
@@ -558,88 +717,6 @@ struct EditorSurfaceRootView: View {
       .padding(.bottom, 8)
     }
     .scrollIndicators(.hidden)
-  }
-
-  private func sidebarSearchTreeRow(_ node: SidebarSearchTreeNode, level: Int) -> AnyView {
-    let path = URL(fileURLWithPath: node.path).standardizedFileURL.path
-    let isSelectedFile =
-      selectedTab.map {
-        URL(fileURLWithPath: $0.fullPath).standardizedFileURL.path == path
-      } ?? false
-    let isHovered = hoveredPath == node.path
-    let isDimmed = node.isDirectory && !node.isSearchMatch
-    let labelColor = treeRowLabelColor(
-      isSelected: isSelectedFile,
-      isHovered: isHovered,
-      dimmed: isDimmed
-    )
-    let iconColor = treeRowIconColor(
-      isSelected: isSelectedFile,
-      isHovered: isHovered,
-      dimmed: isDimmed
-    )
-    let disclosureTint: Color =
-      (isDimmed && !isHovered)
-      ? EditorIDEChrome.treeDimmed
-      : treeDisclosureTint(isHovered: isHovered)
-    return AnyView(
-      VStack(alignment: .leading, spacing: 2) {
-        Button {
-          model.onFocus()
-          if node.isDirectory {
-            revealDirectoryChain(endingAt: node.path)
-            model.sidebarSearchText = ""
-            Task { @MainActor in
-              sidebarScrollTarget = node.path
-            }
-          } else {
-            selectOrOpenFileTab(path: node.path, title: node.name)
-          }
-        } label: {
-          HStack(alignment: .center, spacing: 6) {
-            if node.isDirectory {
-              SidebarDisclosureTriangle(
-                expanded: !node.children.isEmpty,
-                tint: disclosureTint
-              )
-            } else {
-              fileIcon(for: node.name)
-                .font(.system(size: 11, weight: .regular))
-                .foregroundStyle(iconColor)
-                .frame(width: EditorIDEChrome.treeIconColumn, alignment: .center)
-            }
-            Text(node.name)
-              .font(.system(size: 11, weight: .regular, design: .monospaced))
-              .foregroundStyle(labelColor)
-              .lineLimit(1)
-              .truncationMode(.tail)
-          }
-          .padding(
-            .leading,
-            EditorIDEChrome.treeEdgeInset + CGFloat(level) * EditorIDEChrome.treeIndentStep
-          )
-          .padding(.vertical, 4)
-          .padding(.trailing, EditorIDEChrome.treeEdgeInset)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(sidebarRowBackground(isSelected: isSelectedFile, isHovered: isHovered))
-          .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .id(node.path)
-        .onHover { isHovering in
-          if isHovering {
-            hoveredPath = node.path
-          } else if hoveredPath == node.path {
-            hoveredPath = nil
-          }
-        }
-
-        if node.isDirectory {
-          ForEach(node.children) { child in
-            sidebarSearchTreeRow(child, level: level + 1)
-          }
-        }
-      })
   }
 
   // MARK: Main column
@@ -836,7 +913,10 @@ struct EditorSurfaceRootView: View {
     let textColor = breadcrumbLabelColor(isLast: isLast, hovered: hovered)
     return Button {
       model.onFocus()
-      revealDirectoryChain(endingAt: item.revealDirectory)
+      revealDirectoryChain(
+        endingAt: item.revealDirectory,
+        includeHiddenEntries: directoryPathIncludesHiddenSegment(item.revealDirectory)
+      )
       sidebarScrollTarget = item.revealDirectory
     } label: {
       Text(item.title)
@@ -1137,8 +1217,8 @@ struct EditorSurfaceRootView: View {
   }
 
   private func sidebarSearchDebounceMilliseconds(for query: String) -> Int {
-    // Keep only a tiny coalescing window so typing feels immediate.
-    query.count >= 3 ? 6 : 14
+    // Short queries get a slightly longer pause to avoid churn; longer queries coalesce cheaply.
+    query.count >= 3 ? 100 : 180
   }
 
   private static func buildSidebarSearchTree(
@@ -1303,8 +1383,12 @@ struct EditorSurfaceRootView: View {
       documentTabs.append(tab)
       selectedTabId = tab.id
     }
-    revealDirectoryChain(endingAt: (standardized as NSString).deletingLastPathComponent)
-    sidebarScrollTarget = (standardized as NSString).deletingLastPathComponent
+    let parentDirectory = (standardized as NSString).deletingLastPathComponent
+    revealDirectoryChain(
+      endingAt: parentDirectory,
+      includeHiddenEntries: directoryPathIncludesHiddenSegment(parentDirectory)
+    )
+    sidebarScrollTarget = parentDirectory
   }
 
   /// Builds breadcrumb segments for `rawPath` using filesystem metadata; call from `onChange` / `onAppear`, not SwiftUI `body`.
@@ -1360,7 +1444,7 @@ struct EditorSurfaceRootView: View {
   }
 
   /// Expands every ancestor from workspace root through `directoryPath` and loads directory listings.
-  private func revealDirectoryChain(endingAt directoryPath: String) {
+  private func revealDirectoryChain(endingAt directoryPath: String, includeHiddenEntries: Bool = false) {
     let root = standardizedRoot
     var target = URL(fileURLWithPath: directoryPath, isDirectory: true).standardizedFileURL.path
     if !isDirectoryPath(target) {
@@ -1383,8 +1467,23 @@ struct EditorSurfaceRootView: View {
       model.fileTreeIndex?.scheduleLoadChildren(
         for: path,
         priority: .userInitiated,
-        shouldPrefetchChildren: true
+        shouldPrefetchChildren: true,
+        includeHiddenEntries: includeHiddenEntries
       )
+    }
+  }
+
+  /// `true` when `directoryPath` (under the workspace root) contains a `.hidden` path segment, so directory scans must not skip hidden entries.
+  private func directoryPathIncludesHiddenSegment(_ directoryPath: String) -> Bool {
+    let root = standardizedRoot
+    let standardized =
+      URL(fileURLWithPath: directoryPath, isDirectory: true).standardizedFileURL.path
+    guard standardized == root || standardized.hasPrefix(root + "/") else { return false }
+    var rel = String(standardized.dropFirst(root.count))
+    if rel.hasPrefix("/") { rel.removeFirst() }
+    if rel.isEmpty { return false }
+    return rel.split(separator: "/").contains { component in
+      component.hasPrefix(".") && component != "." && component != ".."
     }
   }
 
