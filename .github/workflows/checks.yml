@@ -19,7 +19,8 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16"
+          # macos-26 images ship Xcode 26.x only; pin to latest stable on the runner.
+          xcode-version: latest-stable
 
       - name: Read tool versions
         run: |
