@@ -1,0 +1,69 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16"
+
+      - name: Read tool versions
+        run: |
+          echo "SWIFTFORMAT_VERSION=$(grep '^swiftformat ' .tool-versions | awk '{print $2}')" >> "$GITHUB_ENV"
+          echo "SWIFTLINT_VERSION=$(grep '^swiftlint ' .tool-versions | awk '{print $2}')" >> "$GITHUB_ENV"
+
+      - name: Install SwiftFormat
+        run: |
+          curl -sL "https://github.com/nicklockwood/SwiftFormat/releases/download/$SWIFTFORMAT_VERSION/swiftformat.artifactbundle.zip" -o /tmp/swiftformat.zip
+          unzip -o /tmp/swiftformat.zip -d /tmp/swiftformat
+          cp "/tmp/swiftformat/swiftformat.artifactbundle/swiftformat-$SWIFTFORMAT_VERSION-macos/bin/swiftformat" /usr/local/bin/swiftformat
+          chmod +x /usr/local/bin/swiftformat
+          swiftformat --version
+
+      - name: Install SwiftLint
+        run: |
+          curl -sL "https://github.com/realm/SwiftLint/releases/download/$SWIFTLINT_VERSION/portable_swiftlint.zip" -o /tmp/swiftlint.zip
+          unzip -o /tmp/swiftlint.zip -d /tmp/swiftlint
+          cp /tmp/swiftlint/swiftlint /usr/local/bin/swiftlint
+          chmod +x /usr/local/bin/swiftlint
+          swiftlint version
+
+      - name: Formatting
+        run: swiftformat Sources Tests --lint
+
+      - name: Linting
+        run: swiftlint lint --strict --quiet
+
+      - name: Build
+        run: >-
+          xcodebuild
+          -project Termscape.xcodeproj
+          -scheme Termscape
+          -configuration Debug
+          -destination "platform=macOS"
+          -quiet
+          build
+
+      - name: Test
+        run: >-
+          xcodebuild
+          -project Termscape.xcodeproj
+          -scheme Termscape
+          -configuration Debug
+          -destination "platform=macOS"
+          -quiet
+          test

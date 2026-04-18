@@ -1,0 +1,27 @@
+# SwiftLint defaults are tuned for smaller modules; Termscape opts out of rules that
+# conflict with SwiftFormat or are impractical for large UI/Ghostty files. Tighten over time.
+excluded:
+  - vendor
+  - Resources
+  - build
+  - .build
+
+included:
+  - Sources
+  - Tests
+
+disabled_rules:
+  - closure_parameter_position
+  - cyclomatic_complexity
+  - file_length
+  - for_where
+  - function_body_length
+  - function_parameter_count
+  - identifier_name
+  - is_disjoint
+  - large_tuple
+  - line_length
+  - opening_brace
+  - statement_position
+  - trailing_comma
+  - type_body_length
