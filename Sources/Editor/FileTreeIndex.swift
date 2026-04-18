@@ -1,5 +1,45 @@
 import Foundation
 
+/// Raw directory entries scanned off the main thread; mapped to `FileTreeIndex.Node` on the main actor.
+private struct FileTreeScannedEntry: Sendable {
+  let path: String
+  let name: String
+  let isDirectory: Bool
+}
+
+private enum FileTreeDirectoryScanner {
+  /// `nil` means the directory could not be read (IO/permission); do not cache as an empty listing.
+  nonisolated static func scan(path: String, fileManager: FileManager) -> [FileTreeScannedEntry]? {
+    let rootURL = URL(fileURLWithPath: path, isDirectory: true)
+    guard
+      let values = try? fileManager.contentsOfDirectory(
+        at: rootURL,
+        includingPropertiesForKeys: [.isDirectoryKey],
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return nil
+    }
+
+    return values.compactMap { url in
+      guard let isDirectory = try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory else {
+        return nil
+      }
+      return FileTreeScannedEntry(
+        path: url.path,
+        name: url.lastPathComponent,
+        isDirectory: isDirectory == true
+      )
+    }
+    .sorted { lhs, rhs in
+      if lhs.isDirectory != rhs.isDirectory {
+        return lhs.isDirectory && !rhs.isDirectory
+      }
+      return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+    }
+  }
+}
+
 @MainActor
 final class FileTreeIndex {
   struct Node: Identifiable, Hashable {
@@ -14,6 +54,9 @@ final class FileTreeIndex {
   private let rootPath: String
   private let fileManager: FileManager
   private var childCache: [String: [Node]] = [:]
+  private var contentGeneration: UInt = 0
+  private var loadingPaths: Set<String> = []
+  private var childrenDidChangeHandler: (() -> Void)?
   private var watcher: DispatchSourceFileSystemObject?
   private var watcherFD: Int32 = -1
   private var pendingInvalidation = false
@@ -22,11 +65,23 @@ final class FileTreeIndex {
   private var subscribers = 0
   var hasSubscribers: Bool { subscribers > 0 }
 
-  var onTreeDidInvalidate: (() -> Void)?
+  private var invalidationObservers: [UUID: () -> Void] = [:]
+
+  func addInvalidationObserver(id: UUID, handler: @escaping () -> Void) {
+    invalidationObservers[id] = handler
+  }
+
+  func removeInvalidationObserver(id: UUID) {
+    invalidationObservers.removeValue(forKey: id)
+  }
 
   init(rootPath: String, fileManager: FileManager = .default) {
     self.rootPath = rootPath
     self.fileManager = fileManager
+  }
+
+  func setChildrenDidChangeHandler(_ handler: (() -> Void)?) {
+    childrenDidChangeHandler = handler
   }
 
   func retain() {
@@ -52,54 +107,59 @@ final class FileTreeIndex {
     }
   }
 
-  func rootChildren() -> [Node] {
-    children(for: rootPath)
+  /// Snapshot of cached children for `path`, if a load has completed at least once for this key since the last invalidation.
+  func cachedChildren(for path: String) -> [Node]? {
+    childCache[path]
   }
 
-  func children(for path: String) -> [Node] {
-    if let cached = childCache[path] {
-      return cached
-    }
-
-    let loaded = loadChildrenFromDisk(path: path)
-    childCache[path] = loaded
-    return loaded
-  }
-
-  private func loadChildrenFromDisk(path: String) -> [Node] {
-    let rootURL = URL(fileURLWithPath: path, isDirectory: true)
-    guard
-      let values = try? fileManager.contentsOfDirectory(
-        at: rootURL,
-        includingPropertiesForKeys: [.isDirectoryKey],
-        options: [.skipsHiddenFiles]
-      )
-    else {
-      return []
-    }
-
-    return values.compactMap { url in
-      guard let isDirectory = try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory else {
-        return nil
+  /// Enqueues an off-main directory scan; results merge on the main actor. Safe to call from SwiftUI actions / `onChange`.
+  func scheduleLoadChildren(for path: String) {
+    if childCache[path] != nil { return }
+    if loadingPaths.contains(path) { return }
+    loadingPaths.insert(path)
+    let generation = contentGeneration
+    let capturedPath = path
+    let fm = fileManager
+    Task.detached(priority: .utility) {
+      let scanned = FileTreeDirectoryScanner.scan(path: capturedPath, fileManager: fm)
+      await MainActor.run { [weak self] in
+        guard let self else { return }
+        guard generation == self.contentGeneration else {
+          self.loadingPaths.remove(capturedPath)
+          return
+        }
+        guard let scanned else {
+          self.loadingPaths.remove(capturedPath)
+          return
+        }
+        let nodes = scanned.map { entry in
+          Node(
+            path: entry.path,
+            name: entry.name,
+            isDirectory: entry.isDirectory,
+            hasUnloadedChildren: entry.isDirectory
+          )
+        }
+        self.childCache[capturedPath] = nodes
+        self.loadingPaths.remove(capturedPath)
+        self.childrenDidChangeHandler?()
       }
-      return Node(
-        path: url.path,
-        name: url.lastPathComponent,
-        isDirectory: isDirectory == true,
-        hasUnloadedChildren: isDirectory == true
-      )
-    }
-    .sorted { lhs, rhs in
-      if lhs.isDirectory != rhs.isDirectory {
-        return lhs.isDirectory && !rhs.isDirectory
-      }
-      return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
     }
   }
 
   private func invalidateAll() {
+    contentGeneration += 1
     childCache.removeAll()
-    onTreeDidInvalidate?()
+    loadingPaths.removeAll()
+    let handlers = Array(invalidationObservers.values)
+    for handler in handlers {
+      handler()
+    }
+  }
+
+  /// Invokes the same invalidation path used after the debounced filesystem watcher fires (for unit tests).
+  internal func test_invalidateTreeCache() {
+    invalidateAll()
   }
 
   private func queueInvalidation() {
@@ -120,7 +180,8 @@ final class FileTreeIndex {
 
   private func startWatcher() {
     stopWatcher()
-    watcherFD = open(rootPath, O_EVTONLY)
+    let rootPathNSString = rootPath as NSString
+    watcherFD = open(rootPathNSString.fileSystemRepresentation, O_EVTONLY)
     guard watcherFD >= 0 else { return }
 
     let source = DispatchSource.makeFileSystemObjectSource(
@@ -129,7 +190,9 @@ final class FileTreeIndex {
       queue: DispatchQueue.global(qos: .utility)
     )
     source.setEventHandler { [weak self] in
-      self?.queueInvalidation()
+      Task { @MainActor in
+        self?.queueInvalidation()
+      }
     }
     source.setCancelHandler { [fd = watcherFD] in
       if fd >= 0 {
@@ -167,9 +230,7 @@ enum FileTreeIndexPool {
   static func releaseIndex(for rootPath: String) {
     guard let existing = indexes[rootPath] else { return }
     existing.release()
-    if existing.hasSubscribers {
-      indexes[rootPath] = existing
-    } else {
+    if !existing.hasSubscribers {
       indexes.removeValue(forKey: rootPath)
     }
   }

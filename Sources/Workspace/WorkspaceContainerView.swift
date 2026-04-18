@@ -16,8 +16,12 @@ struct WorkspaceContainerView: View {
           .onReceive(NotificationCenter.default.publisher(for: .newBrowserTab)) { _ in
             _ = workspace.addBrowserTab()
           }
-          .onReceive(NotificationCenter.default.publisher(for: .newEditorTab)) { _ in
-            let sourceTab = tab
+          .onReceive(NotificationCenter.default.publisher(for: .newEditorTab)) { notif in
+            let key = Notification.Name.MoveToNewTabKey.editorRootPath
+            guard let rawRoot = notif.userInfo?[key] as? String,
+              let root = TerminalSurface.normalizeWorkingDirectoryPath(rawRoot)
+            else { return }
+
             let newTab = workspace.addEditorTab()
             let initialSnapshot = newTab.bonsplitController.layoutSnapshot()
             guard let firstPane = initialSnapshot.panes.first,
@@ -25,10 +29,6 @@ struct WorkspaceContainerView: View {
               let firstTabUUID = UUID(uuidString: selectedTabId)
             else { return }
 
-            let root = sourceTab.resolveEditorRootFromFocusedContext(
-              targetPaneId: sourceTab.bonsplitController.focusedPaneId,
-              snapshot: sourceTab.bonsplitController.layoutSnapshot()
-            )
             // Initial Bonsplit tab already exists; pane-queue only applies to tabs created later in that pane.
             newTab.setPendingEditorRootIfNoSurface(root, for: TabID(uuid: firstTabUUID))
           }
@@ -133,7 +133,6 @@ struct WorkspaceContainerView: View {
         newTab.attachBrowserSurface(surface, to: tabUUID)
       }
     case .editor:
-      let rootPath = notif.userInfo?[key.editorRootPath] as? String
       let newTab = workspace.addTab(
         title: WorkspacePaneContentKind.editor.defaultTitle,
         initialPaneKind: .editor
@@ -141,10 +140,15 @@ struct WorkspaceContainerView: View {
       let initialSnapshot = newTab.bonsplitController.layoutSnapshot()
       guard let firstPane = initialSnapshot.panes.first,
         let selectedTabId = firstPane.selectedTabId,
-        let firstTabUUID = UUID(uuidString: selectedTabId),
-        let rootPath
+        let firstTabUUID = UUID(uuidString: selectedTabId)
       else { return }
-      newTab.setPendingEditorRootIfNoSurface(rootPath, for: TabID(uuid: firstTabUUID))
+      if let surface = notif.userInfo?[key.editorSurface] as? EditorSurface {
+        newTab.attachEditorSurface(surface, to: firstTabUUID)
+      } else if let rootPath = notif.userInfo?[key.editorRootPath] as? String {
+        newTab.setPendingEditorRootIfNoSurface(rootPath, for: TabID(uuid: firstTabUUID))
+      } else {
+        return
+      }
     }
   }
 

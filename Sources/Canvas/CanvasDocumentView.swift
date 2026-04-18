@@ -1142,7 +1142,18 @@ final class CanvasDocumentView: NSView {
   }
 
   @objc private func menuNewEditorTab(_: Any?) {
-    NotificationCenter.default.post(name: .newEditorTab, object: nil)
+    guard let tab = currentTab else { return }
+    let snapshot = tab.bonsplitController.layoutSnapshot()
+    let root = tab.resolveEditorRootFromFocusedContext(
+      targetPaneId: tab.bonsplitController.focusedPaneId,
+      snapshot: snapshot
+    )
+    let pathKey = Notification.Name.MoveToNewTabKey.editorRootPath
+    NotificationCenter.default.post(
+      name: .newEditorTab,
+      object: nil,
+      userInfo: [pathKey: root]
+    )
   }
 
   @objc private func menuMoveToNewTab(_: Any?) {
@@ -1177,14 +1188,19 @@ final class CanvasDocumentView: NSView {
       ]
     case .editor:
       guard let rootPath = tab.editorRootPath(for: tabUUID) else { return }
-      if let detached = tab.detachEditorSurface(for: tabUUID) {
-        detached.teardown()
+      if let surface = tab.detachEditorSurface(for: tabUUID) {
+        userInfo = [
+          key.editorSurface: surface,
+          key.sourceTab: tab,
+          key.contentKind: kind.rawValue,
+        ]
+      } else {
+        userInfo = [
+          key.editorRootPath: rootPath,
+          key.sourceTab: tab,
+          key.contentKind: kind.rawValue,
+        ]
       }
-      userInfo = [
-        key.editorRootPath: rootPath,
-        key.sourceTab: tab,
-        key.contentKind: kind.rawValue,
-      ]
     }
 
     // Close the source pane if it's not the only one.

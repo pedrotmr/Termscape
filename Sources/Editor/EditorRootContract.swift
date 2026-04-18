@@ -25,6 +25,6 @@ enum EditorRootContract {
       return normalizedWorkspace
     }
 
-    return fallbackHomePath
+    return normalizePath(fallbackHomePath) ?? fallbackHomePath
   }
 }

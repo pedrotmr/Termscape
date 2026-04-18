@@ -45,7 +45,18 @@ struct TabBarView: View {
         help: "New Editor Tab",
         theme: t
       ) {
-        NotificationCenter.default.post(name: .newEditorTab, object: nil)
+        let pathKey = Notification.Name.MoveToNewTabKey.editorRootPath
+        guard let sourceTab = workspace.selectedTab else { return }
+        let snapshot = sourceTab.bonsplitController.layoutSnapshot()
+        let root = sourceTab.resolveEditorRootFromFocusedContext(
+          targetPaneId: sourceTab.bonsplitController.focusedPaneId,
+          snapshot: snapshot
+        )
+        NotificationCenter.default.post(
+          name: .newEditorTab,
+          object: nil,
+          userInfo: [pathKey: root]
+        )
       }
 
       // Split pane buttons
@@ -105,7 +116,8 @@ struct TabItemView: View {
           .font(.system(size: 8, weight: .semibold))
           .foregroundStyle(t.accent.opacity(0.8))
       } else {
-        Image(systemName: "terminal")
+        let kind = tab.focusedPaneContentKind(snapshot: tab.bonsplitController.layoutSnapshot())
+        Image(systemName: kind.defaultIcon)
           .font(.system(size: 10))
           .foregroundStyle(isSelected ? t.text.opacity(0.7) : t.textFaint)
       }

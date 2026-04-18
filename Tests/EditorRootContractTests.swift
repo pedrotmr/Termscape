@@ -68,4 +68,31 @@ final class EditorRootContractTests: XCTestCase {
     )
     XCTAssertEqual(resolved, "/home")
   }
+
+  func testHomeFallbackAppliesNormalize() {
+    let resolved = EditorRootContract.resolvePinnedRoot(
+      focusedKind: .browser,
+      terminalWorkingDirectory: nil,
+      editorRootPath: nil,
+      workspaceRootPath: nil,
+      fallbackHomePath: "/home",
+      normalizePath: { path in
+        guard path == "/home" else { return self.identityNormalize(path) }
+        return "/normalized-home"
+      }
+    )
+    XCTAssertEqual(resolved, "/normalized-home")
+  }
+
+  func testHomeFallbackUsesRawPathWhenNormalizeReturnsNil() {
+    let resolved = EditorRootContract.resolvePinnedRoot(
+      focusedKind: .browser,
+      terminalWorkingDirectory: nil,
+      editorRootPath: nil,
+      workspaceRootPath: nil,
+      fallbackHomePath: "/home",
+      normalizePath: { _ in nil }
+    )
+    XCTAssertEqual(resolved, "/home")
+  }
 }

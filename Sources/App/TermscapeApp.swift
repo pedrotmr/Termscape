@@ -39,7 +39,13 @@ struct TermscapeApp: App {
         }
 
         Button("New Editor Tab") {
-          NotificationCenter.default.post(name: .newEditorTab, object: nil)
+          let pathKey = Notification.Name.MoveToNewTabKey.editorRootPath
+          let home = FileManager.default.homeDirectoryForCurrentUser.path
+          NotificationCenter.default.post(
+            name: .newEditorTab,
+            object: nil,
+            userInfo: [pathKey: home]
+          )
         }
 
         Button("Close Tab") {
@@ -110,6 +116,7 @@ extension Notification.Name {
   enum MoveToNewTabKey {
     static let surface = "surface"
     static let browserSurface = "browserSurface"
+    static let editorSurface = "editorSurface"
     static let editorRootPath = "editorRootPath"
     static let contentKind = "contentKind"
     static let sourceTab = "sourceTab"

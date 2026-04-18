@@ -2,9 +2,29 @@ import AppKit
 import Foundation
 import SwiftUI
 
-/// Holds sidebar search text outside `EditorSurfaceRootView` so it survives `render()` refresh.
-private final class SidebarSearchDraftHolder {
-  var text: String = ""
+/// Drives `EditorSurfaceRootView` without replacing `NSHostingView.rootView`, so SwiftUI `@State`
+/// (tabs, expansion, hover) stays stable across editor state and file-tree refreshes.
+@MainActor
+private final class EditorSurfaceViewModel: ObservableObject {
+  let standardizedRootPath: String
+  @Published var editorState: EditorSurface.State = .initializing
+  @Published var fileTreeIndex: FileTreeIndex?
+  /// Bumped only when the shared index clears its cache (watcher / invalidation). Drives `LazyVStack` `.id`
+  /// and rescheduling loads for expanded folders — not per-directory async loads.
+  @Published var treeCacheInvalidationEpoch: UInt = 0
+  /// Bumped after each successful `scheduleLoadChildren` merge so SwiftUI refreshes rows without remounting the tree.
+  @Published var fileTreeContentRevision: UInt = 0
+  @Published var sidebarSearchText: String = ""
+
+  var onFocus: () -> Void = {}
+  var onContextMenu: (NSEvent) -> Void = { _ in }
+  var onRetry: () -> Void = {}
+  var onOpenTerminalHere: () -> Void = {}
+  var onShowDiagnostics: () -> Void = {}
+
+  init(standardizedRootPath: String) {
+    self.standardizedRootPath = standardizedRootPath
+  }
 }
 
 @MainActor
@@ -18,7 +38,10 @@ final class EditorSurface {
 
   let id: UUID
   let workspaceId: UUID
+  /// Path supplied when the surface was created (may differ from `standardizedRootPath` only by normalization).
   let rootPath: String
+  /// Canonical filesystem path for this editor root; used for `FileTreeIndexPool` and tree queries.
+  private let standardizedRootPath: String
   let hostedView: NSHostingView<EditorSurfaceRootView>
 
   var onFocused: (() -> Void)?
@@ -27,42 +50,44 @@ final class EditorSurface {
   var onOpenTerminalHere: (() -> Void)?
   var onShowDiagnostics: ((String) -> Void)?
 
+  private let viewModel: EditorSurfaceViewModel
   private var didAttemptInitialization = false
   private var fileTreeIndex: FileTreeIndex?
-  private let sidebarSearchDraftHolder = SidebarSearchDraftHolder()
-  private var state: State = .initializing {
-    didSet { render() }
-  }
-
-  private var sidebarSearchBinding: Binding<String> {
-    Binding(
-      get: { self.sidebarSearchDraftHolder.text },
-      set: { self.sidebarSearchDraftHolder.text = $0 }
-    )
-  }
 
   init(workspaceId: UUID, rootPath: String) {
     id = UUID()
     self.workspaceId = workspaceId
     self.rootPath = rootPath
-    let sidebarSearchDraft = sidebarSearchDraftHolder
-    hostedView = NSHostingView(
-      rootView: EditorSurfaceRootView(
-        rootPath: rootPath,
-        state: .initializing,
-        sidebarSearchText: Binding(
-          get: { sidebarSearchDraft.text },
-          set: { sidebarSearchDraft.text = $0 }
-        ),
-        onFocus: {},
-        onContextMenu: { _ in },
-        onRetry: {},
-        onOpenTerminalHere: {},
-        onShowDiagnostics: {},
-        fileTreeIndex: nil
-      )
-    )
-    render()
+    let standardized = URL(fileURLWithPath: rootPath, isDirectory: true).standardizedFileURL.path
+    standardizedRootPath = standardized
+    let vm = EditorSurfaceViewModel(standardizedRootPath: standardized)
+    viewModel = vm
+    hostedView = NSHostingView(rootView: EditorSurfaceRootView(model: vm))
+    wireViewModelCallbacks()
+    syncFileTreeToViewModel()
+  }
+
+  private func wireViewModelCallbacks() {
+    viewModel.onFocus = { [weak self] in self?.onFocused?() }
+    viewModel.onContextMenu = { [weak self] event in self?.onContextMenu?(event) }
+    viewModel.onRetry = { [weak self] in
+      self?.retryInitialization()
+      self?.onRequestRetry?()
+    }
+    viewModel.onOpenTerminalHere = { [weak self] in self?.onOpenTerminalHere?() }
+    viewModel.onShowDiagnostics = { [weak self] in
+      guard let self else { return }
+      self.onShowDiagnostics?(self.diagnosticsText)
+    }
+  }
+
+  private func setPaneState(_ newState: State) {
+    viewModel.editorState = newState
+    viewModel.fileTreeIndex = fileTreeIndex
+  }
+
+  private func syncFileTreeToViewModel() {
+    viewModel.fileTreeIndex = fileTreeIndex
   }
 
   func ensureInitialized() {
@@ -76,61 +101,47 @@ final class EditorSurface {
   }
 
   func retryInitialization() {
-    state = .initializing
+    setPaneState(.initializing)
 
-    let url = URL(fileURLWithPath: rootPath, isDirectory: true).standardizedFileURL
+    let rootURL = URL(fileURLWithPath: standardizedRootPath, isDirectory: true)
     var isDir = ObjCBool(false)
-    guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir),
+    guard FileManager.default.fileExists(atPath: rootURL.path, isDirectory: &isDir),
       isDir.boolValue
     else {
-      state = .unavailableRoot
+      setPaneState(.unavailableRoot)
       return
     }
 
     do {
-      _ = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
+      _ = try FileManager.default.contentsOfDirectory(at: rootURL, includingPropertiesForKeys: nil)
       if fileTreeIndex == nil {
-        let index = FileTreeIndexPool.retainIndex(for: rootPath)
-        index.onTreeDidInvalidate = { [weak self] in
-          self?.render()
+        let index = FileTreeIndexPool.retainIndex(for: standardizedRootPath)
+        index.addInvalidationObserver(id: id) { [weak self] in
+          self?.viewModel.treeCacheInvalidationEpoch += 1
         }
         fileTreeIndex = index
       }
-      state = .ready
+      fileTreeIndex?.setChildrenDidChangeHandler { [weak self] in
+        self?.viewModel.fileTreeContentRevision += 1
+      }
+      setPaneState(.ready)
     } catch {
-      state = .initFailed
+      setPaneState(.initFailed)
     }
   }
 
   func teardown() {
-    if fileTreeIndex != nil {
-      FileTreeIndexPool.releaseIndex(for: rootPath)
+    if let index = fileTreeIndex {
+      index.setChildrenDidChangeHandler(nil)
+      index.removeInvalidationObserver(id: id)
+      FileTreeIndexPool.releaseIndex(for: standardizedRootPath)
       fileTreeIndex = nil
+      syncFileTreeToViewModel()
     }
   }
 
   var diagnosticsText: String {
-    "editor_root=\(rootPath)\neditor_state=\(String(describing: state))"
-  }
-
-  private func render() {
-    hostedView.rootView = EditorSurfaceRootView(
-      rootPath: rootPath,
-      state: state,
-      sidebarSearchText: sidebarSearchBinding,
-      onFocus: { [weak self] in self?.onFocused?() },
-      onContextMenu: { [weak self] event in self?.onContextMenu?(event) },
-      onRetry: { [weak self] in
-        self?.retryInitialization()
-        self?.onRequestRetry?()
-      },
-      onOpenTerminalHere: { [weak self] in self?.onOpenTerminalHere?() },
-      onShowDiagnostics: { [weak self] in
-        guard let self else { return }
-        self.onShowDiagnostics?(self.diagnosticsText)
-      },
-      fileTreeIndex: fileTreeIndex
-    )
+    "editor_root=\(standardizedRootPath)\neditor_state=\(String(describing: viewModel.editorState))"
   }
 }
 
@@ -201,15 +212,11 @@ private struct SidebarDisclosureTriangle: View {
 }
 
 struct EditorSurfaceRootView: View {
-  let rootPath: String
-  let state: EditorSurface.State
-  @Binding var sidebarSearchText: String
-  let onFocus: () -> Void
-  let onContextMenu: (NSEvent) -> Void
-  let onRetry: () -> Void
-  let onOpenTerminalHere: () -> Void
-  let onShowDiagnostics: () -> Void
-  let fileTreeIndex: FileTreeIndex?
+  @ObservedObject private var model: EditorSurfaceViewModel
+
+  fileprivate init(model: EditorSurfaceViewModel) {
+    _model = ObservedObject(wrappedValue: model)
+  }
 
   @State private var expandedPaths: Set<String> = []
   @State private var didSeedRootExpansion = false
@@ -219,14 +226,21 @@ struct EditorSurfaceRootView: View {
   @State private var sidebarScrollTarget: String?
   @State private var hoveredBreadcrumbId: String?
   @State private var hoveredDocumentTabId: UUID?
+  @State private var breadcrumbItems: [EditorBreadcrumbItem] = []
+  /// Coalesces `rescheduleTreeLoadsForExpandedFolders` when `treeCacheInvalidationEpoch` bumps in quick succession.
+  @State private var treeExpandedLoadRescheduleToken: UInt = 0
 
   private var standardizedRoot: String {
-    URL(fileURLWithPath: rootPath, isDirectory: true).standardizedFileURL.path
+    model.standardizedRootPath
   }
 
   private var selectedTab: EditorDocumentTab? {
     guard let selectedTabId else { return documentTabs.first }
     return documentTabs.first { $0.id == selectedTabId }
+  }
+
+  private var breadcrumbRefreshToken: String {
+    "\(standardizedRoot)|\(selectedTab?.fullPath ?? standardizedRoot)"
   }
 
   var body: some View {
@@ -244,17 +258,33 @@ struct EditorSurfaceRootView: View {
       }
     }
     .contentShape(Rectangle())
-    .onTapGesture { onFocus() }
-    .background(EditorContextMenuBridge(onContextMenu: onContextMenu))
+    .onTapGesture { model.onFocus() }
+    .background(EditorContextMenuBridge(onContextMenu: model.onContextMenu))
     .onAppear {
-      guard !didSeedRootExpansion else { return }
-      expandedPaths.insert(standardizedRoot)
-      didSeedRootExpansion = true
+      if !didSeedRootExpansion {
+        expandedPaths.insert(standardizedRoot)
+        didSeedRootExpansion = true
+        scheduleRootTreeLoadIfReady()
+      }
+      rebuildBreadcrumbItems()
     }
-    .onChange(of: state) { _, new in
+    .onChange(of: model.editorState) { _, new in
       guard new == .ready, documentTabs.isEmpty else { return }
       documentTabs = Self.defaultDocumentTabs(rootPath: standardizedRoot)
       selectedTabId = documentTabs.first?.id
+      scheduleRootTreeLoadIfReady()
+    }
+    .onChange(of: model.treeCacheInvalidationEpoch) { _, _ in
+      treeExpandedLoadRescheduleToken &+= 1
+      let token = treeExpandedLoadRescheduleToken
+      Task { @MainActor in
+        try? await Task.sleep(for: .milliseconds(48))
+        guard token == treeExpandedLoadRescheduleToken else { return }
+        rescheduleTreeLoadsForExpandedFolders()
+      }
+    }
+    .onChange(of: breadcrumbRefreshToken) { _, _ in
+      rebuildBreadcrumbItems()
     }
   }
 
@@ -270,12 +300,13 @@ struct EditorSurfaceRootView: View {
       .padding(.top, EditorIDEChrome.sidebarHeaderPaddingTop)
       .padding(.bottom, EditorIDEChrome.sidebarHeaderPaddingBottom)
         
-      if state == .ready, fileTreeIndex != nil {
+      if model.editorState == .ready, model.fileTreeIndex != nil {
         ScrollViewReader { proxy in
           ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
               fileNodeRow(rootNode, level: 0)
             }
+            .id(model.treeCacheInvalidationEpoch)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, max(4, EditorIDEChrome.treeEdgeInset - 2))
             .padding(.bottom, 8)
@@ -301,7 +332,7 @@ struct EditorSurfaceRootView: View {
   }
 
   private var sidebarPlaceholderMessage: String {
-    switch state {
+    switch model.editorState {
     case .initializing:
       return "Loading this folder…"
     case .ready:
@@ -316,7 +347,7 @@ struct EditorSurfaceRootView: View {
       Image(systemName: "magnifyingglass")
         .font(.system(size: 11, weight: .medium))
         .foregroundStyle(EditorIDEChrome.muted.opacity(0.95))
-      TextField("Search files", text: $sidebarSearchText)
+      TextField("Search files", text: $model.sidebarSearchText)
         .textFieldStyle(.plain)
         .font(.system(size: 12, weight: .regular))
         .foregroundStyle(EditorIDEChrome.text.opacity(0.92))
@@ -340,7 +371,7 @@ struct EditorSurfaceRootView: View {
   @ViewBuilder
   private var mainEditorChrome: some View {
     VStack(spacing: 0) {
-      switch state {
+      switch model.editorState {
       case .initializing:
         loadingMainColumn
       case .ready:
@@ -500,11 +531,9 @@ struct EditorSurfaceRootView: View {
   }
 
   private var breadcrumbStrip: some View {
-    let path = selectedTab?.fullPath ?? standardizedRoot
-    let items = breadcrumbItems(forFilePath: path)
-    return ScrollView(.horizontal, showsIndicators: false) {
+    ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 0) {
-        ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+        ForEach(Array(breadcrumbItems.enumerated()), id: \.offset) { index, item in
           if index > 0 {
             Image(systemName: "chevron.right")
               .font(.system(size: 9, weight: .bold))
@@ -512,7 +541,7 @@ struct EditorSurfaceRootView: View {
               .padding(.horizontal, 6)
               .fixedSize()
           }
-          breadcrumbSegment(item: item, index: index, total: items.count)
+          breadcrumbSegment(item: item, index: index, total: breadcrumbItems.count)
         }
       }
       .padding(.horizontal, 10)
@@ -527,7 +556,7 @@ struct EditorSurfaceRootView: View {
     let hovered = hoveredBreadcrumbId == item.id
     let textColor = breadcrumbLabelColor(isLast: isLast, hovered: hovered)
     return Button {
-      onFocus()
+      model.onFocus()
       revealDirectoryChain(endingAt: item.revealDirectory)
       sidebarScrollTarget = item.revealDirectory
     } label: {
@@ -602,7 +631,7 @@ struct EditorSurfaceRootView: View {
               expandedPaths.remove(node.path)
             } else {
               expandedPaths.insert(node.path)
-              _ = fileTreeIndex?.children(for: node.path)
+              model.fileTreeIndex?.scheduleLoadChildren(for: node.path)
             }
           } label: {
             HStack(alignment: .center, spacing: 6) {
@@ -722,29 +751,38 @@ struct EditorSurfaceRootView: View {
     guard node.path == standardizedRoot || node.path.hasPrefix(standardizedRoot + "/") else {
       return []
     }
-    return fileTreeIndex?.children(for: node.path) ?? []
+    return model.fileTreeIndex?.cachedChildren(for: node.path) ?? []
+  }
+
+  private func scheduleRootTreeLoadIfReady() {
+    guard model.editorState == .ready else { return }
+    model.fileTreeIndex?.scheduleLoadChildren(for: standardizedRoot)
+  }
+
+  private func rescheduleTreeLoadsForExpandedFolders() {
+    guard let index = model.fileTreeIndex else { return }
+    for path in expandedPaths {
+      index.scheduleLoadChildren(for: path)
+    }
+  }
+
+  private func rebuildBreadcrumbItems() {
+    let path = selectedTab?.fullPath ?? standardizedRoot
+    breadcrumbItems = computeBreadcrumbItems(forFilePath: path)
   }
 
   // MARK: Tabs & breadcrumbs behavior
 
   private static func defaultDocumentTabs(rootPath: String) -> [EditorDocumentTab] {
+    let fm = FileManager.default
     let nsRoot = rootPath as NSString
-    let demo = EditorDocumentTab(
-      id: UUID(),
-      title: "Root.tsx",
-      fullPath: nsRoot.appendingPathComponent("apps/axle_pay_web/assets/js/Root.tsx")
-    )
-    let gitignore = EditorDocumentTab(
-      id: UUID(),
-      title: ".gitignore",
-      fullPath: nsRoot.appendingPathComponent(".gitignore")
-    )
-    let prettier = EditorDocumentTab(
-      id: UUID(),
-      title: ".prettierignore",
-      fullPath: nsRoot.appendingPathComponent(".prettierignore")
-    )
-    return [demo, gitignore, prettier]
+    var tabs: [EditorDocumentTab] = []
+    for (fileName, title) in [(".gitignore", ".gitignore"), (".prettierignore", ".prettierignore")] {
+      let fullPath = nsRoot.appendingPathComponent(fileName)
+      guard fm.fileExists(atPath: fullPath) else { continue }
+      tabs.append(EditorDocumentTab(id: UUID(), title: title, fullPath: fullPath))
+    }
+    return tabs
   }
 
   private func closeTab(_ id: UUID) {
@@ -770,7 +808,8 @@ struct EditorSurfaceRootView: View {
     sidebarScrollTarget = (standardized as NSString).deletingLastPathComponent
   }
 
-  private func breadcrumbItems(forFilePath rawPath: String) -> [EditorBreadcrumbItem] {
+  /// Builds breadcrumb segments for `rawPath` using filesystem metadata; call from `onChange` / `onAppear`, not SwiftUI `body`.
+  private func computeBreadcrumbItems(forFilePath rawPath: String) -> [EditorBreadcrumbItem] {
     let root = standardizedRoot
     let file = URL(fileURLWithPath: rawPath).standardizedFileURL.path
     let rootName = URL(fileURLWithPath: root).lastPathComponent
@@ -792,10 +831,20 @@ struct EditorSurfaceRootView: View {
     let parts = rel.split(separator: "/").map(String.init)
     var acc = root
     var items: [EditorBreadcrumbItem] = []
+    var directoryMemo: [String: Bool] = [:]
+    func onDiskIsDirectory(_ path: String) -> Bool {
+      if let cached = directoryMemo[path] { return cached }
+      var isDir: ObjCBool = false
+      let exists = FileManager.default.fileExists(atPath: path, isDirectory: &isDir)
+      let value = exists && isDir.boolValue
+      directoryMemo[path] = value
+      return value
+    }
+
     for (i, part) in parts.enumerated() {
       acc = (acc as NSString).appendingPathComponent(part)
       let isLast = i == parts.count - 1
-      let onDiskAsDir = isDirectoryPath(acc)
+      let onDiskAsDir = onDiskIsDirectory(acc)
       if isLast, !onDiskAsDir {
         let parent = (acc as NSString).deletingLastPathComponent
         items.append(EditorBreadcrumbItem(id: acc, title: part, revealDirectory: parent))
@@ -818,7 +867,7 @@ struct EditorSurfaceRootView: View {
     if !isDirectoryPath(target) {
       target = (target as NSString).deletingLastPathComponent
     }
-    guard target.hasPrefix(root), !target.isEmpty else { return }
+    guard !target.isEmpty, target == root || target.hasPrefix(root + "/") else { return }
 
     var chain: [String] = []
     var cursor = target
@@ -826,13 +875,13 @@ struct EditorSurfaceRootView: View {
       chain.append(cursor)
       if cursor == root { break }
       let parent = (cursor as NSString).deletingLastPathComponent
-      if parent == cursor || parent.count < root.count { break }
+      if parent == cursor || !(parent == root || parent.hasPrefix(root + "/")) { break }
       cursor = parent
     }
 
     for path in chain.reversed() {
       expandedPaths.insert(path)
-      _ = fileTreeIndex?.children(for: path)
+      model.fileTreeIndex?.scheduleLoadChildren(for: path)
     }
   }
 
@@ -846,17 +895,18 @@ struct EditorSurfaceRootView: View {
         .font(.system(size: 12))
         .foregroundStyle(EditorIDEChrome.muted)
       HStack(spacing: 10) {
-        Button("Retry", action: onRetry)
+        Button("Retry", action: model.onRetry)
           .buttonStyle(.borderedProminent)
-        Button("Open Terminal Here", action: onOpenTerminalHere)
+        Button("Open Terminal Here", action: model.onOpenTerminalHere)
           .buttonStyle(.bordered)
         Button("Copy Diagnostics") {
-          let value = "editor_root=\(rootPath)\neditor_state=\(String(describing: state))"
+          let value =
+            "editor_root=\(model.standardizedRootPath)\neditor_state=\(String(describing: model.editorState))"
           NSPasteboard.general.clearContents()
           NSPasteboard.general.setString(value, forType: .string)
         }
         .buttonStyle(.bordered)
-        Button("Show Diagnostics", action: onShowDiagnostics)
+        Button("Show Diagnostics", action: model.onShowDiagnostics)
           .buttonStyle(.bordered)
       }
       .padding(.top, 2)
