@@ -744,9 +744,7 @@ struct EditorSurfaceRootView: View {
               node: node,
               level: 0,
               hoveredPath: $hoveredPath,
-              selectedFilePath: selectedTab.map {
-                URL(fileURLWithPath: $0.fullPath).standardizedFileURL.path
-              },
+              selectedFilePath: selectedDocument?.standardizedPath,
               onDirectoryTap: { n in
                 model.onFocus()
                 revealDirectoryChain(
