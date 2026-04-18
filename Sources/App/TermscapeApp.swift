@@ -168,29 +168,64 @@ struct ContentView: View {
 
 // MARK: - Sidebar resize divider
 
-private struct SidebarDivider: View {
-  @Environment(ThemeManager.self) var theme
-  @Binding var sidebarWidth: CGFloat
-  @State private var isHovered = false
+/// Reusable 1px divider for horizontal width resizing with clamped bounds.
+struct HorizontalResizeDivider: View {
+  @Binding var width: CGFloat
+  let minWidth: CGFloat
+  let maxWidth: CGFloat
+  let idleColor: Color
+  let hoverColor: Color
+  var hitSlop: CGFloat = 4
+  var hoverAnimationDuration: Double = 0.15
 
-  private let minWidth: CGFloat = 180
-  private let maxWidth: CGFloat = 380
+  @State private var isHovered = false
+  @State private var dragStartWidth: CGFloat?
 
   var body: some View {
     Rectangle()
-      .fill(isHovered ? theme.current.accent.opacity(0.5) : theme.current.border)
+      .fill(isHovered ? hoverColor : idleColor)
       .frame(width: 1)
-      .contentShape(Rectangle().inset(by: -4))
+      .contentShape(Rectangle().inset(by: -hitSlop))
       .onHover { isHovered = $0 }
-      .animation(.easeInOut(duration: 0.15), value: isHovered)
+      .animation(.easeInOut(duration: hoverAnimationDuration), value: isHovered)
       .gesture(
-        DragGesture(minimumDistance: 1)
+        DragGesture(minimumDistance: 0, coordinateSpace: .global)
           .onChanged { value in
-            let proposed = sidebarWidth + value.translation.width
-            sidebarWidth = proposed.clamped(to: minWidth...maxWidth)
+            if dragStartWidth == nil {
+              dragStartWidth = width
+            }
+            let base = dragStartWidth ?? width
+            let proposed = base + value.translation.width
+            let clamped = proposed.clamped(to: minWidth...maxWidth)
+            var transaction = Transaction()
+            transaction.animation = nil
+            withTransaction(transaction) {
+              width = clamped
+            }
+          }
+          .onEnded { _ in
+            dragStartWidth = nil
           }
       )
       .cursor(.resizeLeftRight)
+  }
+}
+
+private struct SidebarDivider: View {
+  @Environment(ThemeManager.self) var theme
+  @Binding var sidebarWidth: CGFloat
+
+  private let minWidth: CGFloat = 180
+  private let maxWidth: CGFloat = 520
+
+  var body: some View {
+    HorizontalResizeDivider(
+      width: $sidebarWidth,
+      minWidth: minWidth,
+      maxWidth: maxWidth,
+      idleColor: theme.current.border,
+      hoverColor: theme.current.accent.opacity(0.5)
+    )
   }
 }
 
