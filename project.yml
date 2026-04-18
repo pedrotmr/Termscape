@@ -79,6 +79,19 @@ targets:
             cp -r "${SRCROOT}/Resources/shell-integration" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/" 2>/dev/null || true
           fi
 
+  TermscapeTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.termscape.tests
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Termscape
+
 packages:
   Bonsplit:
     path: vendor/bonsplit
@@ -91,3 +104,6 @@ schemes:
     build:
       targets:
         Termscape: all
+    test:
+      targets:
+        - TermscapeTests
