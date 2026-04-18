@@ -125,32 +125,50 @@ private enum EditorBracketMatcher {
   }
 }
 
+extension NSString {
+  /// 1-based line number for a UTF-16 offset (NSTextView indexing), matching `NSString` / AppKit line semantics
+  /// (including `\r\n` as a single line break).
+  fileprivate func logicalLineNumber(forUTF16Offset utf16Offset: Int) -> Int {
+    let len = length
+    guard len > 0 else { return 1 }
+    let limit = min(max(0, utf16Offset), len)
+    var line = 1
+    var idx = 0
+    while idx < limit {
+      var lineStart = 0, lineEnd = 0, contentsEnd = 0
+      getLineStart(&lineStart, end: &lineEnd, contentsEnd: &contentsEnd, for: NSRange(location: idx, length: 0))
+      if contentsEnd >= limit { return line }
+      guard lineEnd > idx else { break }
+      idx = lineEnd
+      line += 1
+    }
+    return line
+  }
+}
+
 extension String {
   /// 1-based line number for a UTF-16 offset (NSTextView / NSString indexing).
   fileprivate func logicalLineNumber(utf16Offset: Int) -> Int {
-    let ns = self as NSString
-    let len = ns.length
-    guard len > 0 else { return 1 }
-    let i = min(max(0, utf16Offset), len)
-    var line = 1
-    var idx = 0
-    while idx < i {
-      let c = ns.character(at: idx)
-      if c == 10 || c == 13 { line += 1 }
-      idx += 1
-    }
-    return line
+    (self as NSString).logicalLineNumber(forUTF16Offset: utf16Offset)
   }
 }
 
 final class EditorSourceTextView: NSTextView {
   var onSaveRequest: () -> Void = {}
 
+  /// Ranges last touched by `refreshAuxiliaryHighlights` (caret line + bracket pair) for narrow invalidation.
+  private var auxiliaryHighlightRanges: [NSRange] = []
+
   func refreshAuxiliaryHighlights() {
     guard let lm = layoutManager, let ts = textStorage else { return }
     let len = ts.length
-    let full = NSRange(location: 0, length: len)
-    lm.removeTemporaryAttribute(.backgroundColor, forCharacterRange: full)
+    let safeDocument = NSRange(location: 0, length: len)
+    for r in auxiliaryHighlightRanges {
+      let clipped = NSIntersectionRange(r, safeDocument)
+      guard clipped.length > 0 else { continue }
+      lm.removeTemporaryAttribute(.backgroundColor, forCharacterRange: clipped)
+    }
+    auxiliaryHighlightRanges.removeAll()
 
     guard len > 0 else {
       needsDisplay = true
@@ -163,6 +181,7 @@ final class EditorSourceTextView: NSTextView {
     let lineRange = ns.lineRange(for: NSRange(location: lineAnchor, length: 0))
     let lineFill = NSColor.white.withAlphaComponent(0.055)
     lm.addTemporaryAttribute(.backgroundColor, value: lineFill, forCharacterRange: lineRange)
+    auxiliaryHighlightRanges.append(lineRange)
 
     if let (openRange, closeRange) = EditorBracketMatcher.matchingPairUTF16(
       in: ts.string,
@@ -171,6 +190,8 @@ final class EditorSourceTextView: NSTextView {
       let bracketFill = NSColor.white.withAlphaComponent(0.12)
       lm.addTemporaryAttribute(.backgroundColor, value: bracketFill, forCharacterRange: openRange)
       lm.addTemporaryAttribute(.backgroundColor, value: bracketFill, forCharacterRange: closeRange)
+      auxiliaryHighlightRanges.append(openRange)
+      auxiliaryHighlightRanges.append(closeRange)
     }
 
     needsDisplay = true
@@ -223,20 +244,27 @@ final class EditorLineNumberRulerView: NSRulerView {
     ]
 
     let origin = tv.textContainerOrigin
-    let docNSString = tv.string as NSString
+    let docNSString: NSString = {
+      if let ts = tv.textStorage { return ts.string as NSString }
+      return tv.string as NSString
+    }()
     let insertion = tv.selectedRange().location
     let activeLogicalLine: Int = {
       guard docNSString.length > 0 else { return 1 }
       let anchor = min(max(0, insertion), max(0, docNSString.length - 1))
-      return tv.string.logicalLineNumber(utf16Offset: anchor)
+      return docNSString.logicalLineNumber(forUTF16Offset: anchor)
     }()
 
+    // Per-fragment line number must come from the character index at the start of each fragment.
+    // Incremental counting across fragments is unsafe: when a newline sits inside one fragment and
+    // the next fragment starts exactly at `NSMaxRange` of the previous, the UTF-16 "gap" is empty
+    // but the logical line advances — incremental updates would miss that and show `1` for every row.
     lm.enumerateLineFragments(forGlyphRange: glyphRange) { _, usedRect, _, fragGlyphRange, _ in
       let charIdx = lm.characterIndexForGlyph(at: fragGlyphRange.location)
-      let lineNumber = tv.string.logicalLineNumber(utf16Offset: charIdx)
+      let lineNumber = docNSString.logicalLineNumber(forUTF16Offset: charIdx)
       // `usedRect` is in text-container coordinates; `textContainerOrigin` maps into the text view (includes inset).
       let rectInTextView = usedRect.offsetBy(dx: origin.x, dy: origin.y)
-      let midInTextView = NSPoint(x: NSMidX(rectInTextView), y: NSMidY(rectInTextView))
+      let midInTextView = NSPoint(x: rectInTextView.midX, y: rectInTextView.midY)
       let midInRuler = self.convert(midInTextView, from: tv)
       // `usedRect.height` reflects paragraph `lineSpacing`; keeps gutter bands aligned with text lines.
       let lineHeight = max(usedRect.height, lm.defaultLineHeight(for: tv.font ?? EditorCodeTypography.bodyFont))
