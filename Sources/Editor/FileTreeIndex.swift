@@ -19,13 +19,21 @@ private struct FileTreeSearchCatalogEntry: Sendable {
 
 private enum FileTreeDirectoryScanner {
   /// `nil` means the directory could not be read (IO/permission); do not cache as an empty listing.
-  nonisolated static func scan(path: String, fileManager: FileManager) -> [FileTreeScannedEntry]? {
+  nonisolated static func scan(
+    path: String,
+    fileManager: FileManager,
+    includeHiddenEntries: Bool = false
+  ) -> [FileTreeScannedEntry]? {
     let rootURL = URL(fileURLWithPath: path, isDirectory: true)
+    var options: FileManager.DirectoryEnumerationOptions = []
+    if !includeHiddenEntries {
+      options.insert(.skipsHiddenFiles)
+    }
     guard
       let values = try? fileManager.contentsOfDirectory(
         at: rootURL,
         includingPropertiesForKeys: [.isDirectoryKey],
-        options: [.skipsHiddenFiles]
+        options: options
       )
     else {
       return nil
@@ -101,7 +109,10 @@ private enum FileTreeSearchScanner {
   }
 
   nonisolated static func normalizeForSearch(_ value: String) -> String {
-    value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+    value.folding(
+      options: [.caseInsensitive, .diacriticInsensitive],
+      locale: Locale(identifier: "en_US_POSIX")
+    )
   }
 
   nonisolated static func relativePath(fromRoot root: String, absolutePath: String) -> String {
@@ -126,12 +137,12 @@ private enum FileTreeSearchScanner {
   nonisolated static func gitIgnoredRelativePaths(
     rootPath: String,
     relativePaths: [String]
-  ) -> Set<String> {
+  ) async -> Set<String> {
     guard !relativePaths.isEmpty else { return [] }
 
     let uniqueRelativePaths = Array(Set(relativePaths))
     if uniqueRelativePaths.count <= gitIgnoreChunkSize {
-      return gitIgnoredRelativePathsChunk(rootPath: rootPath, relativePaths: uniqueRelativePaths)
+      return await gitIgnoredRelativePathsChunk(rootPath: rootPath, relativePaths: uniqueRelativePaths)
     }
 
     var ignored: Set<String> = []
@@ -142,7 +153,9 @@ private enum FileTreeSearchScanner {
       if Task.isCancelled { break }
       let end = min(start + gitIgnoreChunkSize, uniqueRelativePaths.count)
       let chunk = Array(uniqueRelativePaths[start..<end])
-      ignored.formUnion(gitIgnoredRelativePathsChunk(rootPath: rootPath, relativePaths: chunk))
+      ignored.formUnion(
+        await gitIgnoredRelativePathsChunk(rootPath: rootPath, relativePaths: chunk)
+      )
       start = end
     }
     return ignored
@@ -151,7 +164,7 @@ private enum FileTreeSearchScanner {
   nonisolated private static func gitIgnoredRelativePathsChunk(
     rootPath: String,
     relativePaths: [String]
-  ) -> Set<String> {
+  ) async -> Set<String> {
     guard !relativePaths.isEmpty else { return [] }
 
     let process = Process()
@@ -171,12 +184,23 @@ private enum FileTreeSearchScanner {
     }
 
     let payload = relativePaths.joined(separator: "\u{0}") + "\u{0}"
-    if let data = payload.data(using: .utf8) {
-      stdinPipe.fileHandleForWriting.write(data)
-    }
-    stdinPipe.fileHandleForWriting.closeFile()
+    let stdinWrite = stdinPipe.fileHandleForWriting
+    let stdoutRead = stdoutPipe.fileHandleForReading
 
-    let data = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+    let data = await withTaskCancellationHandler {
+      await Task.detached {
+        if let data = payload.data(using: .utf8) {
+          try? stdinWrite.write(contentsOf: data)
+        }
+        try? stdinWrite.close()
+        return (try? stdoutRead.readToEnd()) ?? Data()
+      }.value
+    } onCancel: {
+      process.terminate()
+      try? stdinWrite.close()
+      try? stdoutRead.close()
+    }
+
     process.waitUntilExit()
 
     guard process.terminationStatus == 0 || process.terminationStatus == 1 else {
@@ -249,6 +273,8 @@ final class FileTreeIndex {
   private let rootPath: String
   private let fileManager: FileManager
   private var childCache: [String: [Node]] = [:]
+  /// Must match how `childCache[path]` was produced (`FileTreeDirectoryScanner` hidden flag).
+  private var childCacheListingIncludesHidden: [String: Bool] = [:]
   private var contentGeneration: UInt = 0
   private var loadingPaths: Set<String> = []
   private var childrenDidChangeHandler: (() -> Void)?
@@ -318,13 +344,19 @@ final class FileTreeIndex {
   func scheduleLoadChildren(
     for path: String,
     priority: TaskPriority = .utility,
-    shouldPrefetchChildren: Bool = true
+    shouldPrefetchChildren: Bool = true,
+    includeHiddenEntries: Bool = false
   ) {
     if let cached = childCache[path] {
-      if shouldPrefetchChildren {
-        prefetchLikelyChildDirectories(from: cached)
+      let modeMatches = childCacheListingIncludesHidden[path] == includeHiddenEntries
+      if modeMatches {
+        if shouldPrefetchChildren {
+          prefetchLikelyChildDirectories(from: cached, includeHiddenEntries: includeHiddenEntries)
+        }
+        return
       }
-      return
+      childCache.removeValue(forKey: path)
+      childCacheListingIncludesHidden.removeValue(forKey: path)
     }
     if loadingPaths.contains(path) { return }
     loadingPaths.insert(path)
@@ -332,7 +364,11 @@ final class FileTreeIndex {
     let capturedPath = path
     let fm = fileManager
     Task.detached(priority: priority) {
-      let scanned = FileTreeDirectoryScanner.scan(path: capturedPath, fileManager: fm)
+      let scanned = FileTreeDirectoryScanner.scan(
+        path: capturedPath,
+        fileManager: fm,
+        includeHiddenEntries: includeHiddenEntries
+      )
       await MainActor.run { [weak self] in
         guard let self else { return }
         guard generation == self.contentGeneration else {
@@ -352,22 +388,28 @@ final class FileTreeIndex {
           )
         }
         self.childCache[capturedPath] = nodes
+        self.childCacheListingIncludesHidden[capturedPath] = includeHiddenEntries
         self.loadingPaths.remove(capturedPath)
         if shouldPrefetchChildren {
-          self.prefetchLikelyChildDirectories(from: nodes)
+          self.prefetchLikelyChildDirectories(from: nodes, includeHiddenEntries: includeHiddenEntries)
         }
         self.childrenDidChangeHandler?()
       }
     }
   }
 
-  private func prefetchLikelyChildDirectories(from nodes: [Node]) {
+  private func prefetchLikelyChildDirectories(from nodes: [Node], includeHiddenEntries: Bool) {
     var scheduledCount = 0
     for node in nodes where node.isDirectory {
       if scheduledCount >= prefetchChildDirectoryLimit { break }
       if childCache[node.path] != nil || loadingPaths.contains(node.path) { continue }
       scheduledCount += 1
-      scheduleLoadChildren(for: node.path, priority: .utility, shouldPrefetchChildren: false)
+      scheduleLoadChildren(
+        for: node.path,
+        priority: .utility,
+        shouldPrefetchChildren: false,
+        includeHiddenEntries: includeHiddenEntries
+      )
     }
   }
 
@@ -407,8 +449,8 @@ final class FileTreeIndex {
     let normalizedNeedle = FileTreeSearchScanner.normalizeForSearch(trimmed)
     let ignoreCacheSnapshot = gitIgnoreCacheByRelativePath
     let capturedRootPath = rootPath
-    let computationTask = Task.detached(priority: .userInitiated) {
-      Self.computeSearchMatches(
+    let computationTask = Task(priority: .userInitiated) {
+      await Self.computeSearchMatches(
         from: catalog.entries,
         needle: normalizedNeedle,
         limit: boundedLimit,
@@ -476,7 +518,7 @@ final class FileTreeIndex {
     options: SearchOptions,
     rootPath: String,
     gitIgnoreCache: [String: Bool]
-  ) -> SearchComputation {
+  ) async -> SearchComputation {
     guard !entries.isEmpty else {
       return SearchComputation(
         matches: [], newlyIgnoredRelativePaths: [], newlyVisibleRelativePaths: [])
@@ -512,7 +554,7 @@ final class FileTreeIndex {
     let ignoredFromGit: Set<String> =
       unknownRelativePaths.isEmpty
       ? []
-      : FileTreeSearchScanner.gitIgnoredRelativePaths(
+      : await FileTreeSearchScanner.gitIgnoredRelativePaths(
         rootPath: rootPath,
         relativePaths: Array(unknownRelativePaths)
       )
@@ -585,6 +627,7 @@ final class FileTreeIndex {
   private func invalidateAll() {
     contentGeneration += 1
     childCache.removeAll()
+    childCacheListingIncludesHidden.removeAll()
     loadingPaths.removeAll()
     searchCatalogBuildTask?.cancel()
     searchCatalogBuildTask = nil
