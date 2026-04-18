@@ -342,10 +342,17 @@ final class FileTreeIndexTests: XCTestCase {
   }
 
   @MainActor
-  private func loadChildrenAndWait(_ index: FileTreeIndex, path: String) async throws
-    -> [FileTreeIndex.Node]
-  {
-    index.scheduleLoadChildren(for: path)
+  private func loadChildrenAndWait(
+    _ index: FileTreeIndex,
+    path: String,
+    priority: TaskPriority = .utility,
+    shouldPrefetchChildren: Bool = true
+  ) async throws -> [FileTreeIndex.Node] {
+    index.scheduleLoadChildren(
+      for: path,
+      priority: priority,
+      shouldPrefetchChildren: shouldPrefetchChildren
+    )
     return try await waitForChildrenCached(index, path: path)
   }
 
