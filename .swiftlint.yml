@@ -1,0 +1,15 @@
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - vendor
+
+only_rules:
+  - todo
+  - unused_optional_binding
+  - unused_import
+  - duplicate_imports
+  - orphaned_doc_comment
+  - force_try
+  - force_cast
