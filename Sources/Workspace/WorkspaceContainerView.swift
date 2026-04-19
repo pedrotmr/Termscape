@@ -184,15 +184,13 @@ struct WorkspaceContainerView: View {
 
         if orientation == .horizontal {
             if beforeSnapshot.panes.count == 2 {
-                let isTargetInsideHorizontalContext: Bool
-                if let targetPaneId {
-                    isTargetInsideHorizontalContext =
-                        HorizontalPaneSizingEngine.targetPaneHasHorizontalAncestor(
-                            in: beforeTree,
-                            paneId: targetPaneId.id.uuidString
-                        )
+                let isTargetInsideHorizontalContext: Bool = if let targetPaneId {
+                    HorizontalPaneSizingEngine.targetPaneHasHorizontalAncestor(
+                        in: beforeTree,
+                        paneId: targetPaneId.id.uuidString
+                    )
                 } else {
-                    isTargetInsideHorizontalContext = HorizontalPaneSizingEngine.containsHorizontalSplit(
+                    HorizontalPaneSizingEngine.containsHorizontalSplit(
                         in: beforeTree
                     )
                 }
@@ -219,16 +217,13 @@ struct WorkspaceContainerView: View {
                     }
                 }
             } else {
-                let shouldUseLocalFirstHorizontalBehavior: Bool
-                if let targetPaneId {
-                    shouldUseLocalFirstHorizontalBehavior =
-                        !HorizontalPaneSizingEngine.targetPaneHasHorizontalAncestor(
-                            in: beforeTree,
-                            paneId: targetPaneId.id.uuidString
-                        )
+                let shouldUseLocalFirstHorizontalBehavior: Bool = if let targetPaneId {
+                    !HorizontalPaneSizingEngine.targetPaneHasHorizontalAncestor(
+                        in: beforeTree,
+                        paneId: targetPaneId.id.uuidString
+                    )
                 } else {
-                    shouldUseLocalFirstHorizontalBehavior =
-                        !HorizontalPaneSizingEngine.containsHorizontalSplit(in: beforeTree)
+                    !HorizontalPaneSizingEngine.containsHorizontalSplit(in: beforeTree)
                 }
 
                 if shouldUseLocalFirstHorizontalBehavior {

@@ -1,0 +1,36 @@
+name: Format and Lint
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: format-lint-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: SwiftFormat and SwiftLint
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          lfs: true
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
+        with:
+          xcode-version: "16"
+
+      - name: SwiftFormat
+        run: |
+          bash Scripts/ci/bootstrap-tooling.sh
+          export PATH="${GITHUB_WORKSPACE}/build/ci-tools/bin:${PATH}"
+          swiftformat Sources Tests --lint
+
+      - name: SwiftLint
+        run: |
+          export PATH="${GITHUB_WORKSPACE}/build/ci-tools/bin:${PATH}"
+          swiftlint lint

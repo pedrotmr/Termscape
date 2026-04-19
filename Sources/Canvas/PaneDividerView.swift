@@ -77,11 +77,10 @@ final class PaneDividerView: NSView {
         guard let startPoint = dragStartPointInParent else { return }
         let currentPoint = dragPoint(inParentFor: event)
 
-        let deltaPixels: CGFloat
-        if orientation == .horizontal {
-            deltaPixels = currentPoint.x - startPoint.x
+        let deltaPixels: CGFloat = if orientation == .horizontal {
+            currentPoint.x - startPoint.x
         } else {
-            deltaPixels = currentPoint.y - startPoint.y
+            currentPoint.y - startPoint.y
         }
         if !hasDragMovement, abs(deltaPixels) >= 1 {
             hasDragMovement = true
@@ -134,9 +133,9 @@ final class PaneDividerView: NSView {
     private func scheduleDeferredPressFocus() {
         deferredPressFocus?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
-            guard let self, self.isTrackingPointer, !self.hasDragMovement else { return }
-            self.didDispatchPressFocus = true
-            self.onPressFocus?(self.interactionFocusSide)
+            guard let self, isTrackingPointer, !self.hasDragMovement else { return }
+            didDispatchPressFocus = true
+            onPressFocus?(interactionFocusSide)
         }
         deferredPressFocus = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.06, execute: workItem)

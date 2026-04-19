@@ -88,7 +88,7 @@ struct WorkspaceRowView: View {
             }
             .buttonStyle(.plain)
 
-            if isHovered && !isRenaming {
+            if isHovered, !isRenaming {
                 Button {
                     appState.removeWorkspace(workspace, from: group)
                 } label: {

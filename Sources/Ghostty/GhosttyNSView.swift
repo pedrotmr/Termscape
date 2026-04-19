@@ -217,14 +217,14 @@ final class GhosttyNSView: NSView, NSTextInputClient {
         keyEvent.unshifted_codepoint = 0
 
         // Determine if modifier was pressed or released
-        let flag: NSEvent.ModifierFlags
-        switch event.keyCode {
-        case 56, 60: flag = .shift // left/right shift
-        case 59, 62: flag = .control // left/right control
-        case 58, 61: flag = .option // left/right option
-        case 55, 54: flag = .command // left/right command
-        default: flag = []
+        let flag: NSEvent.ModifierFlags? = switch event.keyCode {
+        case 56, 60: .shift // left/right shift
+        case 59, 62: .control // left/right control
+        case 58, 61: .option // left/right option
+        case 55, 54: .command // left/right command
+        default: nil
         }
+        guard let flag else { return }
         keyEvent.action = event.modifierFlags.contains(flag) ? GHOSTTY_ACTION_PRESS : GHOSTTY_ACTION_RELEASE
         _ = ghostty_surface_key(surface, keyEvent)
     }

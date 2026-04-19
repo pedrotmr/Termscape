@@ -1,0 +1,33 @@
+name: Test
+
+on:
+  pull_request:
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          lfs: true
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
+        with:
+          xcode-version: "16"
+
+      - name: Unit tests
+        run: |
+          xcodebuild \
+            -project Termscape.xcodeproj \
+            -scheme Termscape \
+            -configuration Debug \
+            -destination "platform=macOS" \
+            -derivedDataPath "${GITHUB_WORKSPACE}/build/DerivedData" \
+            test

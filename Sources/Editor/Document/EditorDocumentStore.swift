@@ -16,11 +16,11 @@ enum EditorDocumentOpenError: Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .notAFile(url):
-            return "Not a regular file: \(url.path)"
+            "Not a regular file: \(url.path)"
         case let .unreadableUTF8(url):
-            return "File is not valid UTF-8 text: \(url.path)"
+            "File is not valid UTF-8 text: \(url.path)"
         case let .fileNotFound(url):
-            return "File not found: \(url.path)"
+            "File not found: \(url.path)"
         }
     }
 }
@@ -34,13 +34,13 @@ enum EditorDocumentSaveError: Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .conflict(c):
-            return "The file changed on disk: \(c.fileURL.lastPathComponent)"
+            "The file changed on disk: \(c.fileURL.lastPathComponent)"
         case let .unreadableUTF8(url):
-            return "Could not read UTF-8 from disk: \(url.path)"
+            "Could not read UTF-8 from disk: \(url.path)"
         case let .fileNotFound(url):
-            return "File disappeared before save: \(url.path)"
+            "File disappeared before save: \(url.path)"
         case let .writeFailed(url, underlying):
-            return "Could not write \(url.path): \(underlying)"
+            "Could not write \(url.path): \(underlying)"
         }
     }
 }

@@ -252,9 +252,9 @@ final class GhosttyCallbackContext: @unchecked Sendable {
 enum GhosttyClipboard {
     static func pasteboard(for location: ghostty_clipboard_e) -> NSPasteboard? {
         switch location {
-        case GHOSTTY_CLIPBOARD_STANDARD: return .general
-        case GHOSTTY_CLIPBOARD_SELECTION: return NSPasteboard(name: .init("Selection"))
-        default: return .general
+        case GHOSTTY_CLIPBOARD_STANDARD: .general
+        case GHOSTTY_CLIPBOARD_SELECTION: NSPasteboard(name: .init("Selection"))
+        default: .general
         }
     }
 
