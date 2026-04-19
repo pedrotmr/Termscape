@@ -49,3 +49,6 @@ Icon
 
 # Omx
 .omx/
+
+# Githooks
+.githooks/

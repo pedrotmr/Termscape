@@ -120,3 +120,28 @@ final class CanvasScrollView: NSScrollView {
         }
     }
 }
+
+extension NSView {
+    /// Walks superviews to find the horizontal workspace canvas scroll view (if any).
+    func enclosingTermscapeCanvasScrollView() -> CanvasScrollView? {
+        var view: NSView? = self
+        while let v = view {
+            if let canvas = v as? CanvasScrollView { return canvas }
+            view = v.superview
+        }
+        return nil
+    }
+}
+
+extension NSEvent {
+    /// Trackpad sideways or Shift+vertical wheel interpreted as horizontal workspace pan; `nil` for normal scrolling.
+    func termscape_workspaceHorizontalPanScrollingDelta() -> CGFloat? {
+        let dx = CGFloat(scrollingDeltaX)
+        let dy = CGFloat(scrollingDeltaY)
+        let horizontalPrimary = abs(dx) >= abs(dy) && abs(dx) > 0.01
+        let shiftVertical = modifierFlags.contains(.shift) && abs(dy) > 0.01 && !horizontalPrimary
+        if horizontalPrimary { return dx }
+        if shiftVertical { return dy }
+        return nil
+    }
+}

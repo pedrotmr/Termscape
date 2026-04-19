@@ -14,7 +14,6 @@ private enum EditorCodeTypography {
         let p = NSMutableParagraphStyle()
         p.lineSpacing = bodyLineSpacing
         p.paragraphSpacing = 0
-        p.lineBreakMode = .byCharWrapping
         return p
     }
 
@@ -314,12 +313,13 @@ struct EditorCodeTextView: NSViewRepresentable {
         let scroll = NSScrollView()
         scroll.drawsBackground = false
         scroll.hasVerticalScroller = true
-        scroll.hasHorizontalScroller = false
+        scroll.hasHorizontalScroller = true
         scroll.autohidesScrollers = true
         scroll.borderType = .noBorder
         scroll.clipsToBounds = true
         scroll.contentView.clipsToBounds = true
         scroll.focusRingType = .none
+        EditorCanvasScrollForwarder.tagCodeScrollView(scroll)
 
         let tv = EditorSourceTextView()
         tv.clipsToBounds = true
@@ -337,11 +337,11 @@ struct EditorCodeTextView: NSViewRepresentable {
         tv.allowsUndo = true
         tv.textContainerInset = EditorCodeTypography.textContainerInset
         tv.isVerticallyResizable = true
-        tv.isHorizontallyResizable = false
-        tv.autoresizingMask = [.width]
-        tv.textContainer?.widthTracksTextView = true
+        tv.isHorizontallyResizable = true
+        tv.autoresizingMask = [.height]
+        tv.textContainer?.widthTracksTextView = false
         tv.textContainer?.containerSize = NSSize(
-            width: scroll.contentSize.width,
+            width: CGFloat.greatestFiniteMagnitude,
             height: CGFloat.greatestFiniteMagnitude
         )
         tv.minSize = NSSize(width: 0, height: 0)
@@ -394,10 +394,6 @@ struct EditorCodeTextView: NSViewRepresentable {
         tv.isEditable = isEditable
         tv.refreshAuxiliaryHighlights()
         scroll.verticalRulerView?.needsDisplay = true
-
-        if let w = scroll.window?.contentView?.bounds.width, w > 0 {
-            tv.textContainer?.containerSize = NSSize(width: max(200, scroll.contentSize.width), height: CGFloat.greatestFiniteMagnitude)
-        }
     }
 
     static func dismantleNSView(_: NSScrollView, coordinator: Coordinator) {

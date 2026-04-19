@@ -371,41 +371,22 @@ final class GhosttyNSView: NSView, NSTextInputClient {
 
     override func scrollWheel(with event: NSEvent) {
         guard let surface = terminalSurface?.surface else { return }
-        let x = Double(event.scrollingDeltaX)
-        let y = Double(event.scrollingDeltaY)
 
         // Route predominantly horizontal (or Shift+vertical) scroll to the termscape canvas so it can pan
         // when the document is wider than the viewport. Otherwise the inner terminal eats all deltas.
-        let dx = CGFloat(x)
-        let dy = CGFloat(y)
-        let horizontalPrimary = abs(dx) >= abs(dy) && abs(dx) > 0.01
-        let shiftVertical = event.modifierFlags.contains(.shift) && abs(dy) > 0.01 && !horizontalPrimary
-
         if let canvas = enclosingTermscapeCanvasScrollView(),
-           canvas.documentCanvasView.frame.width > canvas.documentVisibleRect.width + 0.5
+           canvas.documentCanvasView.frame.width > canvas.documentVisibleRect.width + 0.5,
+           let panDelta = event.termscape_workspaceHorizontalPanScrollingDelta()
         {
             // Negate so Shift+scroll down pans left (matches typical macOS horizontal-scroll expectation).
-            if horizontalPrimary {
-                canvas.applyHorizontalScrollDelta(-dx)
-                return
-            }
-            if shiftVertical {
-                canvas.applyHorizontalScrollDelta(-dy)
-                return
-            }
+            canvas.applyHorizontalScrollDelta(-panDelta)
+            return
         }
 
+        let x = Double(event.scrollingDeltaX)
+        let y = Double(event.scrollingDeltaY)
         let mods = modsFromEvent(event)
         ghostty_surface_mouse_scroll(surface, x, y, ghostty_input_scroll_mods_t(mods.rawValue))
-    }
-
-    private func enclosingTermscapeCanvasScrollView() -> CanvasScrollView? {
-        var view: NSView? = self
-        while let v = view {
-            if let canvas = v as? CanvasScrollView { return canvas }
-            view = v.superview
-        }
-        return nil
     }
 
     // MARK: - Helpers
