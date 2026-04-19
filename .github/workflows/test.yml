@@ -1,18 +1,15 @@
-name: CI
+name: Test
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: test-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Format, Lint, Test
+  test:
+    name: Unit Tests
     runs-on: macos-15
     steps:
       - name: Checkout
@@ -24,17 +21,6 @@ jobs:
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
           xcode-version: "16"
-
-      - name: SwiftFormat
-        run: |
-          bash Scripts/ci/bootstrap-tooling.sh
-          export PATH="${GITHUB_WORKSPACE}/build/ci-tools/bin:${PATH}"
-          swiftformat Sources Tests --lint
-
-      - name: SwiftLint
-        run: |
-          export PATH="${GITHUB_WORKSPACE}/build/ci-tools/bin:${PATH}"
-          swiftlint lint
 
       - name: Unit tests
         run: |
