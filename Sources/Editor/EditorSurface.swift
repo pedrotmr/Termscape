@@ -11,9 +11,9 @@ private enum EditorPaneAlert: Identifiable, Equatable {
 
     var id: String {
         switch self {
-        case let .closeDirty(id, _): return "close-\(id.uuidString)"
-        case let .saveConflict(id, _, close): return "conflict-\(id.uuidString)-\(close)"
-        case let .userMessage(title, detail): return "msg-\(title)-\(detail.hashValue)"
+        case let .closeDirty(id, _): "close-\(id.uuidString)"
+        case let .saveConflict(id, _, close): "conflict-\(id.uuidString)-\(close)"
+        case let .userMessage(title, detail): "msg-\(title)-\(detail.hashValue)"
         }
     }
 }
@@ -99,7 +99,7 @@ final class EditorSurface {
         viewModel.onOpenTerminalHere = { [weak self] in self?.onOpenTerminalHere?() }
         viewModel.onShowDiagnostics = { [weak self] in
             guard let self else { return }
-            self.onShowDiagnostics?(self.diagnosticsText)
+            onShowDiagnostics?(diagnosticsText)
         }
     }
 
@@ -303,14 +303,14 @@ private struct SidebarSearchTreeRowView: View {
     }
 
     private static func labelColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
-        if dimmed && !isSelected && !isHovered { return EditorIDEChrome.treeDimmed }
+        if dimmed, !isSelected, !isHovered { return EditorIDEChrome.treeDimmed }
         if isSelected { return EditorIDEChrome.text }
         if isHovered { return EditorIDEChrome.breadcrumbHoverMuted }
         return EditorIDEChrome.muted
     }
 
     private static func iconColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
-        if dimmed && !isSelected && !isHovered { return EditorIDEChrome.treeDimmed }
+        if dimmed, !isSelected, !isHovered { return EditorIDEChrome.treeDimmed }
         if isSelected { return EditorIDEChrome.text.opacity(0.88) }
         if isHovered { return EditorIDEChrome.breadcrumbHoverMuted.opacity(0.95) }
         return EditorIDEChrome.muted.opacity(0.92)
@@ -421,10 +421,10 @@ struct EditorSurfaceRootView: View {
 
     private var editorAlertTitle: String {
         switch model.pendingAlert {
-        case .closeDirty: return "Save changes?"
-        case .saveConflict: return "File changed on disk"
-        case let .userMessage(title, _): return title
-        case .none: return ""
+        case .closeDirty: "Save changes?"
+        case .saveConflict: "File changed on disk"
+        case let .userMessage(title, _): title
+        case .none: ""
         }
     }
 
@@ -598,11 +598,11 @@ struct EditorSurfaceRootView: View {
     private var sidebarPlaceholderMessage: String {
         switch model.editorState {
         case .initializing:
-            return "Loading this folder…"
+            "Loading this folder…"
         case .ready:
-            return "File tree unavailable."
+            "File tree unavailable."
         case .unavailableRoot, .initFailed:
-            return "Open a valid folder to browse files."
+            "Open a valid folder to browse files."
         }
     }
 
@@ -1144,14 +1144,14 @@ struct EditorSurfaceRootView: View {
 
     /// Sidebar tree labels: breadcrumb-like muted idle, brighten on hover; selected file = full text. Same weight always.
     private func treeRowLabelColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
-        if dimmed && !isSelected && !isHovered { return EditorIDEChrome.treeDimmed }
+        if dimmed, !isSelected, !isHovered { return EditorIDEChrome.treeDimmed }
         if isSelected { return EditorIDEChrome.text }
         if isHovered { return EditorIDEChrome.breadcrumbHoverMuted }
         return EditorIDEChrome.muted
     }
 
     private func treeRowIconColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
-        if dimmed && !isSelected && !isHovered { return EditorIDEChrome.treeDimmed }
+        if dimmed, !isSelected, !isHovered { return EditorIDEChrome.treeDimmed }
         if isSelected { return EditorIDEChrome.text.opacity(0.88) }
         if isHovered { return EditorIDEChrome.breadcrumbHoverMuted.opacity(0.95) }
         return EditorIDEChrome.muted.opacity(0.92)

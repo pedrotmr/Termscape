@@ -10,22 +10,22 @@ enum WorkspacePaneContentKind: String, Codable {
     var defaultTitle: String {
         switch self {
         case .terminal:
-            return "Terminal"
+            "Terminal"
         case .browser:
-            return "Browser"
+            "Browser"
         case .editor:
-            return "Editor"
+            "Editor"
         }
     }
 
     var defaultIcon: String {
         switch self {
         case .terminal:
-            return "terminal"
+            "terminal"
         case .browser:
-            return "globe"
+            "globe"
         case .editor:
-            return "chevron.left.forwardslash.chevron.right"
+            "chevron.left.forwardslash.chevron.right"
         }
     }
 }
@@ -285,17 +285,16 @@ final class WorkspaceTab: ObservableObject, Identifiable {
             return kind
         }
 
-        let resolvedKind: WorkspacePaneContentKind
-        if let fallbackPaneId,
-           let paneUUID = UUID(uuidString: fallbackPaneId),
-           let selected = bonsplitController.selectedTab(inPane: PaneID(id: paneUUID)),
-           selected.id.uuid == tabUUID,
-           let kindRaw = selected.kind,
-           let parsed = WorkspacePaneContentKind(rawValue: kindRaw)
+        let resolvedKind: WorkspacePaneContentKind = if let fallbackPaneId,
+                                                        let paneUUID = UUID(uuidString: fallbackPaneId),
+                                                        let selected = bonsplitController.selectedTab(inPane: PaneID(id: paneUUID)),
+                                                        selected.id.uuid == tabUUID,
+                                                        let kindRaw = selected.kind,
+                                                        let parsed = WorkspacePaneContentKind(rawValue: kindRaw)
         {
-            resolvedKind = parsed
+            parsed
         } else {
-            resolvedKind = .terminal
+            .terminal
         }
 
         paneContentKindByTabId[tabUUID] = resolvedKind
@@ -494,9 +493,9 @@ final class WorkspaceTab: ObservableObject, Identifiable {
     private static func collectTabUUIDs(from node: ExternalTreeNode) -> [String] {
         switch node {
         case let .pane(pane):
-            return pane.tabs.map(\.id)
+            pane.tabs.map(\.id)
         case let .split(split):
-            return collectTabUUIDs(from: split.first) + collectTabUUIDs(from: split.second)
+            collectTabUUIDs(from: split.first) + collectTabUUIDs(from: split.second)
         }
     }
 }

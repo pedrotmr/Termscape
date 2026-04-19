@@ -127,11 +127,10 @@ final class CanvasDocumentView: NSView {
 
         // Partition the inner layout rect with the same rounded edges as `computeDividers`, so every
         // split gets exactly `interPaneGutter` (horizontal vs vertical splits stay visually consistent).
-        let displayFrames: [String: CGRect]
-        if snapshot.panes.count <= 1, let only = snapshot.panes.first {
-            displayFrames = [only.paneId: innerLayoutRegion]
+        let displayFrames: [String: CGRect] = if snapshot.panes.count <= 1, let only = snapshot.panes.first {
+            [only.paneId: innerLayoutRegion]
         } else {
-            displayFrames = paneFramesWithInterPaneGutters(
+            paneFramesWithInterPaneGutters(
                 from: tree,
                 region: innerLayoutRegion,
                 gutter: CanvasPaneChrome.interPaneGutter
@@ -170,10 +169,10 @@ final class CanvasDocumentView: NSView {
                     }
                     hostedView.surfaceView.onContextMenu = { [weak self, weak tab] event in
                         guard let self, let tab else { return }
-                        self.contextMenuTab = tab
-                        self.contextMenuCanClear = true
+                        contextMenuTab = tab
+                        contextMenuCanClear = true
                         NSMenu.popUpContextMenu(
-                            self.buildContextMenu(
+                            buildContextMenu(
                                 isMultiPane: isMultiPane,
                                 canClear: true,
                                 canMoveToNewTab: !(snapshot.panes.count == 1 && tab.isPinned)
@@ -220,10 +219,10 @@ final class CanvasDocumentView: NSView {
                     }
                     surface.onContextMenu = { [weak self, weak tab] event in
                         guard let self, let tab else { return }
-                        self.contextMenuTab = tab
-                        self.contextMenuCanClear = false
+                        contextMenuTab = tab
+                        contextMenuCanClear = false
                         NSMenu.popUpContextMenu(
-                            self.buildContextMenu(
+                            buildContextMenu(
                                 isMultiPane: isMultiPane,
                                 canClear: false,
                                 canMoveToNewTab: !(snapshot.panes.count == 1 && tab.isPinned)
@@ -271,10 +270,10 @@ final class CanvasDocumentView: NSView {
                     }
                     surface.onContextMenu = { [weak self, weak tab] event in
                         guard let self, let tab else { return }
-                        self.contextMenuTab = tab
-                        self.contextMenuCanClear = false
+                        contextMenuTab = tab
+                        contextMenuCanClear = false
                         NSMenu.popUpContextMenu(
-                            self.buildContextMenu(
+                            buildContextMenu(
                                 isMultiPane: isMultiPane,
                                 canClear: false,
                                 canMoveToNewTab: !(snapshot.panes.count == 1 && tab.isPinned)
@@ -540,13 +539,11 @@ final class CanvasDocumentView: NSView {
         guard !targetPaneIds.isEmpty else { return }
 
         let snapshot = tab.bonsplitController.layoutSnapshot()
-        let targetPaneId: String?
-        if let focusedPaneId = snapshot.focusedPaneId, targetPaneIds.contains(focusedPaneId) {
-            targetPaneId = focusedPaneId
+        let targetPaneId: String? = if let focusedPaneId = snapshot.focusedPaneId, targetPaneIds.contains(focusedPaneId) {
+            focusedPaneId
         } else {
-            targetPaneId =
-                snapshot.panes.first(where: { targetPaneIds.contains($0.paneId) })?.paneId
-                    ?? targetPaneIds.sorted().first
+            snapshot.panes.first(where: { targetPaneIds.contains($0.paneId) })?.paneId
+                ?? targetPaneIds.sorted().first
         }
 
         guard let targetPaneId,
@@ -656,13 +653,11 @@ final class CanvasDocumentView: NSView {
         guard !targetPaneIds.isEmpty else { return }
 
         let snapshot = tab.bonsplitController.layoutSnapshot()
-        let targetPaneId: String?
-        if let focusedPaneId = snapshot.focusedPaneId, targetPaneIds.contains(focusedPaneId) {
-            targetPaneId = focusedPaneId
+        let targetPaneId: String? = if let focusedPaneId = snapshot.focusedPaneId, targetPaneIds.contains(focusedPaneId) {
+            focusedPaneId
         } else {
-            targetPaneId =
-                snapshot.panes.first(where: { targetPaneIds.contains($0.paneId) })?.paneId
-                    ?? targetPaneIds.sorted().last
+            snapshot.panes.first(where: { targetPaneIds.contains($0.paneId) })?.paneId
+                ?? targetPaneIds.sorted().last
         }
 
         guard let targetPaneId,

@@ -21,9 +21,9 @@ enum HorizontalPaneSizingEngine {
     static func paneIDs(in node: ExternalTreeNode) -> Set<String> {
         switch node {
         case let .pane(pane):
-            return [pane.id]
+            [pane.id]
         case let .split(split):
-            return paneIDs(in: split.first).union(paneIDs(in: split.second))
+            paneIDs(in: split.first).union(paneIDs(in: split.second))
         }
     }
 
