@@ -24,13 +24,5 @@ jobs:
         with:
           xcode-version: "16"
 
-      - name: SwiftFormat
-        run: |
-          bash Scripts/ci/bootstrap-tooling.sh
-          export PATH="${GITHUB_WORKSPACE}/build/ci-tools/bin:${PATH}"
-          swiftformat Sources Tests --lint
-
-      - name: SwiftLint
-        run: |
-          export PATH="${GITHUB_WORKSPACE}/build/ci-tools/bin:${PATH}"
-          swiftlint lint
+      - name: Format and Lint
+        run: bash Scripts/ci/format-lint.sh
