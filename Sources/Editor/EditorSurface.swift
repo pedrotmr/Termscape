@@ -407,7 +407,7 @@ struct EditorSurfaceRootView: View {
     @State private var sidebarSearchTask: Task<Void, Never>?
     @State private var sidebarSearchRequestToken: UInt = 0
     @State private var sidebarSearchInFlight = false
-    @State private var sidebarSearchIncludeHiddenEntries = false
+    @State private var sidebarSearchIncludeHiddenEntries = true
     @State private var sidebarSearchIncludeGitIgnoredEntries = false
     @State private var sidebarSearchScopePopoverPresented = false
 
@@ -451,8 +451,7 @@ struct EditorSurfaceRootView: View {
     }
 
     private var hasNonDefaultSidebarSearchScope: Bool {
-        sidebarSearchIncludeHiddenEntries
-            || sidebarSearchIncludeGitIgnoredEntries
+        !sidebarSearchIncludeHiddenEntries || sidebarSearchIncludeGitIgnoredEntries
     }
 
     /// Editor UI is visible but `ensureInitialized` has not run yet (pane not focused in AppKit).
