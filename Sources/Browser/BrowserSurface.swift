@@ -159,37 +159,16 @@ final class FocusableWKWebView: WKWebView {
     }
 
     override func scrollWheel(with event: NSEvent) {
-        let dx = event.scrollingDeltaX
-        let dy = event.scrollingDeltaY
-        let horizontalPrimary = abs(dx) >= abs(dy) && abs(dx) > 0.01
-        let shiftVertical = event.modifierFlags.contains(.shift) && abs(dy) > 0.01 && !horizontalPrimary
-
         if let canvas = enclosingTermscapeCanvasScrollView(),
-           canvas.documentCanvasView.frame.width > canvas.documentVisibleRect.width + 0.5
+           canvas.documentCanvasView.frame.width > canvas.documentVisibleRect.width + 0.5,
+           let panDelta = event.termscape_workspaceHorizontalPanScrollingDelta()
         {
             // Mirror terminal behavior: horizontal gestures pan the workspace canvas, not the web content.
-            if horizontalPrimary {
-                canvas.applyHorizontalScrollDelta(-dx)
-                return
-            }
-            if shiftVertical {
-                canvas.applyHorizontalScrollDelta(-dy)
-                return
-            }
+            canvas.applyHorizontalScrollDelta(-panDelta)
+            return
         }
 
         super.scrollWheel(with: event)
-    }
-
-    private func enclosingTermscapeCanvasScrollView() -> CanvasScrollView? {
-        var view: NSView? = self
-        while let v = view {
-            if let canvas = v as? CanvasScrollView {
-                return canvas
-            }
-            view = v.superview
-        }
-        return nil
     }
 }
 

@@ -33,6 +33,18 @@ struct WorkspaceContainerView: View {
                         newTab.setPendingEditorRootIfNoSurface(root, for: TabID(uuid: firstTabUUID))
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .closeTab)) { _ in
+                        let snapshot = tab.bonsplitController.layoutSnapshot()
+                        if tab.focusedPaneContentKind(snapshot: snapshot) == .editor,
+                           let focusedPaneId = snapshot.focusedPaneId,
+                           let pane = snapshot.panes.first(where: { $0.paneId == focusedPaneId }),
+                           let selectedTabIdStr = pane.selectedTabId,
+                           let bonsplitTabUUID = UUID(uuidString: selectedTabIdStr),
+                           let editor = tab.editorSurfaces[bonsplitTabUUID],
+                           editor.requestSmartCloseRightmostDocumentTab()
+                        {
+                            return
+                        }
+
                         // If this tab has multiple panes, Cmd+W closes the focused pane.
                         // Only close the whole tab when it's down to a single pane.
                         if tab.bonsplitController.allPaneIds.count > 1,

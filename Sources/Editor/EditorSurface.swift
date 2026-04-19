@@ -87,6 +87,7 @@ final class EditorSurface {
         let vm = EditorSurfaceViewModel(standardizedRootPath: standardized)
         viewModel = vm
         hostedView = NSHostingView(rootView: EditorSurfaceRootView(model: vm))
+        EditorCanvasScrollForwarder.track(hostedView)
         wireViewModelCallbacks()
         syncFileTreeToViewModel()
     }
@@ -103,6 +104,15 @@ final class EditorSurface {
             guard let self else { return }
             onShowDiagnostics?(diagnosticsText)
         }
+    }
+
+    /// Cmd+W while this editor’s pane is focused: close the rightmost document tab (LIFO — last opened closes first).
+    /// - Returns: `true` if this request owns the shortcut (do not close pane/workspace tab yet).
+    func requestSmartCloseRightmostDocumentTab() -> Bool {
+        guard viewModel.editorState == .ready else { return false }
+        guard let id = viewModel.documentTabs.last?.id else { return false }
+        viewModel.requestCloseTab(id: id)
+        return true
     }
 
     private func setPaneState(_ newState: State) {
@@ -156,6 +166,7 @@ final class EditorSurface {
     }
 
     func teardown() {
+        EditorCanvasScrollForwarder.untrack(hostedView)
         if let index = fileTreeIndex {
             index.setChildrenDidChangeHandler(nil)
             index.removeInvalidationObserver(id: id)
@@ -1769,10 +1780,27 @@ private extension EditorSurfaceViewModel {
     }
 
     private func closeTabDiscardingBuffer(id: UUID) {
+        let tabsBefore = documentTabs
+        let oldIndex = tabsBefore.firstIndex(where: { $0.id == id })
+        let oldSelected = selectedDocumentId
+
         documentStore.closeBuffer(id: id)
         syncTabsFromStore()
-        if selectedDocumentId == id {
-            selectedDocumentId = documentTabs.first?.id
+
+        if documentTabs.isEmpty {
+            selectedDocumentId = nil
+            return
+        }
+
+        guard let oldIndex else { return }
+
+        // Only move selection when the closed buffer was the active document.
+        if oldSelected == id {
+            if oldIndex == tabsBefore.count - 1 {
+                selectedDocumentId = documentTabs.last?.id
+            } else {
+                selectedDocumentId = documentTabs[oldIndex].id
+            }
         }
     }
 
