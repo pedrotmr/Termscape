@@ -7,6 +7,9 @@ cd "${ROOT}"
 bash "${ROOT}/Scripts/ci/bootstrap-tooling.sh"
 export PATH="${ROOT}/build/ci-tools/bin:${PATH}"
 
+DERIVED_DATA="${ROOT}/build/DerivedData"
+mkdir -p "${DERIVED_DATA}"
+
 echo "== swiftformat (lint) =="
 swiftformat Sources Tests --lint
 
@@ -19,4 +22,5 @@ xcodebuild \
   -scheme Termscape \
   -configuration Debug \
   -destination "platform=macOS" \
+  -derivedDataPath "${DERIVED_DATA}" \
   test
