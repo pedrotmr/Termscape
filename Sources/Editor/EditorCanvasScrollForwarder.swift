@@ -2,29 +2,24 @@ import AppKit
 
 /// Routes horizontal trackpad / Shift+vertical wheel on editor panes: chrome → workspace canvas;
 /// the code `NSScrollView` keeps horizontal deltas when the document is wider than the viewport.
+@MainActor
 enum EditorCanvasScrollForwarder {
-    private static let codeScrollIdentifier = NSUserInterfaceItemIdentifier("termscape.editor.sourceScrollView")
-
-    static func tagCodeScrollView(_ scroll: NSScrollView) {
-        scroll.identifier = codeScrollIdentifier
-    }
-
     private final class WeakBox {
         weak var view: NSView?
-        init(_ view: NSView) { self.view = view }
+        init(_ view: NSView) {
+            self.view = view
+        }
     }
 
     private static var tracked: [WeakBox] = []
     private static var monitor: Any?
 
     static func track(_ hostingView: NSView) {
-        assert(Thread.isMainThread)
         tracked.append(WeakBox(hostingView))
         installMonitorIfNeeded()
     }
 
     static func untrack(_ hostingView: NSView) {
-        assert(Thread.isMainThread)
         tracked.removeAll { $0.view === hostingView || $0.view == nil }
         removeMonitorIfIdle()
     }
@@ -32,7 +27,9 @@ enum EditorCanvasScrollForwarder {
     private static func installMonitorIfNeeded() {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
-            handleScrollEvent(event)
+            MainActor.assumeIsolated {
+                handleScrollEvent(event)
+            }
         }
     }
 
@@ -53,7 +50,10 @@ enum EditorCanvasScrollForwarder {
         guard let panDelta = event.termscape_workspaceHorizontalPanScrollingDelta() else { return event }
 
         compactTracked()
-        guard !tracked.isEmpty else { return event }
+        guard !tracked.isEmpty else {
+            removeMonitorIfIdle()
+            return event
+        }
 
         let locationInWindow = event.locationInWindow
 
@@ -66,16 +66,8 @@ enum EditorCanvasScrollForwarder {
                   canvas.documentCanvasView.frame.width > canvas.documentVisibleRect.width + 0.5
             else { continue }
 
-            if let codeScroll = findTaggedCodeScrollView(in: host) {
-                let ptInCode = codeScroll.convert(locationInWindow, from: nil)
-                if codeScroll.bounds.contains(ptInCode) {
-                    let docWidth = codeScroll.documentView?.bounds.width ?? 0
-                    let visibleW = codeScroll.contentView.bounds.width
-                    let editorNeedsHorizontal = docWidth > visibleW + 0.5
-                    if editorNeedsHorizontal {
-                        return event
-                    }
-                }
+            if horizontalScrollViewClaimingWheel(at: locationInWindow, in: host) != nil {
+                return event
             }
 
             canvas.applyHorizontalScrollDelta(-panDelta)
@@ -85,14 +77,23 @@ enum EditorCanvasScrollForwarder {
         return event
     }
 
-    private static func findTaggedCodeScrollView(in root: NSView) -> NSScrollView? {
-        var stack: [NSView] = [root]
-        while let v = stack.popLast() {
-            if let scroll = v as? NSScrollView, scroll.identifier == codeScrollIdentifier {
+    /// First `NSScrollView` in the hit-test chain under `host` whose document is wider than the clip (code area, tab strip, breadcrumbs, etc.).
+    private static func horizontalScrollViewClaimingWheel(at locationInWindow: CGPoint, in host: NSView) -> NSScrollView? {
+        let p = host.convert(locationInWindow, from: nil)
+        guard host.bounds.contains(p) else { return nil }
+        var view: NSView? = host.hitTest(p)
+        while let v = view, v !== host {
+            if let scroll = v as? NSScrollView, scrollViewWantsHorizontalWheel(scroll) {
                 return scroll
             }
-            stack.append(contentsOf: v.subviews)
+            view = v.superview
         }
         return nil
+    }
+
+    private static func scrollViewWantsHorizontalWheel(_ scroll: NSScrollView) -> Bool {
+        let docW = scroll.documentView?.bounds.width ?? 0
+        let visibleW = scroll.contentView.bounds.width
+        return docW > visibleW + 0.5
     }
 }

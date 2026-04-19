@@ -319,7 +319,6 @@ struct EditorCodeTextView: NSViewRepresentable {
         scroll.clipsToBounds = true
         scroll.contentView.clipsToBounds = true
         scroll.focusRingType = .none
-        EditorCanvasScrollForwarder.tagCodeScrollView(scroll)
 
         let tv = EditorSourceTextView()
         tv.clipsToBounds = true
