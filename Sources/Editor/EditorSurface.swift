@@ -87,6 +87,7 @@ final class EditorSurface {
         let vm = EditorSurfaceViewModel(standardizedRootPath: standardized)
         viewModel = vm
         hostedView = NSHostingView(rootView: EditorSurfaceRootView(model: vm))
+        EditorCanvasScrollForwarder.track(hostedView)
         wireViewModelCallbacks()
         syncFileTreeToViewModel()
     }
@@ -165,6 +166,7 @@ final class EditorSurface {
     }
 
     func teardown() {
+        EditorCanvasScrollForwarder.untrack(hostedView)
         if let index = fileTreeIndex {
             index.setChildrenDidChangeHandler(nil)
             index.removeInvalidationObserver(id: id)

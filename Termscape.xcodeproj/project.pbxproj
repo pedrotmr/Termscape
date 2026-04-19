@@ -31,6 +31,7 @@
 		8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D13644947346C5C3B6824FE /* GhosttyApp.swift */; };
 		91A95B45D79D5332ABCDBFE7 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40BBEA2DF39DEE65354CC615 /* Carbon.framework */; };
 		92D82089611E60F0D5B9F2B2 /* BrowserSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7F44744BDDA3921B7EA0E4 /* BrowserSurface.swift */; };
+		976E0E48CBC0C64134E37C64 /* HorizontalResizeDivider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F853A83253EFF52A90C26D6 /* HorizontalResizeDivider.swift */; };
 		9F0E2BFDD3710439BDD4F582 /* EditorSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 302DCA5B1F5E47F86106FFE1 /* EditorSurface.swift */; };
 		A281C9EF6A66477745FE7D94 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDB98A780A647FB766C3C871 /* IOKit.framework */; };
 		A455E4D9B7AC72FDF38F977B /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D7D60369E322A18AEA2A1F /* ThemeManager.swift */; };
@@ -51,9 +52,9 @@
 		EB7CADE425DAF9E7F92DB400 /* PaneDividerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48594151CBFD24181532EB5E /* PaneDividerView.swift */; };
 		ECE95BA7DB8C782A576A96BA /* EditorRootContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4C047FCDA4785B60AF2CF8 /* EditorRootContract.swift */; };
 		F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5A15956DECE42BC68D182 /* Extensions.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* HorizontalResizeDivider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D7 /* HorizontalResizeDivider.swift */; };
 		F89EF1EBE20F292B042B4B8B /* EditorDocumentStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6A6528C46D2BB8E5DC0AC7B /* EditorDocumentStoreTests.swift */; };
 		F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E8F106CF15C9B926366D86 /* CanvasDocumentView.swift */; };
+		FE2D905F18F7FF911895C8F8 /* EditorCanvasScrollForwarder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A06E154067F501C8512079D /* EditorCanvasScrollForwarder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +71,7 @@
 		0B7F44744BDDA3921B7EA0E4 /* BrowserSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserSurface.swift; sourceTree = "<group>"; };
 		14A723DB6DA209EA9255384D /* EditorCodeTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorCodeTextView.swift; sourceTree = "<group>"; };
 		1874CAFE46683ABFBF03FA05 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		1F853A83253EFF52A90C26D6 /* HorizontalResizeDivider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalResizeDivider.swift; sourceTree = "<group>"; };
 		261561B96E12B36929EF6FA5 /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
 		2BC22503F07454B1D3B8181E /* FileTreeIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTreeIndex.swift; sourceTree = "<group>"; };
 		2E620B88920BF3FEC0CF27BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -84,6 +86,7 @@
 		612B700BB644C942EA3F2EB3 /* CanvasScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasScrollView.swift; sourceTree = "<group>"; };
 		6154D233FD80A8532C48D13B /* Group.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
 		6236364EBF9FBCBABD6B4991 /* GhosttySurfaceScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttySurfaceScrollView.swift; sourceTree = "<group>"; };
+		6A06E154067F501C8512079D /* EditorCanvasScrollForwarder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorCanvasScrollForwarder.swift; sourceTree = "<group>"; };
 		6D13644947346C5C3B6824FE /* GhosttyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyApp.swift; sourceTree = "<group>"; };
 		71FDDA40E9167FCA2B07A49D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		74D7D60369E322A18AEA2A1F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
@@ -97,7 +100,6 @@
 		A978683BBD9E259E5D3F7546 /* TerminalSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurface.swift; sourceTree = "<group>"; };
 		B30FED21AA1C9FB54E59D51A /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = GhosttyKit.xcframework; path = Resources/GhosttyKit.xcframework; sourceTree = "<group>"; };
 		B3D5A15956DECE42BC68D182 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
-		B2C3D4E5F60718293A4B5C6D7 /* HorizontalResizeDivider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalResizeDivider.swift; sourceTree = "<group>"; };
 		BDB19A51E82EF41BDEBE2E6E /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		C332B2614A4DA5CF398B0077 /* TermscapeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermscapeApp.swift; sourceTree = "<group>"; };
 		CBED15E036B70096FCF5B1A8 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
@@ -206,7 +208,7 @@
 			children = (
 				1874CAFE46683ABFBF03FA05 /* AppTheme.swift */,
 				B3D5A15956DECE42BC68D182 /* Extensions.swift */,
-				B2C3D4E5F60718293A4B5C6D7 /* HorizontalResizeDivider.swift */,
+				1F853A83253EFF52A90C26D6 /* HorizontalResizeDivider.swift */,
 				74D7D60369E322A18AEA2A1F /* ThemeManager.swift */,
 			);
 			path = Shared;
@@ -319,6 +321,7 @@
 			isa = PBXGroup;
 			children = (
 				6C10D6978DB0135EE88B15DE /* Document */,
+				6A06E154067F501C8512079D /* EditorCanvasScrollForwarder.swift */,
 				14A723DB6DA209EA9255384D /* EditorCodeTextView.swift */,
 				7D4C047FCDA4785B60AF2CF8 /* EditorRootContract.swift */,
 				302DCA5B1F5E47F86106FFE1 /* EditorSurface.swift */,
@@ -468,13 +471,13 @@
 				F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */,
 				B5496ECAF40081BD5375BCB1 /* CanvasHostingView.swift in Sources */,
 				7B10CB53D1B2501FDEC7601A /* CanvasScrollView.swift in Sources */,
+				FE2D905F18F7FF911895C8F8 /* EditorCanvasScrollForwarder.swift in Sources */,
 				2EC5C6354C2628CDD33033FF /* EditorCodeTextView.swift in Sources */,
 				71D07461B7A5E2D193894499 /* EditorDocumentStore.swift in Sources */,
 				ECE95BA7DB8C782A576A96BA /* EditorRootContract.swift in Sources */,
 				9F0E2BFDD3710439BDD4F582 /* EditorSurface.swift in Sources */,
 				F26A9A9871D3CFEF5B4F02F1 /* Extensions.swift in Sources */,
 				E08DA3AA2BBF2D6956659B52 /* FileTreeIndex.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5C /* HorizontalResizeDivider.swift in Sources */,
 				8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */,
 				7D6081722E151B340D1D4103 /* GhosttyNSView.swift in Sources */,
 				14274E56A429DD44CEC3B341 /* GhosttySurfaceScrollView.swift in Sources */,
@@ -482,6 +485,7 @@
 				A56FDF195CBDFD989D590227 /* Group.swift in Sources */,
 				C48E523E7A43B6C64861501A /* GroupRowView.swift in Sources */,
 				81285CE453E1FCD649984304 /* HorizontalPaneSizingEngine.swift in Sources */,
+				976E0E48CBC0C64134E37C64 /* HorizontalResizeDivider.swift in Sources */,
 				EB7CADE425DAF9E7F92DB400 /* PaneDividerView.swift in Sources */,
 				DB05AB6321B71628FA374250 /* PaneLayoutEngine.swift in Sources */,
 				82AB12FA9FDF7A82442EA627 /* SettingsView.swift in Sources */,
