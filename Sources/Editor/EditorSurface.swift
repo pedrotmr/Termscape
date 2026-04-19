@@ -24,6 +24,8 @@ private enum EditorPaneAlert: Identifiable, Equatable {
 private final class EditorSurfaceViewModel: ObservableObject {
     let standardizedRootPath: String
     @Published var editorState: EditorSurface.State = .initializing
+    /// `false` until `EditorSurface.ensureInitialized()` runs (first AppKit focus of this pane). Drives idle copy instead of fake “loading”.
+    @Published var hasStartedEditorBootstrap = false
     @Published var fileTreeIndex: FileTreeIndex?
     /// Bumped only when the shared index clears its cache (watcher / invalidation). Drives `LazyVStack` `.id`
     /// and rescheduling loads for expanded folders — not per-directory async loads.
@@ -104,6 +106,15 @@ final class EditorSurface {
         }
     }
 
+    /// Cmd+W while this editor’s pane is focused: close the rightmost document tab (LIFO — last opened closes first).
+    /// - Returns: `true` if this request owns the shortcut (do not close pane/workspace tab yet).
+    func requestSmartCloseRightmostDocumentTab() -> Bool {
+        guard viewModel.editorState == .ready else { return false }
+        guard let id = viewModel.documentTabs.last?.id else { return false }
+        viewModel.requestCloseTab(id: id)
+        return true
+    }
+
     private func setPaneState(_ newState: State) {
         viewModel.editorState = newState
         syncFileTreeToViewModel()
@@ -116,6 +127,7 @@ final class EditorSurface {
     func ensureInitialized() {
         guard !didAttemptInitialization else { return }
         didAttemptInitialization = true
+        viewModel.hasStartedEditorBootstrap = true
         retryInitialization()
     }
 
@@ -173,8 +185,8 @@ final class EditorSurface {
 
 private enum EditorIDEChrome {
     static let canvas = Color(red: 0.07, green: 0.07, blue: 0.08)
-    /// Sidebar sits one step above the main canvas so the file column reads as its own surface.
-    static let sidebar = Color(red: 0.095, green: 0.096, blue: 0.102)
+    /// Intentionally matches `canvas` so the file column and editor read as one surface (divider + chrome provide structure).
+    static let sidebar = Color(red: 0.07, green: 0.07, blue: 0.08)
     static let tabInactive = Color(red: 0.11, green: 0.11, blue: 0.12)
     static let tabActive = Color(red: 0.15, green: 0.15, blue: 0.16)
     /// Inactive tab hover — visibly softer than `tabActive` so selection stays strongest.
@@ -236,8 +248,12 @@ private struct SidebarSearchTreeRowView: View {
             selectedFilePath.map { $0 == path } ?? false
         let isHovered = hoveredPath == node.path
         let isDimmed = node.isDirectory && !node.isSearchMatch
-        let labelColor = Self.labelColor(isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed)
-        let iconColor = Self.iconColor(isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed)
+        let labelColor = Self.labelColor(
+            isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed
+        )
+        let iconColor = Self.iconColor(
+            isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed
+        )
         let disclosureTint: Color =
             (isDimmed && !isHovered)
                 ? EditorIDEChrome.treeDimmed
@@ -450,12 +466,110 @@ struct EditorSurfaceRootView: View {
             || sidebarSearchIncludeGitIgnoredEntries
     }
 
+    /// Editor UI is visible but `ensureInitialized` has not run yet (pane not focused in AppKit).
+    private var editorIsIdleAwaitingBootstrap: Bool {
+        model.editorState == .initializing && !model.hasStartedEditorBootstrap
+    }
+
+    /// `retryInitialization` is running after the first focus hand-off.
+    private var editorIsBootstrapping: Bool {
+        model.editorState == .initializing && model.hasStartedEditorBootstrap
+    }
+
     var body: some View {
+        editorChromeStack
+            .contentShape(Rectangle())
+            .onTapGesture { model.onFocus() }
+            .background(EditorContextMenuBridge(onContextMenu: model.onContextMenu))
+            .onAppear {
+                if !didSeedRootExpansion {
+                    expandedPaths.insert(standardizedRoot)
+                    didSeedRootExpansion = true
+                    scheduleRootTreeLoadIfReady()
+                }
+                rebuildBreadcrumbItems()
+                scheduleSidebarSearchIfNeeded()
+            }
+            .onChange(of: model.editorState) { _, new in
+                guard new == .ready else { return }
+                model.seedInitialDocumentsIfNeeded()
+                scheduleRootTreeLoadIfReady()
+                scheduleSidebarSearchIfNeeded()
+            }
+            .onChange(of: model.treeCacheInvalidationEpoch) { _, _ in
+                treeExpandedLoadRescheduleToken &+= 1
+                let token = treeExpandedLoadRescheduleToken
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(48))
+                    guard token == treeExpandedLoadRescheduleToken else { return }
+                    rescheduleTreeLoadsForExpandedFolders()
+                    if isSidebarSearchActive {
+                        scheduleSidebarSearchIfNeeded()
+                    }
+                }
+            }
+            .onChange(of: breadcrumbRefreshToken) { _, _ in
+                rebuildBreadcrumbItems()
+            }
+            .onChange(of: model.sidebarSearchText) { _, _ in
+                scheduleSidebarSearchIfNeeded()
+            }
+            .onChange(of: sidebarSearchIncludeHiddenEntries) { _, _ in
+                scheduleSidebarSearchIfNeeded()
+            }
+            .onChange(of: sidebarSearchIncludeGitIgnoredEntries) { _, _ in
+                scheduleSidebarSearchIfNeeded()
+            }
+            .onDisappear {
+                sidebarSearchTask?.cancel()
+                sidebarSearchTask = nil
+                sidebarSearchInFlight = false
+            }
+            .alert(
+                Text(editorAlertTitle),
+                isPresented: Binding(
+                    get: { model.pendingAlert != nil },
+                    set: { if !$0 { model.cancelPendingAlert() } }
+                ),
+                presenting: model.pendingAlert
+            ) { alert in
+                switch alert {
+                case let .closeDirty(id, _):
+                    Button("Save") { Task { await model.saveAndCloseTab(id: id) } }
+                    Button("Don’t Save", role: .destructive) { model.discardAndCloseTab(id: id) }
+                    Button("Cancel", role: .cancel) { model.cancelPendingAlert() }
+                case let .saveConflict(id, _, closeAfter):
+                    Button("Reload from Disk", role: .destructive) {
+                        model.resolveConflictReloadFromDisk(documentId: id, closeAfterResolve: closeAfter)
+                    }
+                    Button("Overwrite") {
+                        Task {
+                            await model.resolveConflictOverwrite(documentId: id, closeAfterResolve: closeAfter)
+                        }
+                    }
+                    Button("Cancel", role: .cancel) { model.cancelPendingAlert() }
+                case .userMessage:
+                    Button("OK", role: .cancel) { model.cancelPendingAlert() }
+                }
+            } message: { alert in
+                switch alert {
+                case let .closeDirty(_, title):
+                    Text("You have unsaved changes in “\(title)”.")
+                case let .saveConflict(_, preview, _):
+                    Text("Disk contents:\n\n\(preview)")
+                case let .userMessage(_, detail):
+                    Text(detail)
+                }
+            }
+    }
+
+    private var editorChromeStack: some View {
         ZStack {
             EditorIDEChrome.canvas
-            HStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 0) {
                 fileTreePanel
-                    .frame(width: fileSidebarWidth)
+                    .frame(width: fileSidebarWidth, alignment: .topLeading)
+                    .frame(maxHeight: .infinity, alignment: .topLeading)
                     .background(EditorIDEChrome.sidebar)
                 HorizontalResizeDivider(
                     width: $fileSidebarWidth,
@@ -468,99 +582,16 @@ struct EditorSurfaceRootView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture { model.onFocus() }
-        .background(EditorContextMenuBridge(onContextMenu: model.onContextMenu))
-        .onAppear {
-            if !didSeedRootExpansion {
-                expandedPaths.insert(standardizedRoot)
-                didSeedRootExpansion = true
-                scheduleRootTreeLoadIfReady()
-            }
-            rebuildBreadcrumbItems()
-            scheduleSidebarSearchIfNeeded()
-        }
-        .onChange(of: model.editorState) { _, new in
-            guard new == .ready else { return }
-            model.seedInitialDocumentsIfNeeded()
-            scheduleRootTreeLoadIfReady()
-            scheduleSidebarSearchIfNeeded()
-        }
-        .onChange(of: model.treeCacheInvalidationEpoch) { _, _ in
-            treeExpandedLoadRescheduleToken &+= 1
-            let token = treeExpandedLoadRescheduleToken
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(48))
-                guard token == treeExpandedLoadRescheduleToken else { return }
-                rescheduleTreeLoadsForExpandedFolders()
-                if isSidebarSearchActive {
-                    scheduleSidebarSearchIfNeeded()
-                }
-            }
-        }
-        .onChange(of: breadcrumbRefreshToken) { _, _ in
-            rebuildBreadcrumbItems()
-        }
-        .onChange(of: model.sidebarSearchText) { _, _ in
-            scheduleSidebarSearchIfNeeded()
-        }
-        .onChange(of: sidebarSearchIncludeHiddenEntries) { _, _ in
-            scheduleSidebarSearchIfNeeded()
-        }
-        .onChange(of: sidebarSearchIncludeGitIgnoredEntries) { _, _ in
-            scheduleSidebarSearchIfNeeded()
-        }
-        .onDisappear {
-            sidebarSearchTask?.cancel()
-            sidebarSearchTask = nil
-            sidebarSearchInFlight = false
-        }
-        .alert(
-            Text(editorAlertTitle),
-            isPresented: Binding(
-                get: { model.pendingAlert != nil },
-                set: { if !$0 { model.cancelPendingAlert() } }
-            ),
-            presenting: model.pendingAlert
-        ) { alert in
-            switch alert {
-            case let .closeDirty(id, _):
-                Button("Save") { Task { await model.saveAndCloseTab(id: id) } }
-                Button("Don’t Save", role: .destructive) { model.discardAndCloseTab(id: id) }
-                Button("Cancel", role: .cancel) { model.cancelPendingAlert() }
-            case let .saveConflict(id, _, closeAfter):
-                Button("Reload from Disk", role: .destructive) {
-                    model.resolveConflictReloadFromDisk(documentId: id, closeAfterResolve: closeAfter)
-                }
-                Button("Overwrite") {
-                    Task { await model.resolveConflictOverwrite(documentId: id, closeAfterResolve: closeAfter) }
-                }
-                Button("Cancel", role: .cancel) { model.cancelPendingAlert() }
-            case .userMessage:
-                Button("OK", role: .cancel) { model.cancelPendingAlert() }
-            }
-        } message: { alert in
-            switch alert {
-            case let .closeDirty(_, title):
-                Text("You have unsaved changes in “\(title)”.")
-            case let .saveConflict(_, preview, _):
-                Text("Disk contents:\n\n\(preview)")
-            case let .userMessage(_, detail):
-                Text(detail)
-            }
-        }
     }
 
     // MARK: Sidebar
 
     private var fileTreePanel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                sidebarSearchField
-            }
-            .padding(.horizontal, EditorIDEChrome.sidebarHeaderPaddingH)
-            .padding(.top, EditorIDEChrome.sidebarHeaderPaddingTop)
-            .padding(.bottom, EditorIDEChrome.sidebarHeaderPaddingBottom)
+            sidebarSearchField
+                .padding(.horizontal, EditorIDEChrome.sidebarHeaderPaddingH)
+                .padding(.top, EditorIDEChrome.sidebarHeaderPaddingTop)
+                .padding(.bottom, EditorIDEChrome.sidebarHeaderPaddingBottom)
 
             if model.editorState == .ready, model.fileTreeIndex != nil {
                 if isSidebarSearchActive {
@@ -587,20 +618,50 @@ struct EditorSurfaceRootView: View {
                     }
                 }
             } else {
-                Text(sidebarPlaceholderMessage)
-                    .font(.system(size: 12))
-                    .foregroundStyle(EditorIDEChrome.muted)
-                    .lineSpacing(2)
-                    .padding(.horizontal, EditorIDEChrome.treeEdgeInset + 2)
-                    .padding(.top, 4)
+                sidebarPlaceholderBlock
             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var sidebarPlaceholderBlock: some View {
+        HStack(alignment: .top, spacing: 8) {
+            sidebarPlaceholderLeadingGlyph
+                .padding(.top, 1)
+            Text(sidebarPlaceholderMessage)
+                .font(.system(size: 12))
+                .foregroundStyle(EditorIDEChrome.muted)
+                .lineSpacing(2)
+                .multilineTextAlignment(.leading)
+        }
+        .padding(.horizontal, EditorIDEChrome.sidebarHeaderPaddingH)
+        .padding(.top, 2)
+    }
+
+    @ViewBuilder
+    private var sidebarPlaceholderLeadingGlyph: some View {
+        switch model.editorState {
+        case .initializing:
+            if editorIsBootstrapping {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(EditorIDEChrome.muted.opacity(0.9))
+            } else {
+                Image(systemName: "hand.tap")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(EditorIDEChrome.muted.opacity(0.95))
+            }
+        case .ready, .unavailableRoot, .initFailed:
+            EmptyView()
         }
     }
 
     private var sidebarPlaceholderMessage: String {
         switch model.editorState {
         case .initializing:
-            "Loading this folder…"
+            editorIsIdleAwaitingBootstrap
+                ? "Focus this editor (click the pane) to load the file tree."
+                : "Loading this folder…"
         case .ready:
             "File tree unavailable."
         case .unavailableRoot, .initFailed:
@@ -801,14 +862,46 @@ struct EditorSurfaceRootView: View {
     }
 
     private var loadingMainColumn: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("Preparing this editor pane…", systemImage: "hourglass")
-                .font(.system(size: 12))
-                .foregroundStyle(EditorIDEChrome.muted)
-                .padding(20)
-            Spacer()
+        Group {
+            if editorIsIdleAwaitingBootstrap {
+                editorIdleMainColumn
+            } else {
+                HStack(alignment: .center, spacing: 10) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(EditorIDEChrome.muted.opacity(0.9))
+                    Text("Opening this editor…")
+                        .font(.system(size: 12))
+                        .foregroundStyle(EditorIDEChrome.muted)
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, EditorIDEChrome.sidebarHeaderPaddingH)
+        .padding(.top, EditorIDEChrome.sidebarHeaderPaddingTop + 5)
+    }
+
+    private var editorIdleMainColumn: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label {
+                Text("Editor idle")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(EditorIDEChrome.text.opacity(0.9))
+            } icon: {
+                Image(systemName: "hand.tap")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(EditorIDEChrome.muted.opacity(0.95))
+            }
+            Text(
+                "This pane does not load your folder or open files until it is focused. "
+                    + "Click anywhere here, or select this pane, to start the editor."
+            )
+            .font(.system(size: 12))
+            .foregroundStyle(EditorIDEChrome.muted)
+            .lineSpacing(3)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: 420, alignment: .leading)
     }
 
     private var readyMainColumn: some View {
@@ -1471,7 +1564,9 @@ struct EditorSurfaceRootView: View {
     }
 
     /// Expands every ancestor from workspace root through `directoryPath` and loads directory listings.
-    private func revealDirectoryChain(endingAt directoryPath: String, includeHiddenEntries: Bool = false) {
+    private func revealDirectoryChain(
+        endingAt directoryPath: String, includeHiddenEntries: Bool = false
+    ) {
         let root = standardizedRoot
         var target = URL(fileURLWithPath: directoryPath, isDirectory: true).standardizedFileURL.path
         if !isDirectoryPath(target) {
@@ -1606,13 +1701,9 @@ private extension EditorSurfaceViewModel {
         } catch let save as EditorDocumentSaveError {
             switch save {
             case let .conflict(c):
-                let preview =
-                    c.diskText.count > 1200
-                        ? String(c.diskText.prefix(1200)) + "…"
-                        : c.diskText
                 pendingAlert = .saveConflict(
                     documentId: id,
-                    diskPreview: preview,
+                    diskPreview: saveConflictDiskPreview(c.diskText),
                     closeAfterResolve: conflictClosesTab
                 )
             default:
@@ -1667,13 +1758,9 @@ private extension EditorSurfaceViewModel {
         } catch let save as EditorDocumentSaveError {
             switch save {
             case let .conflict(c):
-                let preview =
-                    c.diskText.count > 1200
-                        ? String(c.diskText.prefix(1200)) + "…"
-                        : c.diskText
                 pendingAlert = .saveConflict(
                     documentId: id,
-                    diskPreview: preview,
+                    diskPreview: saveConflictDiskPreview(c.diskText),
                     closeAfterResolve: true
                 )
             default:
@@ -1694,11 +1781,32 @@ private extension EditorSurfaceViewModel {
     }
 
     private func closeTabDiscardingBuffer(id: UUID) {
+        let tabsBefore = documentTabs
+        let oldIndex = tabsBefore.firstIndex(where: { $0.id == id })
+        let oldSelected = selectedDocumentId
+
         documentStore.closeBuffer(id: id)
         syncTabsFromStore()
-        if selectedDocumentId == id {
-            selectedDocumentId = documentTabs.first?.id
+
+        if documentTabs.isEmpty {
+            selectedDocumentId = nil
+            return
         }
+
+        guard let oldIndex else { return }
+
+        // Only move selection when the closed buffer was the active document.
+        if oldSelected == id {
+            if oldIndex == tabsBefore.count - 1 {
+                selectedDocumentId = documentTabs.last?.id
+            } else {
+                selectedDocumentId = documentTabs[oldIndex].id
+            }
+        }
+    }
+
+    private func saveConflictDiskPreview(_ diskText: String) -> String {
+        diskText.count > 1200 ? String(diskText.prefix(1200)) + "…" : diskText
     }
 }
 

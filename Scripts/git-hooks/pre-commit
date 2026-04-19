@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+echo "termscape pre-commit: formatting Sources/Tests…" >&2
+
+export PATH="${ROOT}/build/ci-tools/bin:${PATH}"
+
+for cmd in swiftformat swiftlint; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "error: ${cmd} not in PATH. Install pinned versions with:" >&2
+    echo "  bash Scripts/ci/bootstrap-tooling.sh" >&2
+    exit 1
+  fi
+done
+
+# Do not use `set -e` between fix and format: SwiftLint may exit non-zero
+# while still applying fixes (or with remaining warnings).
+swiftlint lint --fix || true
+swiftformat .
+
+# Stage everything under app dirs that the tools may touch (tracked + new).
+# Relies on GIT_INDEX_FILE when Git uses a temporary index (e.g. partial commits).
+git add -A -- Sources Tests
+
+swiftlint lint
