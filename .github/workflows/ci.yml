@@ -24,11 +24,9 @@ jobs:
         with:
           xcode-version: "16"
 
-      - name: Install SwiftFormat and SwiftLint
-        run: bash Scripts/ci/bootstrap-tooling.sh
-
       - name: SwiftFormat (lint)
         run: |
+          bash Scripts/ci/bootstrap-tooling.sh
           export PATH="${GITHUB_WORKSPACE}/build/ci-tools/bin:${PATH}"
           swiftformat Sources Tests --lint
 
