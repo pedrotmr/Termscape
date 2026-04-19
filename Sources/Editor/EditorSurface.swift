@@ -103,6 +103,15 @@ final class EditorSurface {
         }
     }
 
+    /// Cmd+W while this editor’s pane is focused: close the rightmost document tab (LIFO — last opened closes first).
+    /// - Returns: `true` if this request owns the shortcut (do not close pane/workspace tab yet).
+    func requestSmartCloseRightmostDocumentTab() -> Bool {
+        guard viewModel.editorState == .ready else { return false }
+        guard let id = viewModel.documentTabs.last?.id else { return false }
+        viewModel.requestCloseTab(id: id)
+        return true
+    }
+
     private func setPaneState(_ newState: State) {
         viewModel.editorState = newState
         syncFileTreeToViewModel()
@@ -1692,10 +1701,29 @@ private extension EditorSurfaceViewModel {
     }
 
     private func closeTabDiscardingBuffer(id: UUID) {
+        let tabsBefore = documentTabs
+        let oldIndex = tabsBefore.firstIndex(where: { $0.id == id })
+        let oldSelected = selectedDocumentId
+
         documentStore.closeBuffer(id: id)
         syncTabsFromStore()
-        if selectedDocumentId == id {
-            selectedDocumentId = documentTabs.first?.id
+
+        if documentTabs.isEmpty {
+            selectedDocumentId = nil
+            return
+        }
+
+        guard let oldIndex else { return }
+
+        // Closing the strip’s right edge (⌘W LIFO): always focus the new trailing tab.
+        if oldIndex == tabsBefore.count - 1 {
+            selectedDocumentId = documentTabs.last?.id
+            return
+        }
+
+        // Closing elsewhere while that tab was selected: focus what was immediately to its right.
+        if oldSelected == id {
+            selectedDocumentId = documentTabs[oldIndex].id
         }
     }
 }
