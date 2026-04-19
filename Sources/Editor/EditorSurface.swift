@@ -1715,15 +1715,13 @@ private extension EditorSurfaceViewModel {
 
         guard let oldIndex else { return }
 
-        // Closing the strip’s right edge (⌘W LIFO): always focus the new trailing tab.
-        if oldIndex == tabsBefore.count - 1 {
-            selectedDocumentId = documentTabs.last?.id
-            return
-        }
-
-        // Closing elsewhere while that tab was selected: focus what was immediately to its right.
+        // Only move selection when the closed buffer was the active document.
         if oldSelected == id {
-            selectedDocumentId = documentTabs[oldIndex].id
+            if oldIndex == tabsBefore.count - 1 {
+                selectedDocumentId = documentTabs.last?.id
+            } else {
+                selectedDocumentId = documentTabs[oldIndex].id
+            }
         }
     }
 }
