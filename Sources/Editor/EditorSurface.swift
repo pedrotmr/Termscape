@@ -666,7 +666,7 @@ struct EditorSurfaceRootView: View {
             attachmentAnchor: .rect(.bounds),
             arrowEdge: .bottom
         ) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 sidebarSearchScopeToggleRow(
                     title: "Hidden files",
                     isOn: $sidebarSearchIncludeHiddenEntries
@@ -677,7 +677,7 @@ struct EditorSurfaceRootView: View {
                 )
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
             .frame(width: 172, alignment: .leading)
             .onExitCommand {
                 sidebarSearchScopePopoverPresented = false
@@ -706,7 +706,7 @@ struct EditorSurfaceRootView: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.vertical, 3)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
