@@ -11,7 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
+  quality:
+    name: Format, Lint, Test
     runs-on: macos-15
     steps:
       - name: Checkout
