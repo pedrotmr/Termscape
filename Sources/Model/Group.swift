@@ -112,9 +112,9 @@ struct WorkspaceTabSnapshot: Codable {
     private static func collectTabIdStrings(from node: ExternalTreeNode) -> [String] {
         switch node {
         case let .pane(pane):
-            return pane.tabs.map(\.id)
+            pane.tabs.map(\.id)
         case let .split(split):
-            return collectTabIdStrings(from: split.first)
+            collectTabIdStrings(from: split.first)
                 + collectTabIdStrings(from: split.second)
         }
     }

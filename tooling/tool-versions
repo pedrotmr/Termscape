@@ -1,0 +1,5 @@
+# Pinned CLI versions for CI and Scripts/ci/bootstrap-tooling.sh
+# SwiftFormat: github.com/nicklockwood/SwiftFormat/releases
+# SwiftLint: github.com/realm/SwiftLint/releases
+SWIFTFORMAT_VERSION=0.61.0
+SWIFTLINT_VERSION=0.63.2

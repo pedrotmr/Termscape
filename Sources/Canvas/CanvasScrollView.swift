@@ -112,10 +112,10 @@ final class CanvasScrollView: NSScrollView {
         guard !needsCoalescedLayout else { return }
         needsCoalescedLayout = true
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.needsCoalescedLayout else { return }
-            self.needsCoalescedLayout = false
-            if let tab = self.hostedTab {
-                self.updateLayout(for: tab, options: [])
+            guard let self, needsCoalescedLayout else { return }
+            needsCoalescedLayout = false
+            if let tab = hostedTab {
+                updateLayout(for: tab, options: [])
             }
         }
     }

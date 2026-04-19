@@ -127,7 +127,7 @@ private enum FileTreeSearchScanner {
     private nonisolated static func hasHiddenPathSegment(in relativePath: String) -> Bool {
         guard !relativePath.isEmpty else { return false }
         for component in relativePath.split(separator: "/", omittingEmptySubsequences: true) {
-            if component.hasPrefix(".") && component != "." && component != ".." {
+            if component.hasPrefix("."), component != ".", component != ".." {
                 return true
             }
         }
@@ -153,8 +153,8 @@ private enum FileTreeSearchScanner {
             if Task.isCancelled { break }
             let end = min(start + gitIgnoreChunkSize, uniqueRelativePaths.count)
             let chunk = Array(uniqueRelativePaths[start ..< end])
-            ignored.formUnion(
-                await gitIgnoredRelativePathsChunk(rootPath: rootPath, relativePaths: chunk)
+            await ignored.formUnion(
+                gitIgnoredRelativePathsChunk(rootPath: rootPath, relativePaths: chunk)
             )
             start = end
         }
@@ -377,12 +377,12 @@ final class FileTreeIndex {
             )
             await MainActor.run { [weak self] in
                 guard let self else { return }
-                guard generation == self.contentGeneration else {
-                    self.loadingPaths.remove(capturedPath)
+                guard generation == contentGeneration else {
+                    loadingPaths.remove(capturedPath)
                     return
                 }
                 guard let scanned else {
-                    self.loadingPaths.remove(capturedPath)
+                    loadingPaths.remove(capturedPath)
                     return
                 }
                 let nodes = scanned.map { entry in
@@ -393,13 +393,13 @@ final class FileTreeIndex {
                         hasUnloadedChildren: entry.isDirectory
                     )
                 }
-                self.childCache[capturedPath] = nodes
-                self.childCacheListingIncludesHidden[capturedPath] = includeHiddenEntries
-                self.loadingPaths.remove(capturedPath)
+                childCache[capturedPath] = nodes
+                childCacheListingIncludesHidden[capturedPath] = includeHiddenEntries
+                loadingPaths.remove(capturedPath)
                 if shouldPrefetchChildren {
-                    self.prefetchLikelyChildDirectories(from: nodes, includeHiddenEntries: includeHiddenEntries)
+                    prefetchLikelyChildDirectories(from: nodes, includeHiddenEntries: includeHiddenEntries)
                 }
-                self.childrenDidChangeHandler?()
+                childrenDidChangeHandler?()
             }
         }
     }
@@ -535,7 +535,7 @@ final class FileTreeIndex {
         matches.reserveCapacity(min(max(limit * 4, 256), 4096))
         for entry in entries {
             if Task.isCancelled { break }
-            if !options.includeHiddenEntries && entry.hasHiddenPathSegment { continue }
+            if !options.includeHiddenEntries, entry.hasHiddenPathSegment { continue }
             if !entry.normalizedName.contains(needle) { continue }
             matches.append(entry)
         }
@@ -618,17 +618,17 @@ final class FileTreeIndex {
     private func priorityRank(_ priority: TaskPriority) -> Int {
         switch priority {
         case .high, .userInitiated:
-            return 5
+            5
         case .medium:
-            return 4
+            4
         case .utility:
-            return 3
+            3
         case .low:
-            return 2
+            2
         case .background:
-            return 1
+            1
         default:
-            return 3
+            3
         }
     }
 

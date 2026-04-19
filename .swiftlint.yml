@@ -1,0 +1,50 @@
+included:
+  - Sources
+  - Tests
+excluded:
+  - vendor
+  - build
+  - .build
+  - DerivedData
+  - Resources/GhosttyKit.xcframework
+
+disabled_rules:
+  # Conflicts with SwiftFormat / common SwiftUI style in this repo
+  - trailing_comma
+  - opening_brace
+  - closure_parameter_position
+  - multiple_closures_with_trailing_closure
+
+line_length:
+  warning: 200
+  error: 260
+
+file_length:
+  warning: 800
+  error: 2500
+
+type_body_length:
+  warning: 400
+  error: 2000
+
+function_body_length:
+  warning: 80
+  error: 350
+
+cyclomatic_complexity:
+  warning: 20
+  error: 40
+
+identifier_name:
+  min_length: 1
+  max_length: 60
+
+large_tuple:
+  warning: 4
+  error: 10
+
+function_parameter_count:
+  warning: 8
+  error: 12
+
+reporter: xcode

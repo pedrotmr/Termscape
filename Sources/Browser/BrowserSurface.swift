@@ -346,11 +346,11 @@ final class BrowserSurfaceContainerView: NSView {
     private func wireActions() {
         let focusHandler = { [weak self] in
             guard let self else { return }
-            self.onFocused?()
+            onFocused?()
         }
         let contextHandler = { [weak self] (event: NSEvent) in
             guard let self else { return }
-            self.onContextMenu?(event)
+            onContextMenu?(event)
         }
         backButton.onFocused = focusHandler
         forwardButton.onFocused = focusHandler
@@ -577,7 +577,7 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate, WKUIDe
                 guard let self else { return }
                 let resolvedTitle = (webView.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
                 if !resolvedTitle.isEmpty {
-                    self.onTitleChange?(resolvedTitle)
+                    onTitleChange?(resolvedTitle)
                 }
             }
         }
@@ -585,10 +585,10 @@ final class BrowserSurface: NSObject, Identifiable, WKNavigationDelegate, WKUIDe
         urlObservation = webView.observe(\.url, options: [.new]) { [weak self] webView, _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.currentURL = webView.url
+                currentURL = webView.url
                 let display = webView.url?.absoluteString ?? ""
-                self.hostedView.updateAddressField(display)
-                self.onURLChange?(webView.url)
+                hostedView.updateAddressField(display)
+                onURLChange?(webView.url)
             }
         }
 
