@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality-and-tests:
+  ci:
     runs-on: macos-15
     steps:
       - name: Checkout
@@ -24,7 +24,7 @@ jobs:
         with:
           xcode-version: "16"
 
-      - name: SwiftFormat (lint)
+      - name: SwiftFormat
         run: |
           bash Scripts/ci/bootstrap-tooling.sh
           export PATH="${GITHUB_WORKSPACE}/build/ci-tools/bin:${PATH}"
