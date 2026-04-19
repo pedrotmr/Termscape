@@ -259,7 +259,8 @@ final class FileTreeIndex {
     }
 
     struct SearchOptions: Hashable {
-        var includeHiddenEntries: Bool = false
+        /// Default: filename search includes dotfiles; gitignored paths still filtered unless opted in.
+        var includeHiddenEntries: Bool = true
         var includeGitIgnoredEntries: Bool = false
     }
 
