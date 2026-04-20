@@ -1067,10 +1067,7 @@ struct EditorSurfaceRootView: View {
         let textColor = breadcrumbLabelColor(isLast: isLast, hovered: hovered)
         return Button {
             model.onFocus()
-            revealDirectoryChain(
-                endingAt: item.revealDirectory,
-                includeHiddenEntries: directoryPathIncludesHiddenSegment(item.revealDirectory)
-            )
+            revealDirectoryChain(endingAt: item.revealDirectory)
             sidebarScrollTarget = item.revealDirectory
         } label: {
             Text(item.title)
@@ -1142,7 +1139,8 @@ struct EditorSurfaceRootView: View {
                             model.fileTreeIndex?.scheduleLoadChildren(
                                 for: node.path,
                                 priority: .userInitiated,
-                                shouldPrefetchChildren: true
+                                shouldPrefetchChildren: true,
+                                includeHiddenEntries: true
                             )
                         }
                     } label: {
@@ -1296,7 +1294,8 @@ struct EditorSurfaceRootView: View {
         model.fileTreeIndex?.scheduleLoadChildren(
             for: standardizedRoot,
             priority: .userInitiated,
-            shouldPrefetchChildren: true
+            shouldPrefetchChildren: true,
+            includeHiddenEntries: true
         )
     }
 
@@ -1306,14 +1305,20 @@ struct EditorSurfaceRootView: View {
         index.scheduleLoadChildren(
             for: standardizedRoot,
             priority: .utility,
-            shouldPrefetchChildren: true
+            shouldPrefetchChildren: true,
+            includeHiddenEntries: true
         )
     }
 
     private func rescheduleTreeLoadsForExpandedFolders() {
         guard let index = model.fileTreeIndex else { return }
         for path in expandedPaths {
-            index.scheduleLoadChildren(for: path, priority: .utility, shouldPrefetchChildren: false)
+            index.scheduleLoadChildren(
+                for: path,
+                priority: .utility,
+                shouldPrefetchChildren: false,
+                includeHiddenEntries: true
+            )
         }
     }
 
@@ -1503,10 +1508,7 @@ struct EditorSurfaceRootView: View {
         model.openFile(path: path, title: title)
         let standardized = URL(fileURLWithPath: path).standardizedFileURL.path
         let parentDirectory = (standardized as NSString).deletingLastPathComponent
-        revealDirectoryChain(
-            endingAt: parentDirectory,
-            includeHiddenEntries: directoryPathIncludesHiddenSegment(parentDirectory)
-        )
+        revealDirectoryChain(endingAt: parentDirectory)
         sidebarScrollTarget = parentDirectory
     }
 
@@ -1564,7 +1566,7 @@ struct EditorSurfaceRootView: View {
 
     /// Expands every ancestor from workspace root through `directoryPath` and loads directory listings.
     private func revealDirectoryChain(
-        endingAt directoryPath: String, includeHiddenEntries: Bool = false
+        endingAt directoryPath: String, includeHiddenEntries: Bool = true
     ) {
         let root = standardizedRoot
         var target = URL(fileURLWithPath: directoryPath, isDirectory: true).standardizedFileURL.path
@@ -1591,20 +1593,6 @@ struct EditorSurfaceRootView: View {
                 shouldPrefetchChildren: true,
                 includeHiddenEntries: includeHiddenEntries
             )
-        }
-    }
-
-    /// `true` when `directoryPath` (under the workspace root) contains a `.hidden` path segment, so directory scans must not skip hidden entries.
-    private func directoryPathIncludesHiddenSegment(_ directoryPath: String) -> Bool {
-        let root = standardizedRoot
-        let standardized =
-            URL(fileURLWithPath: directoryPath, isDirectory: true).standardizedFileURL.path
-        guard standardized == root || standardized.hasPrefix(root + "/") else { return false }
-        var rel = String(standardized.dropFirst(root.count))
-        if rel.hasPrefix("/") { rel.removeFirst() }
-        if rel.isEmpty { return false }
-        return rel.split(separator: "/").contains { component in
-            component.hasPrefix(".") && component != "." && component != ".."
         }
     }
 
