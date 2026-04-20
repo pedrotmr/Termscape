@@ -10,6 +10,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     override init() {
         super.init()
         AppDelegate.shared = self
+        clearSavedWindowStateIfPresent()
+    }
+
+    func applicationWillFinishLaunching(_: Notification) {
+        // Termscape already persists full workspace/tab layout; AppKit window restoration adds a
+        // second state source and can trap users in stale/corrupted restorable state.
+        UserDefaults.standard.set(false, forKey: "NSQuitAlwaysKeepsWindows")
+    }
+
+    func application(_: NSApplication, shouldRestoreApplicationState _: NSCoder) -> Bool {
+        false
+    }
+
+    func application(_: NSApplication, shouldSaveApplicationState _: NSCoder) -> Bool {
+        false
+    }
+
+    func applicationSupportsSecureRestorableState(_: NSApplication) -> Bool {
+        false
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -61,6 +80,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             return event
+        }
+    }
+
+    private func clearSavedWindowStateIfPresent() {
+        guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
+        let savedStatePath = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library")
+            .appendingPathComponent("Saved Application State")
+            .appendingPathComponent("\(bundleIdentifier).savedState")
+
+        guard FileManager.default.fileExists(atPath: savedStatePath.path) else { return }
+
+        do {
+            try FileManager.default.removeItem(at: savedStatePath)
+        } catch {
+            print("Failed to remove saved window state at \(savedStatePath.path): \(error)")
         }
     }
 }

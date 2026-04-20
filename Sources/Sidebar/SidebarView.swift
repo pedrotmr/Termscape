@@ -82,7 +82,7 @@ struct SidebarView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .help("Appearance")
+                .releaseSafeHelp("Appearance")
                 .onHover { isAppearanceHovered = $0 }
                 .animation(.easeInOut(duration: 0.12), value: isAppearanceHovered)
 
@@ -94,7 +94,7 @@ struct SidebarView: View {
                 .buttonStyle(.plain)
                 .frame(width: 30, height: 30)
                 .contentShape(Rectangle())
-                .help("Add")
+                .releaseSafeHelp("Add")
                 .onHover { isAddHovered = $0 }
                 .animation(.easeInOut(duration: 0.12), value: isAddHovered)
                 .popover(isPresented: $showAddPopover) {
@@ -111,7 +111,7 @@ struct SidebarView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
         }
-        .contextMenu { addMenuItems }
+        .releaseSafeContextMenu { addMenuItems }
         .background(t.sidebar)
         .sheet(isPresented: $appState.showCloneSheet) {
             CloneSheetView()

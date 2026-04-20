@@ -107,7 +107,7 @@ struct WorkspaceRowView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .contextMenu { contextMenuItems }
+        .releaseSafeContextMenu { contextMenuItems }
         .onHover { isHovered = $0 }
         .simultaneousGesture(
             TapGesture(count: 2).onEnded { startRename() }

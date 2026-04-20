@@ -133,3 +133,48 @@ extension View {
         ))
     }
 }
+
+// MARK: - Release stability flags
+
+/// Release defaults prioritize UI responsiveness on macOS versions where SwiftUI
+/// `contextMenu`/`help` can trigger excessive transaction churn.
+enum RuntimeStabilityFlags {
+    private static func boolFlag(_ key: String, debugDefault: Bool) -> Bool {
+        if UserDefaults.standard.object(forKey: key) != nil {
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        #if DEBUG
+            return debugDefault
+        #else
+            return false
+        #endif
+    }
+
+    static let enableSwiftUIContextMenus =
+        boolFlag("termscape.enableSwiftUIContextMenus", debugDefault: true)
+
+    static let enableSwiftUIHelpTooltips =
+        boolFlag("termscape.enableSwiftUIHelpTooltips", debugDefault: true)
+}
+
+extension View {
+    @ViewBuilder
+    func releaseSafeContextMenu(
+        @ViewBuilder _ menuItems: () -> some View
+    ) -> some View {
+        if RuntimeStabilityFlags.enableSwiftUIContextMenus {
+            contextMenu(menuItems: menuItems)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func releaseSafeHelp(_ text: String) -> some View {
+        if RuntimeStabilityFlags.enableSwiftUIHelpTooltips {
+            help(text)
+        } else {
+            self
+        }
+    }
+}

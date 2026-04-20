@@ -309,7 +309,7 @@ struct GroupRowView: View {
         } message: {
             Text("This removes the group and all workspaces inside it.")
         }
-        .contextMenu {
+        .releaseSafeContextMenu {
             Button {
                 startGroupRename()
             } label: {

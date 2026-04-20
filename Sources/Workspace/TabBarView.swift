@@ -155,7 +155,6 @@ struct TabItemView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 3))
                     }
                     .buttonStyle(.plain)
-                    .help("Unpin Tab")
                 } else {
                     Color.clear.frame(width: 14, height: 14)
                 }
@@ -170,7 +169,6 @@ struct TabItemView: View {
                 }
                 .buttonStyle(.plain)
                 .opacity((isHovered || isSelected) ? 1 : 0)
-                .help("Close Tab")
             }
         }
         .padding(.horizontal, 10)
@@ -207,28 +205,7 @@ struct TabItemView: View {
         .onChange(of: isRenameFocused) { focused in
             if !focused { commitRename() }
         }
-        .contextMenu {
-            Button {
-                beginRename()
-            } label: {
-                Label("Rename", systemImage: "pencil")
-            }
-            Button {
-                onTogglePin()
-            } label: {
-                Label(
-                    tab.isPinned ? "Unpin Tab" : "Pin Tab",
-                    systemImage: tab.isPinned ? "pin.slash" : "pin"
-                )
-            }
-            Divider()
-            Button(role: .destructive) {
-                onClose()
-            } label: {
-                Label("Close Tab", systemImage: "xmark")
-            }
-            .disabled(tab.isPinned)
-        }
+        .releaseSafeContextMenu { contextMenuItems(isPinned: tab.isPinned) }
     }
 
     @ViewBuilder
@@ -260,6 +237,27 @@ struct TabItemView: View {
         renameText = tab.title
         editingTabId = tab.id
     }
+
+    @ViewBuilder
+    private func contextMenuItems(isPinned: Bool) -> some View {
+        Button {
+            beginRename()
+        } label: {
+            Label("Rename", systemImage: "pencil")
+        }
+        Button {
+            onTogglePin()
+        } label: {
+            Label(isPinned ? "Unpin Tab" : "Pin Tab", systemImage: isPinned ? "pin.slash" : "pin")
+        }
+        Divider()
+        Button(role: .destructive) {
+            onClose()
+        } label: {
+            Label("Close Tab", systemImage: "xmark")
+        }
+        .disabled(isPinned)
+    }
 }
 
 // MARK: - Icon button
@@ -283,9 +281,9 @@ private struct TabBarIconButton: View {
                 .clipShape(RoundedRectangle(cornerRadius: 5))
         }
         .buttonStyle(.plain)
-        .help(help)
+        .releaseSafeHelp(help)
         .overlay(alignment: .bottomTrailing) {
-            if tooltipVisible {
+            if RuntimeStabilityFlags.enableSwiftUIHelpTooltips, tooltipVisible {
                 Text(help)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(theme.text)
@@ -306,14 +304,10 @@ private struct TabBarIconButton: View {
                     .zIndex(1000)
             }
         }
-        .zIndex(tooltipVisible ? 1000 : 0)
+        .zIndex(RuntimeStabilityFlags.enableSwiftUIHelpTooltips && tooltipVisible ? 1000 : 0)
         .onHover { hovering in
             isHovered = hovering
-            if hovering {
-                tooltipVisible = true
-            } else {
-                tooltipVisible = false
-            }
+            tooltipVisible = RuntimeStabilityFlags.enableSwiftUIHelpTooltips && hovering
         }
         .animation(.easeInOut(duration: 0.12), value: isHovered)
     }

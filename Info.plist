@@ -34,5 +34,7 @@
 	<string>NSApplication</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
+	<key>NSQuitAlwaysKeepsWindows</key>
+	<false/>
 </dict>
 </plist>
