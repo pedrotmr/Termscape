@@ -22,7 +22,7 @@ private enum FileTreeDirectoryScanner {
     nonisolated static func scan(
         path: String,
         fileManager: FileManager,
-        includeHiddenEntries: Bool = false
+        includeHiddenEntries: Bool = true
     ) -> [FileTreeScannedEntry]? {
         let rootURL = URL(fileURLWithPath: path, isDirectory: true)
         var options: FileManager.DirectoryEnumerationOptions = []
@@ -352,7 +352,7 @@ final class FileTreeIndex {
         for path: String,
         priority: TaskPriority = .utility,
         shouldPrefetchChildren: Bool = true,
-        includeHiddenEntries: Bool = false
+        includeHiddenEntries: Bool = true
     ) {
         if let cached = childCache[path] {
             let modeMatches = childCacheListingIncludesHidden[path] == includeHiddenEntries

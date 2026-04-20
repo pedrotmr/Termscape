@@ -809,10 +809,7 @@ struct EditorSurfaceRootView: View {
                             selectedFilePath: selectedDocument?.standardizedPath,
                             onDirectoryTap: { n in
                                 model.onFocus()
-                                revealDirectoryChain(
-                                    endingAt: n.path,
-                                    includeHiddenEntries: sidebarSearchIncludeHiddenEntries
-                                )
+                                revealDirectoryChain(endingAt: n.path)
                                 model.sidebarSearchText = ""
                                 Task { @MainActor in
                                     sidebarScrollTarget = n.path
@@ -1139,8 +1136,7 @@ struct EditorSurfaceRootView: View {
                             model.fileTreeIndex?.scheduleLoadChildren(
                                 for: node.path,
                                 priority: .userInitiated,
-                                shouldPrefetchChildren: true,
-                                includeHiddenEntries: true
+                                shouldPrefetchChildren: true
                             )
                         }
                     } label: {
@@ -1294,8 +1290,7 @@ struct EditorSurfaceRootView: View {
         model.fileTreeIndex?.scheduleLoadChildren(
             for: standardizedRoot,
             priority: .userInitiated,
-            shouldPrefetchChildren: true,
-            includeHiddenEntries: true
+            shouldPrefetchChildren: true
         )
     }
 
@@ -1305,8 +1300,7 @@ struct EditorSurfaceRootView: View {
         index.scheduleLoadChildren(
             for: standardizedRoot,
             priority: .utility,
-            shouldPrefetchChildren: true,
-            includeHiddenEntries: true
+            shouldPrefetchChildren: true
         )
     }
 
@@ -1316,8 +1310,7 @@ struct EditorSurfaceRootView: View {
             index.scheduleLoadChildren(
                 for: path,
                 priority: .utility,
-                shouldPrefetchChildren: false,
-                includeHiddenEntries: true
+                shouldPrefetchChildren: false
             )
         }
     }
@@ -1565,9 +1558,7 @@ struct EditorSurfaceRootView: View {
     }
 
     /// Expands every ancestor from workspace root through `directoryPath` and loads directory listings.
-    private func revealDirectoryChain(
-        endingAt directoryPath: String, includeHiddenEntries: Bool = true
-    ) {
+    private func revealDirectoryChain(endingAt directoryPath: String) {
         let root = standardizedRoot
         var target = URL(fileURLWithPath: directoryPath, isDirectory: true).standardizedFileURL.path
         if !isDirectoryPath(target) {
@@ -1590,8 +1581,7 @@ struct EditorSurfaceRootView: View {
             model.fileTreeIndex?.scheduleLoadChildren(
                 for: path,
                 priority: .userInitiated,
-                shouldPrefetchChildren: true,
-                includeHiddenEntries: includeHiddenEntries
+                shouldPrefetchChildren: true
             )
         }
     }
