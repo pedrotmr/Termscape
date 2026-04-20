@@ -19,6 +19,8 @@ final class CanvasDocumentView: NSView {
     private weak var contextMenuTab: WorkspaceTab?
     private weak var currentTab: WorkspaceTab?
     private var contextMenuCanClear = false
+    private weak var lastContainerFrameTab: WorkspaceTab?
+    private var lastContainerFrameSize: CGSize = .zero
 
     private var currentCanvasMatte: NSColor = AppTheme.tobacco.canvasMatte
     private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
@@ -111,7 +113,14 @@ final class CanvasDocumentView: NSView {
         let canvasHeight = viewportSize.height
         let canvasSize = CGSize(width: canvasWidth, height: canvasHeight)
         frame = CGRect(origin: .zero, size: canvasSize)
-        tab.bonsplitController.setContainerFrame(CGRect(origin: .zero, size: canvasSize))
+        let containerSizeChanged =
+            abs(lastContainerFrameSize.width - canvasSize.width) > 0.5
+                || abs(lastContainerFrameSize.height - canvasSize.height) > 0.5
+        if lastContainerFrameTab !== tab || containerSizeChanged {
+            tab.bonsplitController.setContainerFrame(CGRect(origin: .zero, size: canvasSize))
+            lastContainerFrameTab = tab
+            lastContainerFrameSize = canvasSize
+        }
 
         let tree = tab.bonsplitController.treeSnapshot()
         let snapshot = tab.bonsplitController.layoutSnapshot()

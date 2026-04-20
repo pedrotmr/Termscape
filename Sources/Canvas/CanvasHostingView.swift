@@ -1,4 +1,5 @@
 import AppKit
+import Bonsplit
 import SwiftUI
 
 /// NSViewRepresentable bridge that embeds the CanvasScrollView into SwiftUI.
@@ -15,11 +16,14 @@ struct CanvasHostingView: NSViewRepresentable {
 
     func updateNSView(_ nsView: CanvasScrollView, context: Context) {
         let t = theme.current
+        let tabChanged = nsView.hostedTab !== tab
         nsView.hostedTab = tab
         nsView.applyTheme(
             canvasMatte: t.canvasMatte, paneBackground: t.canvasBackground, accentColor: t.accentNSColor
         )
-        nsView.updateLayout(for: tab, options: [])
+        if tabChanged {
+            nsView.updateLayout(for: tab, options: [])
+        }
         context.coordinator.setupObserver(for: tab)
     }
 
@@ -31,18 +35,25 @@ struct CanvasHostingView: NSViewRepresentable {
     final class Coordinator {
         weak var canvas: CanvasScrollView?
         private var observerToken: NSObjectProtocol?
+        private weak var observedController: BonsplitController?
+        private weak var observedTab: WorkspaceTab?
 
         func setupObserver(for tab: WorkspaceTab) {
+            if observedController === tab.bonsplitController, observedTab === tab {
+                return
+            }
             if let old = observerToken {
                 NotificationCenter.default.removeObserver(old)
             }
+            observedController = tab.bonsplitController
+            observedTab = tab
             observerToken = NotificationCenter.default.addObserver(
                 forName: .bonsplitLayoutDidChange,
                 object: tab.bonsplitController,
                 queue: .main
             ) { [weak self] _ in
-                guard let self, let canvas else { return }
-                canvas.updateLayout(for: tab, options: .scrollFocusedPaneIntoView)
+                guard let self, let canvas, let observedTab else { return }
+                canvas.updateLayout(for: observedTab, options: .scrollFocusedPaneIntoView)
             }
         }
 
