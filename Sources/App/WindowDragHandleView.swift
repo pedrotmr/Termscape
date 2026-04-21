@@ -123,10 +123,7 @@ struct WindowDragHandleView: NSViewRepresentable {
         }
 
         override func hitTest(_ point: NSPoint) -> NSView? {
-            guard bounds.contains(point), NSApp.currentEvent?.type == .leftMouseDown else {
-                return nil
-            }
-            return self
+            bounds.contains(point) ? self : nil
         }
 
         override func mouseDown(with event: NSEvent) {

@@ -1,3 +1,4 @@
+import AppKit
 import Bonsplit
 import SwiftUI
 import UniformTypeIdentifiers
@@ -6,32 +7,37 @@ struct TabBarView: View {
     @Environment(ThemeManager.self) var theme
     @ObservedObject var workspace: Workspace
     @State private var editingTabId: UUID?
-    @State private var draggedTabId: UUID?
+    @StateObject private var dragState = WorkspaceTabDragState()
+    @StateObject private var dragEndMonitor = WorkspaceTabDragEndMonitor()
 
     private var t: AppTheme {
         theme.current
+    }
+
+    private var displayedTabs: [WorkspaceTab] {
+        dragState.displayedTabs(from: workspace.tabs)
     }
 
     var body: some View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 1) {
-                    ForEach(workspace.tabs) { tab in
+                    ForEach(displayedTabs) { tab in
                         TabItemView(
                             tab: tab,
                             isSelected: workspace.selectedTabId == tab.id,
                             editingTabId: $editingTabId,
-                            draggedTabId: $draggedTabId,
+                            draggedTabId: dragState.draggedTabId,
                             onSelect: { workspace.selectTab(tab.id) },
                             onClose: { workspace.closeTab(tab.id) },
                             onTogglePin: { workspace.togglePin(tab.id) },
-                            onMove: { sourceId, destinationId in
-                                workspace.moveTab(from: sourceId, to: destinationId)
-                            }
+                            onBeginDrag: { dragState.begin(tabId: tab.id, tabs: workspace.tabs) },
+                            onPreviewMove: { dragState.previewMove(over: tab.id, tabs: workspace.tabs) },
+                            onCommitDrop: { dragState.commit(in: workspace) }
                         )
                     }
                 }
-                .animation(.easeInOut(duration: 0.15), value: workspace.tabs.map(\.id))
+                .animation(.easeInOut(duration: 0.15), value: displayedTabs.map(\.id))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
             }
@@ -84,6 +90,14 @@ struct TabBarView: View {
         .overlay(alignment: .bottom) {
             Rectangle().fill(t.border).frame(height: 1)
         }
+        .onAppear {
+            dragEndMonitor.install {
+                dragState.cancel()
+            }
+        }
+        .onDisappear {
+            dragEndMonitor.uninstall()
+        }
     }
 
     private var separator: some View {
@@ -101,11 +115,13 @@ struct TabItemView: View {
     @ObservedObject var tab: WorkspaceTab
     let isSelected: Bool
     @Binding var editingTabId: UUID?
-    @Binding var draggedTabId: UUID?
+    let draggedTabId: UUID?
     let onSelect: () -> Void
     let onClose: () -> Void
     let onTogglePin: () -> Void
-    let onMove: (_ sourceId: UUID, _ destinationId: UUID) -> Void
+    let onBeginDrag: () -> Void
+    let onPreviewMove: () -> Void
+    let onCommitDrop: () -> Bool
 
     @State private var isHovered = false
     @State private var renameText = ""
@@ -197,19 +213,18 @@ struct TabItemView: View {
         .onHover { isHovered = $0 }
         .animation(.easeInOut(duration: 0.12), value: isHovered)
         .onDrag {
-            draggedTabId = tab.id
-            return NSItemProvider(object: tab.id.uuidString as NSString)
+            onBeginDrag()
+            return makeItemProvider(for: tab.id)
         } preview: {
             // Avoid the duplicate ghosted tab snapshot while reordering.
             Color.clear
                 .frame(width: 1, height: 1)
         }
         .onDrop(
-            of: [UTType.text],
+            of: [UTType.termscapeWorkspaceTab],
             delegate: WorkspaceTabDropDelegate(
-                targetTabId: tab.id,
-                draggedTabId: $draggedTabId,
-                move: onMove
+                previewMove: onPreviewMove,
+                commitDrop: onCommitDrop
             )
         )
         .overlay(alignment: .bottom) {
@@ -266,6 +281,18 @@ struct TabItemView: View {
         editingTabId = tab.id
     }
 
+    private func makeItemProvider(for tabId: UUID) -> NSItemProvider {
+        let provider = NSItemProvider()
+        provider.registerDataRepresentation(
+            forTypeIdentifier: UTType.termscapeWorkspaceTab.identifier,
+            visibility: .all
+        ) { completion in
+            completion(tabId.uuidString.data(using: .utf8), nil)
+            return nil
+        }
+        return provider
+    }
+
     @ViewBuilder
     private func contextMenuItems(isPinned: Bool) -> some View {
         Button {
@@ -291,24 +318,157 @@ struct TabItemView: View {
 // MARK: - Icon button
 
 private struct WorkspaceTabDropDelegate: DropDelegate {
-    let targetTabId: UUID
-    @Binding var draggedTabId: UUID?
-    let move: (_ sourceId: UUID, _ destinationId: UUID) -> Void
+    let previewMove: () -> Void
+    let commitDrop: () -> Bool
 
     func dropEntered(info _: DropInfo) {
-        guard let sourceId = draggedTabId, sourceId != targetTabId else { return }
-        withAnimation(.easeInOut(duration: 0.15)) {
-            move(sourceId, targetTabId)
-        }
+        previewMove()
     }
 
     func performDrop(info _: DropInfo) -> Bool {
-        draggedTabId = nil
-        return true
+        previewMove()
+        return commitDrop()
     }
 
     func dropUpdated(info _: DropInfo) -> DropProposal? {
         DropProposal(operation: .move)
+    }
+}
+
+private extension UTType {
+    static let termscapeWorkspaceTab = UTType(importedAs: "com.termscape.workspace-tab")
+}
+
+@MainActor
+private final class WorkspaceTabDragState: ObservableObject {
+    @Published private(set) var draggedTabId: UUID?
+    @Published private var previewOrder: [UUID]?
+
+    func begin(tabId: UUID, tabs: [WorkspaceTab]) {
+        draggedTabId = tabId
+        previewOrder = tabs.map(\.id)
+    }
+
+    func previewMove(over targetTabId: UUID, tabs: [WorkspaceTab]) {
+        guard let sourceTabId = draggedTabId,
+              sourceTabId != targetTabId,
+              workspaceCanPreviewMove(tabs: tabs, sourceTabId: sourceTabId, targetTabId: targetTabId),
+              var orderedIDs = previewOrder,
+              let sourceIndex = orderedIDs.firstIndex(of: sourceTabId),
+              let targetIndex = orderedIDs.firstIndex(of: targetTabId),
+              sourceIndex != targetIndex
+        else { return }
+
+        let movedTabID = orderedIDs.remove(at: sourceIndex)
+        orderedIDs.insert(movedTabID, at: targetIndex)
+        previewOrder = orderedIDs
+    }
+
+    func displayedTabs(from tabs: [WorkspaceTab]) -> [WorkspaceTab] {
+        guard let previewOrder else { return tabs }
+
+        let tabsByID = Dictionary(uniqueKeysWithValues: tabs.map { ($0.id, $0) })
+        let reordered = previewOrder.compactMap { tabsByID[$0] }
+        return reordered.count == tabs.count ? reordered : tabs
+    }
+
+    func commit(in workspace: Workspace) -> Bool {
+        guard let previewOrder else {
+            end()
+            return false
+        }
+
+        workspace.reorderTabs(toMatch: previewOrder)
+        end()
+        return true
+    }
+
+    func cancel() {
+        end()
+    }
+
+    private func end() {
+        draggedTabId = nil
+        previewOrder = nil
+    }
+
+    private func workspaceCanPreviewMove(
+        tabs: [WorkspaceTab], sourceTabId: UUID, targetTabId: UUID
+    ) -> Bool {
+        let tabsByID = Dictionary(uniqueKeysWithValues: tabs.map { ($0.id, $0) })
+        guard let sourceTab = tabsByID[sourceTabId],
+              let targetTab = tabsByID[targetTabId]
+        else { return false }
+        return sourceTab.isPinned == targetTab.isPinned
+    }
+}
+
+@MainActor
+private final class WorkspaceTabDragEndMonitor: ObservableObject {
+    private var localMonitor: Any?
+    private var globalMonitor: Any?
+    private var resignActiveObserver: NSObjectProtocol?
+    private var onDragEnd: (() -> Void)?
+
+    func install(onDragEnd: @escaping () -> Void) {
+        self.onDragEnd = onDragEnd
+
+        if localMonitor == nil {
+            localMonitor = NSEvent.addLocalMonitorForEvents(
+                matching: [.leftMouseUp, .rightMouseUp, .otherMouseUp]
+            ) { [weak self] event in
+                self?.onDragEnd?()
+                return event
+            }
+        }
+
+        if globalMonitor == nil {
+            globalMonitor = NSEvent.addGlobalMonitorForEvents(
+                matching: [.leftMouseUp, .rightMouseUp, .otherMouseUp]
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    self?.onDragEnd?()
+                }
+            }
+        }
+
+        if resignActiveObserver == nil {
+            resignActiveObserver = NotificationCenter.default.addObserver(
+                forName: NSApplication.didResignActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.onDragEnd?()
+            }
+        }
+    }
+
+    func uninstall() {
+        if let localMonitor {
+            NSEvent.removeMonitor(localMonitor)
+            self.localMonitor = nil
+        }
+        if let globalMonitor {
+            NSEvent.removeMonitor(globalMonitor)
+            self.globalMonitor = nil
+        }
+        if let resignActiveObserver {
+            NotificationCenter.default.removeObserver(resignActiveObserver)
+            self.resignActiveObserver = nil
+        }
+        onDragEnd = nil
+    }
+
+    deinit {
+        if let localMonitor {
+            NSEvent.removeMonitor(localMonitor)
+        }
+        if let globalMonitor {
+            NSEvent.removeMonitor(globalMonitor)
+        }
+        if let resignActiveObserver {
+            NotificationCenter.default.removeObserver(resignActiveObserver)
+        }
     }
 }
 

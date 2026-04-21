@@ -108,7 +108,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureExistingWindowDragBehavior() {
         for window in NSApp.windows {
-            configureWindowDragBehavior(window)
+            configureWorkspaceWindowDragBehaviorIfNeeded(window)
         }
     }
 
@@ -125,10 +125,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 queue: .main
             ) { [weak self] notification in
                 guard let window = notification.object as? NSWindow else { return }
-                self?.configureWindowDragBehavior(window)
+                Task { @MainActor [weak self] in
+                    self?.configureWorkspaceWindowDragBehaviorIfNeeded(window)
+                }
             }
             windowDragBehaviorObservers.append(observer)
         }
+    }
+
+    func configureWorkspaceWindowDragBehaviorIfNeeded(_ window: NSWindow?) {
+        guard let window, window.identifier == workspaceWindowIdentifier else { return }
+        configureWindowDragBehavior(window)
     }
 
     private func configureWindowDragBehavior(_ window: NSWindow) {

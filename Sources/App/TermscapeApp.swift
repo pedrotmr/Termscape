@@ -1,4 +1,28 @@
+import AppKit
 import SwiftUI
+
+let workspaceWindowIdentifier = NSUserInterfaceItemIdentifier("termscape.workspace-window")
+
+struct WorkspaceWindowIdentityMarker: NSViewRepresentable {
+    func makeNSView(context _: Context) -> NSView {
+        MarkerView()
+    }
+
+    func updateNSView(_ nsView: NSView, context _: Context) {
+        guard let window = nsView.window else { return }
+        window.identifier = workspaceWindowIdentifier
+        AppDelegate.shared?.configureWorkspaceWindowDragBehaviorIfNeeded(window)
+    }
+
+    private final class MarkerView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window else { return }
+            window.identifier = workspaceWindowIdentifier
+            AppDelegate.shared?.configureWorkspaceWindowDragBehaviorIfNeeded(window)
+        }
+    }
+}
 
 @main
 struct TermscapeApp: App {
@@ -156,6 +180,10 @@ struct ContentView: View {
         }
         .frame(minWidth: 700, minHeight: 400)
         .ignoresSafeArea()
+        .background(
+            WorkspaceWindowIdentityMarker()
+                .allowsHitTesting(false)
+        )
         .onReceive(NotificationCenter.default.publisher(for: .workspacePersistenceNeeded)) { _ in
             appState.schedulePersist()
         }
@@ -202,6 +230,17 @@ struct EmptyWorkspaceView: View {
     var body: some View {
         ZStack {
             t.surface.ignoresSafeArea()
+
+            VStack {
+                HStack {
+                    Spacer()
+                    WindowDragHandleStrip(symbolColor: t.textMuted)
+                }
+                .padding(.top, 8)
+                .padding(.trailing, 8)
+
+                Spacer()
+            }
 
             VStack(spacing: 0) {
                 Spacer()
