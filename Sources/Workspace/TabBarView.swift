@@ -1,10 +1,12 @@
 import Bonsplit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TabBarView: View {
     @Environment(ThemeManager.self) var theme
     @ObservedObject var workspace: Workspace
     @State private var editingTabId: UUID?
+    @State private var draggedTabId: UUID?
 
     private var t: AppTheme {
         theme.current
@@ -19,12 +21,17 @@ struct TabBarView: View {
                             tab: tab,
                             isSelected: workspace.selectedTabId == tab.id,
                             editingTabId: $editingTabId,
+                            draggedTabId: $draggedTabId,
                             onSelect: { workspace.selectTab(tab.id) },
                             onClose: { workspace.closeTab(tab.id) },
-                            onTogglePin: { workspace.togglePin(tab.id) }
+                            onTogglePin: { workspace.togglePin(tab.id) },
+                            onMove: { sourceId, destinationId in
+                                workspace.moveTab(from: sourceId, to: destinationId)
+                            }
                         )
                     }
                 }
+                .animation(.easeInOut(duration: 0.15), value: workspace.tabs.map(\.id))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
             }
@@ -66,7 +73,10 @@ struct TabBarView: View {
             TabBarIconButton(systemImage: "square.split.1x2", help: "Split Terminal Down (⌘⇧D)", theme: t) {
                 NotificationCenter.default.post(name: .splitDown, object: nil)
             }
-            .padding(.trailing, 6)
+            .padding(.trailing, 4)
+
+            WindowDragHandleStrip(symbolColor: t.textMuted)
+                .padding(.trailing, 8)
         }
         .frame(height: 38)
         .background(t.surface)
@@ -91,9 +101,11 @@ struct TabItemView: View {
     @ObservedObject var tab: WorkspaceTab
     let isSelected: Bool
     @Binding var editingTabId: UUID?
+    @Binding var draggedTabId: UUID?
     let onSelect: () -> Void
     let onClose: () -> Void
     let onTogglePin: () -> Void
+    let onMove: (_ sourceId: UUID, _ destinationId: UUID) -> Void
 
     @State private var isHovered = false
     @State private var renameText = ""
@@ -184,6 +196,22 @@ struct TabItemView: View {
         )
         .onHover { isHovered = $0 }
         .animation(.easeInOut(duration: 0.12), value: isHovered)
+        .onDrag {
+            draggedTabId = tab.id
+            return NSItemProvider(object: tab.id.uuidString as NSString)
+        } preview: {
+            // Avoid the duplicate ghosted tab snapshot while reordering.
+            Color.clear
+                .frame(width: 1, height: 1)
+        }
+        .onDrop(
+            of: [UTType.text],
+            delegate: WorkspaceTabDropDelegate(
+                targetTabId: tab.id,
+                draggedTabId: $draggedTabId,
+                move: onMove
+            )
+        )
         .overlay(alignment: .bottom) {
             if isSelected {
                 RoundedRectangle(cornerRadius: 1)
@@ -261,6 +289,28 @@ struct TabItemView: View {
 }
 
 // MARK: - Icon button
+
+private struct WorkspaceTabDropDelegate: DropDelegate {
+    let targetTabId: UUID
+    @Binding var draggedTabId: UUID?
+    let move: (_ sourceId: UUID, _ destinationId: UUID) -> Void
+
+    func dropEntered(info _: DropInfo) {
+        guard let sourceId = draggedTabId, sourceId != targetTabId else { return }
+        withAnimation(.easeInOut(duration: 0.15)) {
+            move(sourceId, targetTabId)
+        }
+    }
+
+    func performDrop(info _: DropInfo) -> Bool {
+        draggedTabId = nil
+        return true
+    }
+
+    func dropUpdated(info _: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+}
 
 private struct TabBarIconButton: View {
     let systemImage: String

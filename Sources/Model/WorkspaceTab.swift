@@ -558,6 +558,14 @@ extension WorkspaceTab: BonsplitDelegate {
         notifyLayoutChanged()
     }
 
+    func splitTabBar(_: BonsplitController, didSelectTab _: Bonsplit.Tab, inPane _: PaneID) {
+        notifyLayoutChanged()
+    }
+
+    func splitTabBar(_: BonsplitController, didMoveTab _: Bonsplit.Tab, fromPane _: PaneID, toPane _: PaneID) {
+        notifyLayoutChanged()
+    }
+
     func splitTabBar(_: BonsplitController, didFocusPane _: PaneID) {
         notifyLayoutChanged()
     }

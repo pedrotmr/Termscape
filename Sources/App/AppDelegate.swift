@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     weak static var shared: AppDelegate?
     let appState = AppState()
     private var closeShortcutMonitor: Any?
+    private var windowDragBehaviorObservers: [NSObjectProtocol] = []
 
     override init() {
         super.init()
@@ -39,6 +40,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Ensure startup has an active workspace when no saved workspaces exist.
         appState.ensureStartupWorkspaceIfNeeded()
+        configureExistingWindowDragBehavior()
+        installWindowDragBehaviorObservers()
         installCloseShortcutMonitor()
     }
 
@@ -65,6 +68,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSEvent.removeMonitor(closeShortcutMonitor)
             self.closeShortcutMonitor = nil
         }
+        for observer in windowDragBehaviorObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        windowDragBehaviorObservers.removeAll()
         appState.persist()
     }
 
@@ -97,5 +104,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             print("Failed to remove saved window state at \(savedStatePath.path): \(error)")
         }
+    }
+
+    private func configureExistingWindowDragBehavior() {
+        for window in NSApp.windows {
+            configureWindowDragBehavior(window)
+        }
+    }
+
+    private func installWindowDragBehaviorObservers() {
+        let names: [Notification.Name] = [
+            NSWindow.didBecomeKeyNotification,
+            NSWindow.didBecomeMainNotification,
+        ]
+
+        for name in names {
+            let observer = NotificationCenter.default.addObserver(
+                forName: name,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                guard let window = notification.object as? NSWindow else { return }
+                self?.configureWindowDragBehavior(window)
+            }
+            windowDragBehaviorObservers.append(observer)
+        }
+    }
+
+    private func configureWindowDragBehavior(_ window: NSWindow) {
+        window.titlebarAppearsTransparent = true
+        window.styleMask.insert(.fullSizeContentView)
+        window.isMovable = false
+        window.isMovableByWindowBackground = false
     }
 }
