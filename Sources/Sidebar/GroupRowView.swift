@@ -312,11 +312,7 @@ struct GroupRowView: View {
             titleVisibility: .visible
         ) {
             Button("Delete Group", role: .destructive) {
-                for workspace in group.workspaces {
-                    workspace.teardown()
-                }
-                appState.groups.removeAll { $0.id == group.id }
-                appState.schedulePersist()
+                appState.removeGroup(group)
             }
             Button("Cancel", role: .cancel) {}
         } message: {

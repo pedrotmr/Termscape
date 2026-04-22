@@ -23,6 +23,40 @@ final class AppState {
 
     // MARK: - Workspace management
 
+    @discardableResult
+    func createGroup(
+        name: String,
+        isImplicit: Bool = false,
+        createInitialWorkspace: Bool = true
+    ) -> WorkspaceGroup {
+        let group = WorkspaceGroup(name: name, isImplicit: isImplicit)
+        groups.append(group)
+
+        if createInitialWorkspace {
+            let workspace = addWorkspace(in: group, url: nil)
+            selectedWorkspaceId = workspace.id
+            workspace.ensureHasTab()
+        } else {
+            schedulePersist()
+        }
+
+        return group
+    }
+
+    func removeGroup(_ group: WorkspaceGroup) {
+        let groupWorkspaceIds = Set(group.workspaces.map(\.id))
+        for workspace in group.workspaces {
+            workspace.teardown()
+        }
+        groups.removeAll { $0.id == group.id }
+
+        if let selectedWorkspaceId, groupWorkspaceIds.contains(selectedWorkspaceId) {
+            self.selectedWorkspaceId = groups.first?.workspaces.first?.id
+        }
+
+        schedulePersist()
+    }
+
     func addWorkspace(in group: WorkspaceGroup, url: URL?, name: String? = nil) -> Workspace {
         let rootURL = url ?? defaultWorkspaceRootURL()
         let workspaceName = name ?? defaultWorkspaceName(for: rootURL)
@@ -37,6 +71,10 @@ final class AppState {
         group.workspaces.removeAll { $0.id == workspace.id }
         if selectedWorkspaceId == workspace.id {
             selectedWorkspaceId = groups.flatMap(\.workspaces).first?.id
+        }
+        if group.workspaces.isEmpty {
+            removeGroup(group)
+            return
         }
         schedulePersist()
     }
@@ -66,7 +104,7 @@ final class AppState {
         insertAt = min(max(0, insertAt), toGroup.workspaces.count)
         toGroup.workspaces.insert(workspace, at: insertAt)
 
-        if fromGroup.workspaces.isEmpty, !fromGroup.isImplicit {
+        if fromGroup.workspaces.isEmpty {
             groups.removeAll { $0.id == fromGroupId }
         }
 
@@ -205,9 +243,11 @@ final class AppState {
     }
 
     private func getOrCreateDefaultGroup() -> WorkspaceGroup {
-        if let existing = groups.first { return existing }
-        let group = WorkspaceGroup(name: "Workspaces", isImplicit: true)
-        groups.append(group)
+        if let existing = groups.first(where: { $0.isImplicit }) { return existing }
+        let group = createGroup(name: "Workspaces", isImplicit: true, createInitialWorkspace: false)
+        if normalizeImplicitGroupToFirst() {
+            schedulePersist()
+        }
         return group
     }
 
@@ -281,21 +321,25 @@ final class AppState {
         let decoder = JSONDecoder()
         let savedGroups: [WorkspaceGroup]
         let savedSelection: UUID?
+        let loadedLegacyArray: Bool
 
         if let payload = try? decoder.decode(TermscapePersistence.self, from: data) {
             savedGroups = payload.groups
             savedSelection = payload.selectedWorkspaceId
+            loadedLegacyArray = false
         } else if let legacy = try? decoder.decode([WorkspaceGroup].self, from: data) {
             savedGroups = legacy
             savedSelection = nil
+            loadedLegacyArray = true
         } else {
             return
         }
 
         groups = savedGroups
-        // Migration: old saves have no isImplicit field (defaults to false).
+        groups.removeAll(where: { $0.workspaces.isEmpty })
+        // Migration: legacy array saves have no isImplicit field (defaults to false).
         // If every group appears non-implicit, treat the first as the implicit default.
-        if !groups.isEmpty, groups.allSatisfy({ !$0.isImplicit }) {
+        if loadedLegacyArray, !groups.isEmpty, groups.allSatisfy({ !$0.isImplicit }) {
             groups[0].isImplicit = true
         }
         if normalizeImplicitGroupToFirst() {
