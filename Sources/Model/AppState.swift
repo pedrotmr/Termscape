@@ -51,7 +51,7 @@ final class AppState {
         groups.removeAll { $0.id == group.id }
 
         if let selectedWorkspaceId, groupWorkspaceIds.contains(selectedWorkspaceId) {
-            self.selectedWorkspaceId = groups.flatMap(\.workspaces).first?.id
+            self.selectedWorkspaceId = groups.first?.workspaces.first?.id
         }
 
         schedulePersist()
@@ -103,7 +103,7 @@ final class AppState {
         insertAt = min(max(0, insertAt), toGroup.workspaces.count)
         toGroup.workspaces.insert(workspace, at: insertAt)
 
-        if fromGroup.workspaces.isEmpty {
+        if fromGroup.workspaces.isEmpty, !fromGroup.isImplicit {
             groups.removeAll { $0.id == fromGroupId }
         }
 
@@ -242,7 +242,7 @@ final class AppState {
     }
 
     private func getOrCreateDefaultGroup() -> WorkspaceGroup {
-        if let existing = groups.first { return existing }
+        if let existing = groups.first(where: { $0.isImplicit }) { return existing }
         return createGroup(name: "Workspaces", isImplicit: true, createInitialWorkspace: false)
     }
 
@@ -316,22 +316,25 @@ final class AppState {
         let decoder = JSONDecoder()
         let savedGroups: [WorkspaceGroup]
         let savedSelection: UUID?
+        let loadedLegacyArray: Bool
 
         if let payload = try? decoder.decode(TermscapePersistence.self, from: data) {
             savedGroups = payload.groups
             savedSelection = payload.selectedWorkspaceId
+            loadedLegacyArray = false
         } else if let legacy = try? decoder.decode([WorkspaceGroup].self, from: data) {
             savedGroups = legacy
             savedSelection = nil
+            loadedLegacyArray = true
         } else {
             return
         }
 
         groups = savedGroups
         groups.removeAll(where: { $0.workspaces.isEmpty })
-        // Migration: old saves have no isImplicit field (defaults to false).
+        // Migration: legacy array saves have no isImplicit field (defaults to false).
         // If every group appears non-implicit, treat the first as the implicit default.
-        if !groups.isEmpty, groups.allSatisfy({ !$0.isImplicit }) {
+        if loadedLegacyArray, !groups.isEmpty, groups.allSatisfy({ !$0.isImplicit }) {
             groups[0].isImplicit = true
         }
         if normalizeImplicitGroupToFirst() {
