@@ -73,7 +73,8 @@ final class AppState {
             selectedWorkspaceId = groups.flatMap(\.workspaces).first?.id
         }
         if group.workspaces.isEmpty {
-            groups.removeAll { $0.id == group.id }
+            removeGroup(group)
+            return
         }
         schedulePersist()
     }
@@ -103,7 +104,7 @@ final class AppState {
         insertAt = min(max(0, insertAt), toGroup.workspaces.count)
         toGroup.workspaces.insert(workspace, at: insertAt)
 
-        if fromGroup.workspaces.isEmpty, !fromGroup.isImplicit {
+        if fromGroup.workspaces.isEmpty {
             groups.removeAll { $0.id == fromGroupId }
         }
 
