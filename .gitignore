@@ -47,9 +47,6 @@ Icon
 *.env
 *.pem
 
-# Omx
-.omx/
-
 # Githooks
 .githooks/
 
