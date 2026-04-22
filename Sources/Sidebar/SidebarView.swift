@@ -611,8 +611,7 @@ struct SidebarView: View {
     }
 
     private func createGroupAction() {
-        let group = WorkspaceGroup(name: Self.newGroupName, isImplicit: false)
-        appState.groups.append(group)
+        appState.createGroup(name: Self.newGroupName)
     }
 }
 
