@@ -1,11 +1,13 @@
 import AppKit
 import Bonsplit
 import QuartzCore
+import SwiftUI
 
 /// NSView that positions pane content views absolutely based on the Bonsplit layout.
 final class CanvasDocumentView: NSView {
     private struct HostedPaneView {
-        let rootView: NSView
+        let containerView: NSView
+        let contentView: NSView
         let focusView: NSView
         let kind: WorkspacePaneContentKind
         let applyTheme: (NSColor) -> Void
@@ -153,6 +155,8 @@ final class CanvasDocumentView: NSView {
             activePaneIds.insert(pane.paneId)
             guard let displayFrame = displayFrames[pane.paneId] else { continue }
             let isFocused = pane.paneId == snapshot.focusedPaneId
+            guard let paneUUID = UUID(uuidString: pane.paneId) else { continue }
+            let paneId = PaneID(id: paneUUID)
 
             guard let selectedTabIdStr = pane.selectedTabId,
                   let selectedTabUUID = UUID(uuidString: selectedTabIdStr)
@@ -165,11 +169,12 @@ final class CanvasDocumentView: NSView {
             case .terminal:
                 let surface = tab.surfaces[selectedTabUUID] ?? tab.createSurface(for: selectedTabId)
 
-                if let existing = hostedViews[pane.paneId], existing.rootView === surface.hostedView {
+                if let existing = hostedViews[pane.paneId], existing.contentView === surface.hostedView {
                     hosted = existing
                 } else {
-                    hostedViews[pane.paneId]?.rootView.removeFromSuperview()
+                    hostedViews[pane.paneId]?.containerView.removeFromSuperview()
                     let hostedView = surface.hostedView
+                    let containerView = FlippedContainerView(frame: displayFrame)
                     hostedView.setBackgroundColor(currentPaneBackground)
                     let paneIdStr = pane.paneId
                     hostedView.surfaceView.onFocused = { [weak tab] in
@@ -192,7 +197,8 @@ final class CanvasDocumentView: NSView {
                     }
 
                     hosted = HostedPaneView(
-                        rootView: hostedView,
+                        containerView: containerView,
+                        contentView: hostedView,
                         focusView: hostedView.surfaceView,
                         kind: .terminal,
                         applyTheme: { color in hostedView.setBackgroundColor(color) },
@@ -203,7 +209,8 @@ final class CanvasDocumentView: NSView {
                         }
                     )
                     hostedViews[pane.paneId] = hosted
-                    addSubview(hostedView)
+                    containerView.addSubview(hostedView)
+                    addSubview(containerView)
                 }
 
                 // Deliver any pending input (e.g. clone command) once the surface exists.
@@ -215,11 +222,12 @@ final class CanvasDocumentView: NSView {
                 let surface =
                     tab.browserSurfaces[selectedTabUUID] ?? tab.createBrowserSurface(for: selectedTabId)
 
-                if let existing = hostedViews[pane.paneId], existing.rootView === surface.hostedView {
+                if let existing = hostedViews[pane.paneId], existing.contentView === surface.hostedView {
                     hosted = existing
                 } else {
-                    hostedViews[pane.paneId]?.rootView.removeFromSuperview()
+                    hostedViews[pane.paneId]?.containerView.removeFromSuperview()
                     let hostedView = surface.hostedView
+                    let containerView = FlippedContainerView(frame: displayFrame)
                     hostedView.setThemeBackground(currentPaneBackground)
                     let paneIdStr = pane.paneId
                     surface.onFocused = { [weak tab] in
@@ -251,7 +259,8 @@ final class CanvasDocumentView: NSView {
                     let shouldFocusAddressBar = tab.consumePendingBrowserAddressBarFocus(for: selectedTabUUID)
 
                     hosted = HostedPaneView(
-                        rootView: hostedView,
+                        containerView: containerView,
+                        contentView: hostedView,
                         focusView: shouldFocusAddressBar
                             ? surface.addressBarFocusTargetView : surface.focusTargetView,
                         kind: .browser,
@@ -259,17 +268,19 @@ final class CanvasDocumentView: NSView {
                         ensureReadyForFocus: {}
                     )
                     hostedViews[pane.paneId] = hosted
-                    addSubview(hostedView)
+                    containerView.addSubview(hostedView)
+                    addSubview(containerView)
                 }
             case .editor:
                 let surface =
                     tab.editorSurfaces[selectedTabUUID] ?? tab.createEditorSurface(for: selectedTabId)
 
-                if let existing = hostedViews[pane.paneId], existing.rootView === surface.hostedView {
+                if let existing = hostedViews[pane.paneId], existing.contentView === surface.hostedView {
                     hosted = existing
                 } else {
-                    hostedViews[pane.paneId]?.rootView.removeFromSuperview()
+                    hostedViews[pane.paneId]?.containerView.removeFromSuperview()
                     let hostedView = surface.hostedView
+                    let containerView = FlippedContainerView(frame: displayFrame)
                     hostedView.wantsLayer = true
                     hostedView.layer?.backgroundColor = currentPaneBackground.cgColor
                     let paneIdStr = pane.paneId
@@ -307,7 +318,8 @@ final class CanvasDocumentView: NSView {
                     }
 
                     hosted = HostedPaneView(
-                        rootView: hostedView,
+                        containerView: containerView,
+                        contentView: hostedView,
                         focusView: hostedView,
                         kind: .editor,
                         applyTheme: { color in
@@ -318,12 +330,19 @@ final class CanvasDocumentView: NSView {
                         }
                     )
                     hostedViews[pane.paneId] = hosted
-                    addSubview(hostedView)
+                    containerView.addSubview(hostedView)
+                    addSubview(containerView)
                 }
             }
 
-            hosted.rootView.frame = displayFrame
-            applyPaneChrome(to: hosted.rootView, focused: isFocused && isMultiPane)
+            hosted.containerView.frame = displayFrame
+            hosted.contentView.frame = CGRect(
+                x: 0,
+                y: 0,
+                width: displayFrame.width,
+                height: max(displayFrame.height, 1)
+            )
+            applyPaneChrome(to: hosted.containerView, focused: isFocused && isMultiPane)
 
             if isFocused {
                 focusedRect = displayFrame
@@ -338,7 +357,7 @@ final class CanvasDocumentView: NSView {
 
         let removed = Set(hostedViews.keys).subtracting(activePaneIds)
         for paneId in removed {
-            hostedViews[paneId]?.rootView.removeFromSuperview()
+            hostedViews[paneId]?.containerView.removeFromSuperview()
             hostedViews.removeValue(forKey: paneId)
         }
 
@@ -1232,6 +1251,12 @@ final class CanvasDocumentView: NSView {
               let surface = tab.surfaces[tabUUID]
         else { return }
         surface.performClearScreen()
+    }
+}
+
+private final class FlippedContainerView: NSView {
+    override var isFlipped: Bool {
+        true
     }
 }
 
