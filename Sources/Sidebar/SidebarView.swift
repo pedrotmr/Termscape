@@ -49,7 +49,7 @@ struct SidebarView: View {
         @Bindable var appState = appState
 
         VStack(spacing: 0) {
-            Color.clear.frame(height: 46)
+            Color.clear.frame(height: 42)
 
             ScrollView {
                 VStack(spacing: 0) {
@@ -57,6 +57,7 @@ struct SidebarView: View {
                         sidebarGroupRow(group: group, index: index)
                     }
                 }
+                .padding(.top, 10)
                 .padding(.bottom, 8)
                 .coordinateSpace(name: "sidebarList")
                 .onPreferenceChange(GroupFrameKey.self) { groupFrames = $0 }
@@ -72,8 +73,6 @@ struct SidebarView: View {
                 .frame(height: 1)
 
             HStack(spacing: 2) {
-                Spacer()
-
                 Button {
                     showSettings = true
                 } label: {
@@ -85,6 +84,8 @@ struct SidebarView: View {
                 .releaseSafeHelp("Appearance")
                 .onHover { isAppearanceHovered = $0 }
                 .animation(.easeInOut(duration: 0.12), value: isAppearanceHovered)
+
+                Spacer()
 
                 Button {
                     showAddPopover.toggle()
@@ -122,6 +123,8 @@ struct SidebarView: View {
     }
 
     private func sidebarGroupRow(group: WorkspaceGroup, index: Int) -> some View {
+        let firstExplicitGroupIndex = appState.groups.firstIndex { !$0.isImplicit }
+        let lastExplicitGroupIndex = appState.groups.lastIndex { !$0.isImplicit }
         let reorder: AnyGesture<DragGesture.Value>? =
             group.isImplicit
                 ? nil
@@ -139,7 +142,10 @@ struct SidebarView: View {
             },
             draggingWorkspaceId: draggingWorkspaceId,
             proposedWorkspaceDropTarget: proposedWorkspaceDrop,
-            proposedWorkspaceFlatInsert: proposedWorkspaceFlatInsert
+            proposedWorkspaceFlatInsert: proposedWorkspaceFlatInsert,
+            showsTopDivider: index == firstExplicitGroupIndex,
+            showsBottomDivider: !group.isImplicit && lastExplicitGroupIndex != nil,
+            topDividerSpacing: index == firstExplicitGroupIndex && index > 0 ? 20 : 0
         )
         .background(
             GeometryReader { geo in

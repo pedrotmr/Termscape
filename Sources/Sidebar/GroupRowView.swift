@@ -22,6 +22,14 @@ struct WorkspaceDropTarget: Equatable {
 }
 
 struct GroupRowView: View {
+    private enum GroupChrome {
+        static let edgeInset: CGFloat = 10
+        static let separatorInset: CGFloat = 0
+        static let headerTopPadding: CGFloat = 8
+        static let headerBottomPadding: CGFloat = 6
+        static let expandedBottomPadding: CGFloat = 10
+    }
+
     @Environment(AppState.self) var appState
     @Environment(ThemeManager.self) var theme
     @Bindable var group: WorkspaceGroup
@@ -42,6 +50,12 @@ struct GroupRowView: View {
     var proposedWorkspaceDropTarget: WorkspaceDropTarget?
     /// Live insert index among visible rows (excluding drag); animates sibling shifts.
     var proposedWorkspaceFlatInsert: Int?
+    /// Draw the section's top divider.
+    var showsTopDivider: Bool = false
+    /// Draw the section's bottom divider.
+    var showsBottomDivider: Bool = false
+    /// Extra spacing before the top divider for the first explicit group after loose workspaces.
+    var topDividerSpacing: CGFloat = 0
 
     @State private var newGroupName = ""
     @State private var isHoveringHeader = false
@@ -65,6 +79,13 @@ struct GroupRowView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if !group.isImplicit, showsTopDivider {
+                Rectangle()
+                    .fill(t.border.opacity(0.95))
+                    .frame(height: 1)
+                    .padding(.top, topDividerSpacing)
+            }
+
             if !group.isImplicit {
                 headerWithOptionalGroupDrag
                     .animation(.easeInOut(duration: 0.12), value: isHoveringHeader)
@@ -95,19 +116,24 @@ struct GroupRowView: View {
                             .simultaneousGesture(workspaceDragGesture(workspace, index))
                     }
                 }
+                .padding(.bottom, group.isImplicit ? 0 : GroupChrome.expandedBottomPadding)
                 .transition(.opacity)
+            }
+
+            if !group.isImplicit, showsBottomDivider {
+                Rectangle()
+                    .fill(t.border.opacity(0.95))
+                    .frame(height: 1)
             }
         }
         .background {
             if isGroupReorderDragging {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                Rectangle()
                     .fill(t.surface.opacity(0.72))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        Rectangle()
                             .strokeBorder(t.border.opacity(0.45), lineWidth: 1)
                     )
-                    .padding(.horizontal, -6)
-                    .padding(.vertical, -4)
             }
         }
         .animation(.easeInOut(duration: 0.16), value: isGroupReorderDragging)
@@ -125,161 +151,150 @@ struct GroupRowView: View {
     // MARK: - Header
 
     private var groupHeader: some View {
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(isHoveringHeader ? t.hover : Color.clear)
-                .animation(.easeInOut(duration: 0.12), value: isHoveringHeader)
+        HStack(alignment: .center, spacing: 6) {
+            if isRenamingGroup {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(t.textFaint)
+                    .rotationEffect(.degrees(group.isCollapsed ? 0 : 90))
+                    .frame(width: 14, height: 14)
 
-            HStack(alignment: .center, spacing: 6) {
-                if isRenamingGroup {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(t.textFaint)
-                        .rotationEffect(.degrees(group.isCollapsed ? 0 : 90))
-                        .frame(width: 20, height: 20)
-
-                    TextField(
-                        "",
-                        text: Binding(
-                            get: { newGroupName },
-                            set: { newGroupName = $0.uppercased() }
-                        )
+                TextField(
+                    "",
+                    text: Binding(
+                        get: { newGroupName },
+                        set: { newGroupName = $0.uppercased() }
                     )
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(t.textMuted)
-                    .tracking(0.5)
-                    .focused($groupNameFocused)
-                    .onSubmit { commitGroupRename() }
-                    .onExitCommand { cancelGroupRename() }
-                    .onChange(of: groupNameFocused) { _, focused in
-                        guard !focused else { return }
-                        DispatchQueue.main.async {
-                            guard appState.editingGroupId == group.id else { return }
-                            commitGroupRename()
-                        }
+                )
+                .textFieldStyle(.plain)
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(t.textMuted)
+                .tracking(0.5)
+                .focused($groupNameFocused)
+                .onSubmit { commitGroupRename() }
+                .onExitCommand { cancelGroupRename() }
+                .onChange(of: groupNameFocused) { _, focused in
+                    guard !focused else { return }
+                    DispatchQueue.main.async {
+                        guard appState.editingGroupId == group.id else { return }
+                        commitGroupRename()
                     }
-
-                    Spacer(minLength: 0)
-                } else {
-                    Button {
-                        guard !suppressHeaderCollapse else { return }
-                        withAnimation(collapseToggleAnimation) {
-                            group.isCollapsed.toggle()
-                            appState.schedulePersist()
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(t.textFaint)
-                                .rotationEffect(.degrees(group.isCollapsed ? 0 : 90))
-                                .frame(width: 20, height: 20)
-                                .background(
-                                    hoverChevron ? t.selected.opacity(0.35) : Color.clear
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                                .onHover { hoverChevron = $0 }
-
-                            Text(group.name.uppercased())
-                                .font(.system(size: 10.5, weight: .semibold))
-                                .foregroundStyle(t.textFaint)
-                                .tracking(0.5)
-                                .lineLimit(1)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .multilineTextAlignment(.leading)
-
-                            Spacer(minLength: 0)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxHeight: .infinity)
                 }
 
-                HStack(spacing: 4) {
-                    if !isRenamingGroup {
-                        Button {
-                            startGroupRename()
-                        } label: {
-                            Image(systemName: "pencil")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(t.textMuted)
-                                .frame(width: 20, height: 20)
-                                .background(
-                                    (hoverRenameGroup && isHoveringHeader) ? t.selected.opacity(0.42) : t.hover
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                        }
-                        .buttonStyle(.plain)
-                        .cursor(NSCursor.arrow)
-                        .onHover { hoverRenameGroup = $0 }
-                        .sidebarHoverTooltip(
-                            "Rename group",
-                            theme: t,
-                            isPresented: $hoverRenameGroup,
-                            horizontalAnchor: .trailing
-                        )
+                Spacer(minLength: 0)
+            } else {
+                Button {
+                    guard !suppressHeaderCollapse else { return }
+                    withAnimation(collapseToggleAnimation) {
+                        group.isCollapsed.toggle()
+                        appState.schedulePersist()
                     }
-
-                    Button {
-                        let workspace = appState.addWorkspace(in: group, url: nil)
-                        workspace.ensureHasTab()
-                        appState.selectedWorkspaceId = workspace.id
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(t.textMuted)
-                            .frame(width: 20, height: 20)
-                            .background(
-                                (hoverAddWorkspace && isHoveringHeader) ? t.selected.opacity(0.42) : t.hover
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                    }
-                    .buttonStyle(.plain)
-                    .cursor(NSCursor.arrow)
-                    .onHover { hoverAddWorkspace = $0 }
-                    .sidebarHoverTooltip(
-                        "New workspace",
-                        theme: t,
-                        isPresented: $hoverAddWorkspace,
-                        horizontalAnchor: .trailing
-                    )
-
-                    Button {
-                        showDeleteGroupConfirmation = true
-                    } label: {
-                        Image(systemName: "xmark")
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.right")
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(t.textMuted)
+                            .foregroundStyle(hoverChevron ? t.textMuted : t.textFaint)
+                            .rotationEffect(.degrees(group.isCollapsed ? 0 : 90))
+                            .frame(width: 18, height: 18)
+                            .background(hoverChevron ? t.selected.opacity(0.35) : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .onHover { hoverChevron = $0 }
+
+                        Text(group.name.uppercased())
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundStyle(isHoveringHeader ? t.textMuted : t.textFaint)
+                            .tracking(0.6)
+                            .lineLimit(1)
+
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .frame(maxHeight: .infinity)
+            }
+
+            HStack(spacing: 4) {
+                if !isRenamingGroup {
+                    Button {
+                        startGroupRename()
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(hoverRenameGroup ? t.text : t.textFaint)
                             .frame(width: 20, height: 20)
                             .background(
-                                (hoverDeleteGroup && isHoveringHeader) ? t.selected.opacity(0.42) : t.hover
+                                (hoverRenameGroup && isHoveringHeader) ? t.selected.opacity(0.42) : t.hover
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                     .buttonStyle(.plain)
                     .cursor(NSCursor.arrow)
-                    .onHover { hoverDeleteGroup = $0 }
+                    .onHover { hoverRenameGroup = $0 }
                     .sidebarHoverTooltip(
-                        "Delete group",
+                        "Rename group",
                         theme: t,
-                        isPresented: $hoverDeleteGroup,
+                        isPresented: $hoverRenameGroup,
                         horizontalAnchor: .trailing
                     )
                 }
-                .frame(height: 24)
-                .frame(maxHeight: .infinity)
-                .opacity(isHoveringHeader ? 1 : 0)
-                .allowsHitTesting(isHoveringHeader)
+
+                Button {
+                    let workspace = appState.addWorkspace(in: group, url: nil)
+                    workspace.ensureHasTab()
+                    appState.selectedWorkspaceId = workspace.id
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(hoverAddWorkspace ? t.text : t.textFaint)
+                        .frame(width: 20, height: 20)
+                        .background(
+                            (hoverAddWorkspace && isHoveringHeader) ? t.selected.opacity(0.42) : t.hover
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                .buttonStyle(.plain)
+                .cursor(NSCursor.arrow)
+                .onHover { hoverAddWorkspace = $0 }
+                .sidebarHoverTooltip(
+                    "New workspace",
+                    theme: t,
+                    isPresented: $hoverAddWorkspace,
+                    horizontalAnchor: .trailing
+                )
+
+                Button {
+                    showDeleteGroupConfirmation = true
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(hoverDeleteGroup ? t.text : t.textFaint)
+                        .frame(width: 20, height: 20)
+                        .background(
+                            (hoverDeleteGroup && isHoveringHeader) ? t.selected.opacity(0.42) : t.hover
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                .buttonStyle(.plain)
+                .cursor(NSCursor.arrow)
+                .onHover { hoverDeleteGroup = $0 }
+                .sidebarHoverTooltip(
+                    "Delete group",
+                    theme: t,
+                    isPresented: $hoverDeleteGroup,
+                    horizontalAnchor: .trailing
+                )
             }
-            .frame(minHeight: 28)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 3)
+            .opacity(isHoveringHeader ? 1 : 0.18)
+            .allowsHitTesting(isHoveringHeader)
         }
+        .frame(minHeight: 23)
+        .padding(.leading, GroupChrome.edgeInset)
+        .padding(.trailing, GroupChrome.edgeInset)
+        .padding(.top, GroupChrome.headerTopPadding)
+        .padding(.bottom, GroupChrome.headerBottomPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 8)
         .background(
             GeometryReader { geo in
                 Color.clear.preference(
@@ -291,8 +306,6 @@ struct GroupRowView: View {
         .contentShape(Rectangle())
         .onHover { isHoveringHeader = $0 }
         .cursor(NSCursor.openHand)
-        .padding(.top, 16)
-        .padding(.bottom, 0)
         .confirmationDialog(
             "Delete “\(group.name)”?",
             isPresented: $showDeleteGroupConfirmation,
