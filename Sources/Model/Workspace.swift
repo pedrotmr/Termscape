@@ -110,17 +110,29 @@ final class Workspace: ObservableObject, Identifiable {
     }
 
     func moveTab(from sourceId: UUID, to destinationId: UUID) {
-        guard let from = tabs.firstIndex(where: { $0.id == sourceId }),
-              let to = tabs.firstIndex(where: { $0.id == destinationId }),
-              from != to
+        guard let reordered = reorderedTabs(afterMoving: sourceId, to: destinationId) else { return }
+        tabs = reordered
+        Self.notifyPersistenceNeeded()
+    }
+
+    func reorderTabs(toMatch orderedTabIDs: [UUID]) {
+        let currentIDs = tabs.map(\.id)
+        guard orderedTabIDs.count == currentIDs.count,
+              Set(orderedTabIDs) == Set(currentIDs)
         else { return }
 
-        let movingTab = tabs[from]
-        let destTab = tabs[to]
-        guard movingTab.isPinned == destTab.isPinned else { return }
+        let tabsByID = Dictionary(uniqueKeysWithValues: tabs.map { ($0.id, $0) })
+        let reordered = orderedTabIDs.compactMap { tabsByID[$0] }
+        guard reordered.count == tabs.count else { return }
 
-        let tab = tabs.remove(at: from)
-        tabs.insert(tab, at: to)
+        let pinnedCount = tabs.filter(\.isPinned).count
+        let pinnedPrefixIsValid = reordered.prefix(pinnedCount).allSatisfy(\.isPinned)
+        let unpinnedSuffixIsValid = reordered.dropFirst(pinnedCount).allSatisfy { !$0.isPinned }
+        guard pinnedPrefixIsValid, unpinnedSuffixIsValid, reordered.map(\.id) != currentIDs else {
+            return
+        }
+
+        tabs = reordered
         Self.notifyPersistenceNeeded()
     }
 
@@ -135,5 +147,21 @@ final class Workspace: ObservableObject, Identifiable {
             tab.teardown()
         }
         tabs.removeAll()
+    }
+
+    private func reorderedTabs(afterMoving sourceId: UUID, to destinationId: UUID) -> [WorkspaceTab]? {
+        guard let from = tabs.firstIndex(where: { $0.id == sourceId }),
+              let to = tabs.firstIndex(where: { $0.id == destinationId }),
+              from != to
+        else { return nil }
+
+        let movingTab = tabs[from]
+        let destinationTab = tabs[to]
+        guard movingTab.isPinned == destinationTab.isPinned else { return nil }
+
+        var reordered = tabs
+        let tab = reordered.remove(at: from)
+        reordered.insert(tab, at: to)
+        return reordered
     }
 }
