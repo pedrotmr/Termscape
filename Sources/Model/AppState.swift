@@ -243,7 +243,11 @@ final class AppState {
 
     private func getOrCreateDefaultGroup() -> WorkspaceGroup {
         if let existing = groups.first(where: { $0.isImplicit }) { return existing }
-        return createGroup(name: "Workspaces", isImplicit: true, createInitialWorkspace: false)
+        let group = createGroup(name: "Workspaces", isImplicit: true, createInitialWorkspace: false)
+        if normalizeImplicitGroupToFirst() {
+            schedulePersist()
+        }
+        return group
     }
 
     private func defaultWorkspaceName(for url: URL) -> String {
