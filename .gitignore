@@ -47,8 +47,16 @@ Icon
 *.env
 *.pem
 
-# Omx
-.omx/
-
 # Githooks
 .githooks/
+
+# AI Assistants
+.cursor/
+.claude/
+.gemini/
+.codex/
+.junie/
+.aiassistant/
+.agents/
+.omx/
+.superset/

@@ -45,6 +45,13 @@ struct WorkspaceDotColor: Identifiable {
 }
 
 struct WorkspaceRowView: View {
+    private enum Layout {
+        static let horizontalInset: CGFloat = 0
+        static let implicitLeadingInset: CGFloat = 16
+        static let groupedLeadingInset: CGFloat = 34
+        static let trailingInset: CGFloat = 12
+    }
+
     /// Vertical extent of one workspace row in the sidebar list (including outer padding). Kept in sync with `GroupRowView` drag offsets.
     static let sidebarSlotHeight: CGFloat = 38
 
@@ -105,7 +112,7 @@ struct WorkspaceRowView: View {
                 .transition(.opacity)
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, Layout.horizontalInset)
         .padding(.vertical, 4)
         .releaseSafeContextMenu { contextMenuItems }
         .onHover { isHovered = $0 }
@@ -120,11 +127,12 @@ struct WorkspaceRowView: View {
     // MARK: - Row content
 
     private var rowContent: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(dotColor)
-                .frame(width: 7, height: 7)
-                .padding(.leading, 4)
+        HStack(spacing: 10) {
+            Image(systemName: isSelected ? "terminal.fill" : "terminal")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(isSelected ? t.text.opacity(0.92) : t.textFaint)
+                .frame(width: 14)
+                .padding(.leading, 1)
 
             if isRenaming {
                 TextField("", text: $newName)
@@ -150,11 +158,10 @@ struct WorkspaceRowView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.leading, 10)
-        .padding(.trailing, 10 + ((isHovered && !isRenaming) ? Self.hoveredCloseReserveWidth : 0))
+        .padding(.leading, group.isImplicit ? Layout.implicitLeadingInset : Layout.groupedLeadingInset)
+        .padding(.trailing, Layout.trailingInset + ((isHovered && !isRenaming) ? Self.hoveredCloseReserveWidth : 0))
         .padding(.vertical, 7)
         .background(rowBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 7))
         // Focus the field on next runloop tick so the view is in the hierarchy
         .onChange(of: isRenaming) { _, renaming in
             if renaming {
@@ -166,22 +173,17 @@ struct WorkspaceRowView: View {
     private var rowBackground: some View {
         Group {
             if isRenaming {
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(t.selected)
+                Rectangle()
+                    .fill(t.hover)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 7)
-                            .stroke(t.accent.opacity(0.45), lineWidth: 1)
+                        Rectangle()
+                            .stroke(t.accent.opacity(0.36), lineWidth: 1)
                     )
             } else if isSelected {
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(t.selected)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 7)
-                            .stroke(t.border, lineWidth: 1)
-                    )
+                Color.clear
             } else if isHovered {
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(t.hover)
+                Rectangle()
+                    .fill(t.hover.opacity(0.82))
             } else {
                 Color.clear
             }
