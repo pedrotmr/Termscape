@@ -187,7 +187,7 @@ struct TabItemView: View {
     @ViewBuilder
     private var tabBackground: some View {
         if isSelected {
-            t.hover
+            isHovered ? t.hover : t.selected
         } else if isHovered {
             t.surface
         } else {

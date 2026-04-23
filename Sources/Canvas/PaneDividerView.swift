@@ -27,7 +27,12 @@ final class PaneGrabberIndicator {
     func attach(to host: NSView) {
         self.host = host
         host.wantsLayer = true
-        guard layer == nil, let hostLayer = host.layer else { return }
+        tryAttach()
+    }
+
+    /// Host `layer` can be nil until the view is in a window; retry from `updateFrame` / `apply`.
+    private func tryAttach() {
+        guard layer == nil, let host, let hostLayer = host.layer else { return }
         let created = CALayer()
         created.backgroundColor = accentColor.cgColor
         created.opacity = 0
@@ -37,6 +42,7 @@ final class PaneGrabberIndicator {
     }
 
     func updateFrame(in bounds: CGRect) {
+        tryAttach()
         guard let indicator = layer else { return }
         let length = Self.length
         let thickness = Self.thickness

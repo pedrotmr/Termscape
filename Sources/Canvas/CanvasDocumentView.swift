@@ -28,9 +28,9 @@ final class CanvasDocumentView: NSView {
     private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
     private var currentAccentColor: NSColor = AppTheme.tobacco.accentNSColor
 
-    /// Flush grid: panes touch window edges, 1px matte shows through as straight-line separators.
+    /// Flush grid at outer edges; gutter matches divider hit width so the 8pt strip does not overlap pane content.
     private enum CanvasPaneChrome {
-        static let interPaneGutter: CGFloat = 1
+        static let interPaneGutter: CGFloat = PaneDividerView.hitThickness
         static let outerInset: CGFloat = 0
         static let focusStripeHeight: CGFloat = 2
         static let focusStripeOpacity: Float = 0.9
@@ -926,8 +926,9 @@ final class CanvasDocumentView: NSView {
         region: CGRect
     ) -> TrailingResizeDescriptor? {
         guard rightmostResizableNode(in: node) != nil else { return nil }
+        // Keep the full hit rect inside the document so the outer half is still hittable (NSView hit testing clips to bounds).
         let frame = CGRect(
-            x: region.maxX - PaneTrailingResizeHandleView.hitThickness / 2,
+            x: region.maxX - PaneTrailingResizeHandleView.hitThickness,
             y: region.minY,
             width: PaneTrailingResizeHandleView.hitThickness,
             height: region.height
