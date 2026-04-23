@@ -4,6 +4,7 @@ import QuartzCore
 import SwiftUI
 
 /// NSView that positions pane content views absolutely based on the Bonsplit layout.
+@MainActor
 final class CanvasDocumentView: NSView {
     private struct HostedPaneView {
         let containerView: NSView
@@ -1278,6 +1279,7 @@ final class CanvasDocumentView: NSView {
     }
 }
 
+@MainActor
 private final class FlippedContainerView: NSView {
     override var isFlipped: Bool {
         true
@@ -1285,6 +1287,7 @@ private final class FlippedContainerView: NSView {
 }
 
 /// Invisible trailing-edge hit target that resizes the rightmost pane column width.
+@MainActor
 private final class PaneTrailingResizeHandleView: NSView {
     static let hitThickness: CGFloat = 10
 
