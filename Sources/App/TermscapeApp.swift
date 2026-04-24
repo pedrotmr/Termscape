@@ -231,17 +231,6 @@ struct EmptyWorkspaceView: View {
         ZStack {
             t.surface.ignoresSafeArea()
 
-            VStack {
-                HStack {
-                    Spacer()
-                    WindowDragHandleStrip(symbolColor: t.textMuted)
-                }
-                .padding(.top, 8)
-                .padding(.trailing, 8)
-
-                Spacer()
-            }
-
             VStack(spacing: 0) {
                 Spacer()
 

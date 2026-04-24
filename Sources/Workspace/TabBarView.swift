@@ -13,20 +13,26 @@ struct TabBarView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(workspace.tabs) { tab in
-                        TabItemView(
-                            tab: tab,
-                            isSelected: workspace.selectedTabId == tab.id,
-                            editingTabId: $editingTabId,
-                            onSelect: { workspace.selectTab(tab.id) },
-                            onClose: { workspace.closeTab(tab.id) },
-                            onTogglePin: { workspace.togglePin(tab.id) }
-                        )
+            GeometryReader { geo in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(workspace.tabs) { tab in
+                            TabItemView(
+                                tab: tab,
+                                isSelected: workspace.selectedTabId == tab.id,
+                                editingTabId: $editingTabId,
+                                onSelect: { workspace.selectTab(tab.id) },
+                                onClose: { workspace.closeTab(tab.id) },
+                                onTogglePin: { workspace.togglePin(tab.id) }
+                            )
+                        }
+                        // Trailing empty area acts as a window-drag handle.
+                        WindowDragRegion()
+                            .frame(maxWidth: .infinity, minHeight: 34)
                     }
+                    .frame(minWidth: geo.size.width, alignment: .leading)
+                    .animation(.easeInOut(duration: 0.15), value: workspace.tabs.map(\.id))
                 }
-                .animation(.easeInOut(duration: 0.15), value: workspace.tabs.map(\.id))
             }
 
             // New tab button
@@ -65,9 +71,6 @@ struct TabBarView: View {
                 NotificationCenter.default.post(name: .splitDown, object: nil)
             }
             .padding(.trailing, 4)
-
-            WindowDragHandleStrip(symbolColor: t.textMuted)
-                .padding(.trailing, 8)
         }
         .frame(height: 34)
         .background(t.sidebar)
