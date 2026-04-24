@@ -311,8 +311,17 @@ final class EditorLineNumberRulerView: NSRulerView {
 /// Monospace `NSTextView` in a scroll view with a line-number ruler and ⌘S forwarding.
 struct EditorCodeTextView: NSViewRepresentable {
     @Binding var text: String
+    let documentID: UUID
     var isEditable: Bool
     var onSave: () -> Void
+
+    private struct EphemeralState {
+        var selection: NSRange
+        var scrollOrigin: NSPoint
+    }
+
+    @MainActor
+    private static var ephemeralStateByDocumentID: [UUID: EphemeralState] = [:]
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -367,6 +376,7 @@ struct EditorCodeTextView: NSViewRepresentable {
         context.coordinator.textView = tv
         context.coordinator.rulerView = ruler
         context.coordinator.textBinding = $text
+        context.coordinator.documentID = documentID
         context.coordinator.onSave = onSave
         tv.textStorage?.delegate = context.coordinator
         tv.delegate = context.coordinator
@@ -382,9 +392,16 @@ struct EditorCodeTextView: NSViewRepresentable {
         EditorCodeTypography.applyParagraphStyleToDocument(tv)
         context.coordinator.suppressCallbacks = false
         tv.isEditable = isEditable
-        tv.revealDocumentStart()
-        DispatchQueue.main.async {
-            guard tv.window != nil else { return }
+        if let cached = Self.ephemeralStateByDocumentID[documentID] {
+            let upperBound = text.utf16.count
+            let restoredLocation = min(max(0, cached.selection.location), upperBound)
+            let restoredLength = min(max(0, cached.selection.length), upperBound - restoredLocation)
+            tv.setSelectedRange(NSRange(location: restoredLocation, length: restoredLength))
+            if let clip = scroll.contentView as NSClipView? {
+                clip.setBoundsOrigin(cached.scrollOrigin)
+                scroll.reflectScrolledClipView(clip)
+            }
+        } else {
             tv.revealDocumentStart()
         }
         tv.refreshAuxiliaryHighlights()
@@ -396,6 +413,7 @@ struct EditorCodeTextView: NSViewRepresentable {
         context.coordinator.textView = tv
         context.coordinator.rulerView = scroll.verticalRulerView as? EditorLineNumberRulerView
         context.coordinator.textBinding = $text
+        context.coordinator.documentID = documentID
         context.coordinator.onSave = onSave
 
         context.coordinator.suppressCallbacks = true
@@ -405,7 +423,7 @@ struct EditorCodeTextView: NSViewRepresentable {
             let oldSelection = tv.selectedRange()
             tv.string = text
             EditorCodeTypography.applyParagraphStyleToDocument(tv)
-            let upperBound = (tv.string as NSString).length
+            let upperBound = text.utf16.count
             let restoredLocation = min(max(0, oldSelection.location), upperBound)
             let restoredLength = min(max(0, oldSelection.length), upperBound - restoredLocation)
             tv.setSelectedRange(NSRange(location: restoredLocation, length: restoredLength))
@@ -420,10 +438,12 @@ struct EditorCodeTextView: NSViewRepresentable {
         coordinator.teardown()
     }
 
+    @MainActor
     final class Coordinator: NSObject, NSTextStorageDelegate, NSTextViewDelegate {
         weak var textView: EditorSourceTextView?
         weak var rulerView: EditorLineNumberRulerView?
         var textBinding: Binding<String> = .constant("")
+        var documentID: UUID?
         var onSave: () -> Void = {}
         var suppressCallbacks = false
         private var boundsObserver: NSObjectProtocol?
@@ -435,11 +455,13 @@ struct EditorCodeTextView: NSViewRepresentable {
                 queue: .main
             ) { [weak self] _ in
                 self?.rulerView?.needsDisplay = true
+                self?.captureEphemeralState(from: scroll)
             }
             scroll.contentView.postsBoundsChangedNotifications = true
         }
 
         func teardown() {
+            captureEphemeralState()
             if let boundsObserver {
                 NotificationCenter.default.removeObserver(boundsObserver)
             }
@@ -450,6 +472,7 @@ struct EditorCodeTextView: NSViewRepresentable {
         func textViewDidChangeSelection(_ notification: Notification) {
             (notification.object as? EditorSourceTextView)?.refreshAuxiliaryHighlights()
             rulerView?.needsDisplay = true
+            captureEphemeralState()
         }
 
         func textStorage(
@@ -462,6 +485,16 @@ struct EditorCodeTextView: NSViewRepresentable {
             textBinding.wrappedValue = storage.string
             textView?.refreshAuxiliaryHighlights()
             rulerView?.needsDisplay = true
+        }
+
+        private func captureEphemeralState(from scroll: NSScrollView? = nil) {
+            guard let documentID, let tv = textView else { return }
+            let clipView = scroll?.contentView ?? tv.enclosingScrollView?.contentView
+            let origin = clipView?.bounds.origin ?? .zero
+            EditorCodeTextView.ephemeralStateByDocumentID[documentID] = EphemeralState(
+                selection: tv.selectedRange(),
+                scrollOrigin: origin
+            )
         }
     }
 }

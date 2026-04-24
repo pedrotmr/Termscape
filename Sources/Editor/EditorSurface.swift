@@ -1081,6 +1081,7 @@ struct EditorSurfaceRootView: View {
             if let id = model.selectedDocumentId, model.documentStore.buffer(id: id) != nil {
                 EditorCodeTextView(
                     text: model.workingTextBinding(for: id),
+                    documentID: id,
                     isEditable: true,
                     onSave: { Task { await model.saveSelectedDocument() } }
                 )
