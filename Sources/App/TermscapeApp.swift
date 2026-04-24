@@ -35,6 +35,7 @@ struct TermscapeApp: App {
             ContentView()
                 .environment(appDelegate.appState)
                 .environment(themeManager)
+                .environmentObject(appUpdater)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1200, height: 750)
