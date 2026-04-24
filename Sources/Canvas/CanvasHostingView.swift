@@ -19,7 +19,10 @@ struct CanvasHostingView: NSViewRepresentable {
         let tabChanged = nsView.hostedTab !== tab
         nsView.hostedTab = tab
         nsView.applyTheme(
-            canvasMatte: t.canvasMatte, paneBackground: t.canvasBackground, accentColor: t.accentNSColor
+            canvasMatte: t.canvasMatte,
+            paneBackground: t.canvasBackground,
+            accentColor: t.accentNSColor,
+            dividerColor: NSColor(t.border)
         )
         if tabChanged {
             nsView.updateLayout(for: tab, options: [])

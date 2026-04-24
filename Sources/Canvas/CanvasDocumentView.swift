@@ -28,10 +28,11 @@ final class CanvasDocumentView: NSView {
     private var currentCanvasMatte: NSColor = AppTheme.tobacco.canvasMatte
     private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
     private var currentAccentColor: NSColor = AppTheme.tobacco.accentNSColor
+    private var currentDividerColor: NSColor = AppTheme.tobacco.borderNSColor
 
-    /// Flush grid at outer edges; gutter matches divider hit width so the 8pt strip does not overlap pane content.
+    /// Keep panes visually contiguous; divider hit target can overlap content without adding a visible seam.
     private enum CanvasPaneChrome {
-        static let interPaneGutter: CGFloat = PaneDividerView.hitThickness
+        static let interPaneGutter: CGFloat = 0
         static let outerInset: CGFloat = 0
         static let focusStripeHeight: CGFloat = 2
         static let focusStripeOpacity: Float = 0.9
@@ -89,10 +90,16 @@ final class CanvasDocumentView: NSView {
 
     // MARK: - Theme
 
-    func applyTheme(canvasMatte: NSColor, paneBackground: NSColor, accentColor: NSColor) {
+    func applyTheme(
+        canvasMatte: NSColor,
+        paneBackground: NSColor,
+        accentColor: NSColor,
+        dividerColor: NSColor
+    ) {
         currentAccentColor = accentColor
         currentCanvasMatte = canvasMatte
         currentPaneBackground = paneBackground
+        currentDividerColor = dividerColor
         layer?.backgroundColor = canvasMatte.cgColor
 
         for (_, hosted) in hostedViews {
@@ -100,6 +107,7 @@ final class CanvasDocumentView: NSView {
         }
         for (_, divider) in dividerViews {
             divider.accentColor = accentColor
+            divider.dividerColor = dividerColor
         }
         trailingResizeHandleView?.accentColor = accentColor
     }
@@ -407,6 +415,7 @@ final class CanvasDocumentView: NSView {
                     )
                 }
                 created.accentColor = currentAccentColor
+                created.dividerColor = currentDividerColor
                 dividerViews[descriptor.splitId] = created
                 dividerView = created
                 addSubview(dividerView)
