@@ -102,7 +102,8 @@ final class PaneDividerView: NSView {
     }
 
     static let hitThickness: CGFloat = 6
-    private static let visibleBorderPixels: CGFloat = 1.0
+    /// Visible stroke width in **backing pixels** (`÷ backingScaleFactor` → points). 1 = hairline; 2 ≈ 1pt on @2×.
+    private static let visibleBorderPixels: CGFloat = 2
 
     var orientation: Orientation = .horizontal {
         didSet {
@@ -311,8 +312,9 @@ final class PaneDividerView: NSView {
         grabber.apply(isHovering: isHovering, isTracking: isTrackingPointer, in: bounds)
     }
 
+    /// Matches `HorizontalResizeDivider` idle stroke (`theme.border`) so canvas splits read as strong as the sidebar seam.
     private var effectiveDividerColor: NSColor {
-        dividerColor.withAlphaComponent(dividerColor.alphaComponent * 0.7)
+        dividerColor
     }
 
     private func updateBorderFrame() {
