@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 /// Options for `CanvasScrollView.updateLayout(for:options:)`.
 struct CanvasLayoutUpdateOptions: OptionSet {
@@ -82,19 +83,9 @@ final class CanvasScrollView: NSScrollView {
         reflectScrolledClipView(contentView)
     }
 
-    func applyTheme(
-        canvasMatte: NSColor,
-        paneBackground: NSColor,
-        accentColor: NSColor,
-        dividerColor: NSColor
-    ) {
-        backgroundColor = canvasMatte
-        documentCanvasView.applyTheme(
-            canvasMatte: canvasMatte,
-            paneBackground: paneBackground,
-            accentColor: accentColor,
-            dividerColor: dividerColor
-        )
+    func applyTheme(_ theme: AppTheme) {
+        backgroundColor = theme.canvasMatte
+        documentCanvasView.applyTheme(theme)
     }
 
     // MARK: - Coalesced layout

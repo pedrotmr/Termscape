@@ -23,6 +23,7 @@ private enum EditorPaneAlert: Identifiable, Equatable {
 @MainActor
 private final class EditorSurfaceViewModel: ObservableObject {
     let standardizedRootPath: String
+    @Published var appTheme: AppTheme = .tobacco
     @Published var editorState: EditorSurface.State = .initializing
     /// `false` until `EditorSurface.ensureInitialized()` runs (first AppKit focus of this pane). Drives idle copy instead of fake “loading”.
     @Published var hasStartedEditorBootstrap = false
@@ -90,6 +91,10 @@ final class EditorSurface {
         EditorCanvasScrollForwarder.track(hostedView)
         wireViewModelCallbacks()
         syncFileTreeToViewModel()
+    }
+
+    func applyAppTheme(_ theme: AppTheme) {
+        viewModel.appTheme = theme
     }
 
     private func wireViewModelCallbacks() {
@@ -181,32 +186,10 @@ final class EditorSurface {
     }
 }
 
-// MARK: - IDE chrome (static colors; editor pane is always dark)
+// MARK: - IDE layout metrics (colors follow `AppTheme` via `model.appTheme`)
 
-private enum EditorIDEChrome {
-    static let canvas = Color(red: 0.07, green: 0.07, blue: 0.08)
-    /// Intentionally matches `canvas` so the file column and editor read as one surface (divider + chrome provide structure).
-    static let sidebar = Color(red: 0.07, green: 0.07, blue: 0.08)
-    static let tabInactive = Color(red: 0.11, green: 0.11, blue: 0.12)
-    static let tabActive = Color(red: 0.15, green: 0.15, blue: 0.16)
-    /// Inactive tab hover — visibly softer than `tabActive` so selection stays strongest.
-    static let tabHoverFill = Color(red: 0.118, green: 0.118, blue: 0.125)
-    static let hairline = Color.white.opacity(0.085)
-    static let muted = Color.white.opacity(0.48)
-    static let text = Color.white.opacity(0.93)
-    static let searchFieldFill = Color.white.opacity(0.055)
-    static let searchFieldStroke = Color.white.opacity(0.10)
+private enum EditorChromeMetrics {
     static let searchCornerRadius: CGFloat = 6
-    /// Disclosure triangles beside folders (fixed-width column avoids layout shift).
-    static let disclosureTint = Color.white.opacity(0.45)
-    static let treeDimmed = Color.white.opacity(0.32)
-    /// Subtle row hover / selection (files and folders).
-    static let fileRowHoverFill = Color.white.opacity(0.065)
-    static let fileRowSelectedFill = Color.white.opacity(0.085)
-    /// Breadcrumb separators — high enough contrast to read on dark chrome.
-    static let breadcrumbChevron = Color.white.opacity(0.58)
-    /// Breadcrumb hover: brighter text only (same font weight as idle — avoids layout shift).
-    static let breadcrumbHoverMuted = Color.white.opacity(0.78)
     /// Fixed width for the sidebar tree icon column (triangle / file glyph); keeps labels aligned when toggling expand.
     static let treeIconColumn: CGFloat = 14
     static let treeIndentStep: CGFloat = 8
@@ -218,7 +201,6 @@ private enum EditorIDEChrome {
     static let fileSidebarMinWidth: CGFloat = 220
     static let fileSidebarDefaultWidth: CGFloat = 260
     static let fileSidebarMaxWidth: CGFloat = 560
-    static let fileSidebarDividerHover = Color.white.opacity(0.26)
 }
 
 private struct SidebarSearchTreeNode: Identifiable, Hashable {
@@ -235,6 +217,7 @@ private struct SidebarSearchTreeNode: Identifiable, Hashable {
 
 /// Recursive search-result row without `AnyView` type erasure (see review: SwiftUI diffing).
 private struct SidebarSearchTreeRowView: View {
+    let theme: AppTheme
     let node: SidebarSearchTreeNode
     let level: Int
     @Binding var hoveredPath: String?
@@ -248,16 +231,10 @@ private struct SidebarSearchTreeRowView: View {
             selectedFilePath.map { $0 == path } ?? false
         let isHovered = hoveredPath == node.path
         let isDimmed = node.isDirectory && !node.isSearchMatch
-        let labelColor = Self.labelColor(
-            isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed
-        )
-        let iconColor = Self.iconColor(
-            isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed
-        )
-        let disclosureTint: Color =
-            (isDimmed && !isHovered)
-                ? EditorIDEChrome.treeDimmed
-                : Self.disclosureTint(isHovered: isHovered)
+        let labelColor = labelColor(isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed)
+        let iconColor = iconColor(isSelected: isSelectedFile, isHovered: isHovered, dimmed: isDimmed)
+        let rowDisclosureTint: Color =
+            (isDimmed && !isHovered) ? theme.textFaint : disclosureTintColor(isHovered: isHovered)
 
         VStack(alignment: .leading, spacing: 2) {
             Button {
@@ -271,13 +248,13 @@ private struct SidebarSearchTreeRowView: View {
                     if node.isDirectory {
                         SidebarDisclosureTriangle(
                             expanded: !node.children.isEmpty,
-                            tint: disclosureTint
+                            tint: rowDisclosureTint
                         )
                     } else {
                         Self.fileIcon(for: node.name)
                             .font(.system(size: 11, weight: .regular))
                             .foregroundStyle(iconColor)
-                            .frame(width: EditorIDEChrome.treeIconColumn, alignment: .center)
+                            .frame(width: EditorChromeMetrics.treeIconColumn, alignment: .center)
                     }
                     Text(node.name)
                         .font(.system(size: 11, weight: .regular, design: .monospaced))
@@ -287,12 +264,12 @@ private struct SidebarSearchTreeRowView: View {
                 }
                 .padding(
                     .leading,
-                    EditorIDEChrome.treeEdgeInset + CGFloat(level) * EditorIDEChrome.treeIndentStep
+                    EditorChromeMetrics.treeEdgeInset + CGFloat(level) * EditorChromeMetrics.treeIndentStep
                 )
                 .padding(.vertical, 4)
-                .padding(.trailing, EditorIDEChrome.treeEdgeInset)
+                .padding(.trailing, EditorChromeMetrics.treeEdgeInset)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Self.rowBackground(isSelected: isSelectedFile, isHovered: isHovered))
+                .background(rowBackground(isSelected: isSelectedFile, isHovered: isHovered))
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -308,6 +285,7 @@ private struct SidebarSearchTreeRowView: View {
             if node.isDirectory {
                 ForEach(node.children) { child in
                     SidebarSearchTreeRowView(
+                        theme: theme,
                         node: child,
                         level: level + 1,
                         hoveredPath: $hoveredPath,
@@ -320,37 +298,37 @@ private struct SidebarSearchTreeRowView: View {
         }
     }
 
-    private static func labelColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
-        if dimmed, !isSelected, !isHovered { return EditorIDEChrome.treeDimmed }
-        if isSelected { return EditorIDEChrome.text }
-        if isHovered { return EditorIDEChrome.breadcrumbHoverMuted }
-        return EditorIDEChrome.muted
+    private func labelColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
+        if dimmed, !isSelected, !isHovered { return theme.textFaint }
+        if isSelected { return theme.text }
+        if isHovered { return theme.text.opacity(0.82) }
+        return theme.textMuted
     }
 
-    private static func iconColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
-        if dimmed, !isSelected, !isHovered { return EditorIDEChrome.treeDimmed }
-        if isSelected { return EditorIDEChrome.text.opacity(0.88) }
-        if isHovered { return EditorIDEChrome.breadcrumbHoverMuted.opacity(0.95) }
-        return EditorIDEChrome.muted.opacity(0.92)
+    private func iconColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
+        if dimmed, !isSelected, !isHovered { return theme.textFaint }
+        if isSelected { return theme.text.opacity(0.88) }
+        if isHovered { return theme.text.opacity(0.78) }
+        return theme.textMuted.opacity(0.92)
     }
 
-    private static func disclosureTint(isHovered: Bool) -> Color {
-        if isHovered { return EditorIDEChrome.muted.opacity(1.05) }
-        return EditorIDEChrome.disclosureTint
+    private func disclosureTintColor(isHovered: Bool) -> Color {
+        if isHovered { return theme.textMuted.opacity(1.05) }
+        return theme.textMuted.opacity(0.78)
     }
 
     @ViewBuilder
-    private static func rowBackground(isSelected: Bool, isHovered: Bool) -> some View {
+    private func rowBackground(isSelected: Bool, isHovered: Bool) -> some View {
         if isSelected {
             RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(EditorIDEChrome.fileRowSelectedFill)
+                .fill(theme.selected.opacity(0.55))
                 .overlay(
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .stroke(EditorIDEChrome.hairline, lineWidth: 1)
+                        .stroke(theme.border, lineWidth: 1)
                 )
         } else if isHovered {
             RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(EditorIDEChrome.fileRowHoverFill)
+                .fill(theme.hover.opacity(0.75))
         } else {
             Color.clear
         }
@@ -384,14 +362,14 @@ private struct EditorBreadcrumbItem: Identifiable {
 /// Small filled triangle: right when collapsed, down when expanded (fixed-width slot).
 private struct SidebarDisclosureTriangle: View {
     let expanded: Bool
-    var tint: Color = EditorIDEChrome.disclosureTint
+    var tint: Color
 
     var body: some View {
         Image(systemName: "triangle.fill")
             .font(.system(size: 5.5, weight: .semibold))
             .foregroundStyle(tint)
             .rotationEffect(.degrees(expanded ? 180 : 90))
-            .frame(width: EditorIDEChrome.treeIconColumn, height: 11)
+            .frame(width: EditorChromeMetrics.treeIconColumn, height: 11)
             .accessibilityLabel(expanded ? "Folder, expanded" : "Folder, collapsed")
     }
 }
@@ -412,7 +390,7 @@ struct EditorSurfaceRootView: View {
     @State private var breadcrumbItems: [EditorBreadcrumbItem] = []
     /// Coalesces `rescheduleTreeLoadsForExpandedFolders` when `treeCacheInvalidationEpoch` bumps in quick succession.
     @State private var treeExpandedLoadRescheduleToken: UInt = 0
-    @State private var fileSidebarWidth: CGFloat = EditorIDEChrome.fileSidebarDefaultWidth
+    @State private var fileSidebarWidth: CGFloat = EditorChromeMetrics.fileSidebarDefaultWidth
     @State private var sidebarSearchResults: [FileTreeIndex.SearchResult] = []
     @State private var sidebarSearchTreeRoots: [SidebarSearchTreeNode] = []
     @State private var sidebarSearchTask: Task<Void, Never>?
@@ -424,6 +402,10 @@ struct EditorSurfaceRootView: View {
 
     private var standardizedRoot: String {
         model.standardizedRootPath
+    }
+
+    private var t: AppTheme {
+        model.appTheme
     }
 
     private var selectedDocument: EditorDocumentBuffer? {
@@ -564,18 +546,18 @@ struct EditorSurfaceRootView: View {
 
     private var editorChromeStack: some View {
         ZStack {
-            EditorIDEChrome.canvas
+            t.canvasBackground.color
             HStack(alignment: .top, spacing: 0) {
                 fileTreePanel
                     .frame(width: fileSidebarWidth, alignment: .topLeading)
                     .frame(maxHeight: .infinity, alignment: .topLeading)
-                    .background(EditorIDEChrome.sidebar)
+                    .background(t.editorChromeSurface.color)
                 HorizontalResizeDivider(
                     width: $fileSidebarWidth,
-                    minWidth: EditorIDEChrome.fileSidebarMinWidth,
-                    maxWidth: EditorIDEChrome.fileSidebarMaxWidth,
-                    idleColor: EditorIDEChrome.hairline,
-                    hoverColor: EditorIDEChrome.fileSidebarDividerHover
+                    minWidth: EditorChromeMetrics.fileSidebarMinWidth,
+                    maxWidth: EditorChromeMetrics.fileSidebarMaxWidth,
+                    idleColor: t.border,
+                    hoverColor: t.accent.opacity(0.38)
                 )
                 mainEditorChrome
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -588,9 +570,9 @@ struct EditorSurfaceRootView: View {
     private var fileTreePanel: some View {
         VStack(alignment: .leading, spacing: 0) {
             sidebarSearchField
-                .padding(.horizontal, EditorIDEChrome.sidebarHeaderPaddingH)
-                .padding(.top, EditorIDEChrome.sidebarHeaderPaddingTop)
-                .padding(.bottom, EditorIDEChrome.sidebarHeaderPaddingBottom)
+                .padding(.horizontal, EditorChromeMetrics.sidebarHeaderPaddingH)
+                .padding(.top, EditorChromeMetrics.sidebarHeaderPaddingTop)
+                .padding(.bottom, EditorChromeMetrics.sidebarHeaderPaddingBottom)
 
             if model.editorState == .ready, model.fileTreeIndex != nil {
                 if isSidebarSearchActive {
@@ -603,7 +585,7 @@ struct EditorSurfaceRootView: View {
                             }
                             .id(model.treeCacheInvalidationEpoch)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, max(4, EditorIDEChrome.treeEdgeInset - 2))
+                            .padding(.horizontal, max(4, EditorChromeMetrics.treeEdgeInset - 2))
                             .padding(.bottom, 8)
                         }
                         .scrollIndicators(.hidden)
@@ -629,11 +611,11 @@ struct EditorSurfaceRootView: View {
                 .padding(.top, 1)
             Text(sidebarPlaceholderMessage)
                 .font(.system(size: 12))
-                .foregroundStyle(EditorIDEChrome.muted)
+                .foregroundStyle(t.textMuted)
                 .lineSpacing(2)
                 .multilineTextAlignment(.leading)
         }
-        .padding(.horizontal, EditorIDEChrome.sidebarHeaderPaddingH)
+        .padding(.horizontal, EditorChromeMetrics.sidebarHeaderPaddingH)
         .padding(.top, 2)
     }
 
@@ -644,11 +626,11 @@ struct EditorSurfaceRootView: View {
             if editorIsBootstrapping {
                 ProgressView()
                     .controlSize(.small)
-                    .tint(EditorIDEChrome.muted.opacity(0.9))
+                    .tint(t.textMuted.opacity(0.9))
             } else {
                 Image(systemName: "hand.tap")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(EditorIDEChrome.muted.opacity(0.95))
+                    .foregroundStyle(t.textMuted.opacity(0.95))
             }
         case .ready, .unavailableRoot, .initFailed:
             EmptyView()
@@ -672,23 +654,23 @@ struct EditorSurfaceRootView: View {
         HStack(spacing: 9) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(EditorIDEChrome.muted.opacity(0.95))
+                .foregroundStyle(t.textMuted.opacity(0.95))
             TextField("Search files", text: $model.sidebarSearchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12, weight: .regular))
-                .foregroundStyle(EditorIDEChrome.text.opacity(0.92))
-                .tint(EditorIDEChrome.text.opacity(0.75))
+                .foregroundStyle(t.text.opacity(0.92))
+                .tint(t.text.opacity(0.75))
                 .frame(maxWidth: .infinity, alignment: .leading)
             sidebarSearchScopeMenu
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .background(
-            RoundedRectangle(cornerRadius: EditorIDEChrome.searchCornerRadius, style: .continuous)
-                .fill(EditorIDEChrome.searchFieldFill)
+            RoundedRectangle(cornerRadius: EditorChromeMetrics.searchCornerRadius, style: .continuous)
+                .fill(t.hover)
                 .overlay(
-                    RoundedRectangle(cornerRadius: EditorIDEChrome.searchCornerRadius, style: .continuous)
-                        .stroke(EditorIDEChrome.searchFieldStroke, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: EditorChromeMetrics.searchCornerRadius, style: .continuous)
+                        .stroke(t.border, lineWidth: 1)
                 )
         )
         .contentShape(Rectangle().inset(by: -4))
@@ -711,12 +693,12 @@ struct EditorSurfaceRootView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(
                     hasNonDefaultSidebarSearchScope
-                        ? EditorIDEChrome.text.opacity(0.92)
-                        : EditorIDEChrome.muted.opacity(0.9)
+                        ? t.text.opacity(0.92)
+                        : t.textMuted.opacity(0.9)
                 )
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(EditorIDEChrome.muted.opacity(0.9))
+                    .foregroundStyle(t.textMuted.opacity(0.9))
             }
             .frame(height: 16)
             .contentShape(Rectangle())
@@ -758,11 +740,11 @@ struct EditorSurfaceRootView: View {
                 Image(systemName: isOn.wrappedValue ? "checkmark.square.fill" : "square")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(
-                        isOn.wrappedValue ? Color.accentColor : EditorIDEChrome.muted.opacity(0.9)
+                        isOn.wrappedValue ? Color.accentColor : t.textMuted.opacity(0.9)
                     )
                 Text(title)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(EditorIDEChrome.text.opacity(0.96))
+                    .foregroundStyle(t.text.opacity(0.96))
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 0)
@@ -781,28 +763,29 @@ struct EditorSurfaceRootView: View {
                     HStack(spacing: 7) {
                         ProgressView()
                             .controlSize(.small)
-                            .tint(EditorIDEChrome.muted.opacity(0.9))
+                            .tint(t.textMuted.opacity(0.9))
                         Text("One sec while we index files…")
                             .font(.system(size: 11, weight: .regular, design: .monospaced))
-                            .foregroundStyle(EditorIDEChrome.muted.opacity(0.92))
+                            .foregroundStyle(t.textMuted.opacity(0.92))
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
-                    .padding(.leading, EditorIDEChrome.treeEdgeInset + 2)
-                    .padding(.trailing, EditorIDEChrome.treeEdgeInset)
+                    .padding(.leading, EditorChromeMetrics.treeEdgeInset + 2)
+                    .padding(.trailing, EditorChromeMetrics.treeEdgeInset)
                     .padding(.top, 4)
                 } else if sidebarSearchResults.isEmpty {
                     Text("No files matching “\(sidebarSearchQuery)”")
                         .font(.system(size: 11, weight: .regular, design: .monospaced))
-                        .foregroundStyle(EditorIDEChrome.muted)
+                        .foregroundStyle(t.textMuted)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .padding(.leading, EditorIDEChrome.treeEdgeInset + 2)
-                        .padding(.trailing, EditorIDEChrome.treeEdgeInset)
+                        .padding(.leading, EditorChromeMetrics.treeEdgeInset + 2)
+                        .padding(.trailing, EditorChromeMetrics.treeEdgeInset)
                         .padding(.top, 4)
                 } else {
                     ForEach(sidebarSearchTreeRoots) { node in
                         SidebarSearchTreeRowView(
+                            theme: t,
                             node: node,
                             level: 0,
                             hoveredPath: $hoveredPath,
@@ -824,7 +807,7 @@ struct EditorSurfaceRootView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, max(4, EditorIDEChrome.treeEdgeInset - 2))
+            .padding(.horizontal, max(4, EditorChromeMetrics.treeEdgeInset - 2))
             .padding(.bottom, 8)
         }
         .scrollIndicators(.hidden)
@@ -854,7 +837,7 @@ struct EditorSurfaceRootView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(EditorIDEChrome.canvas)
+        .background(t.canvasBackground.color)
     }
 
     private var loadingMainColumn: some View {
@@ -865,16 +848,16 @@ struct EditorSurfaceRootView: View {
                 HStack(alignment: .center, spacing: 10) {
                     ProgressView()
                         .controlSize(.small)
-                        .tint(EditorIDEChrome.muted.opacity(0.9))
+                        .tint(t.textMuted.opacity(0.9))
                     Text("Opening this editor…")
                         .font(.system(size: 12))
-                        .foregroundStyle(EditorIDEChrome.muted)
+                        .foregroundStyle(t.textMuted)
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.horizontal, EditorIDEChrome.sidebarHeaderPaddingH)
-        .padding(.top, EditorIDEChrome.sidebarHeaderPaddingTop + 5)
+        .padding(.horizontal, EditorChromeMetrics.sidebarHeaderPaddingH)
+        .padding(.top, EditorChromeMetrics.sidebarHeaderPaddingTop + 5)
     }
 
     private var editorIdleMainColumn: some View {
@@ -882,18 +865,18 @@ struct EditorSurfaceRootView: View {
             Label {
                 Text("Editor idle")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(EditorIDEChrome.text.opacity(0.9))
+                    .foregroundStyle(t.text.opacity(0.9))
             } icon: {
                 Image(systemName: "hand.tap")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(EditorIDEChrome.muted.opacity(0.95))
+                    .foregroundStyle(t.textMuted.opacity(0.95))
             }
             Text(
                 "This pane does not load your folder or open files until it is focused. "
                     + "Click anywhere here, or select this pane, to start the editor."
             )
             .font(.system(size: 12))
-            .foregroundStyle(EditorIDEChrome.muted)
+            .foregroundStyle(t.textMuted)
             .lineSpacing(3)
             .fixedSize(horizontal: false, vertical: true)
         }
@@ -905,12 +888,12 @@ struct EditorSurfaceRootView: View {
             if !model.documentTabs.isEmpty {
                 tabStrip
                 Rectangle()
-                    .fill(EditorIDEChrome.hairline)
+                    .fill(t.border)
                     .frame(height: 1)
             }
             breadcrumbStrip
             Rectangle()
-                .fill(EditorIDEChrome.hairline)
+                .fill(t.border)
                 .frame(height: 1)
             editorBody
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -929,7 +912,7 @@ struct EditorSurfaceRootView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(EditorIDEChrome.tabInactive.opacity(0.35))
+        .background(t.editorChromeSurface.color)
     }
 
     private func tabChip(_ tab: EditorDocumentBuffer) -> some View {
@@ -938,8 +921,8 @@ struct EditorSurfaceRootView: View {
         let labelColor = tabChipLabelColor(isSelected: isSelected, isHovered: isHovered)
         let closeColor =
             isSelected
-                ? EditorIDEChrome.muted.opacity(0.95)
-                : (isHovered ? EditorIDEChrome.breadcrumbHoverMuted : EditorIDEChrome.muted)
+                ? t.textMuted.opacity(0.95)
+                : (isHovered ? t.text.opacity(0.82) : t.textMuted)
         return HStack(spacing: 5) {
             fileIcon(for: tab.title)
                 .font(.system(size: 10))
@@ -951,7 +934,7 @@ struct EditorSurfaceRootView: View {
             if tab.isDirty {
                 Text("●")
                     .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(EditorIDEChrome.muted.opacity(0.9))
+                    .foregroundStyle(t.textMuted.opacity(0.9))
                     .accessibilityLabel("Unsaved changes")
             }
             Button {
@@ -988,20 +971,20 @@ struct EditorSurfaceRootView: View {
     }
 
     private func tabChipLabelColor(isSelected: Bool, isHovered: Bool) -> Color {
-        if isSelected { return EditorIDEChrome.text }
-        if isHovered { return EditorIDEChrome.breadcrumbHoverMuted }
-        return EditorIDEChrome.muted
+        if isSelected { return t.text }
+        if isHovered { return t.text.opacity(0.82) }
+        return t.textMuted
     }
 
     private func tabChipBackground(isSelected: Bool, isHovered: Bool) -> Color {
-        if isSelected { return EditorIDEChrome.tabActive }
-        if isHovered { return EditorIDEChrome.tabHoverFill }
+        if isSelected { return t.canvasBackground.color }
+        if isHovered { return t.hover }
         return Color.clear
     }
 
     private func tabChipStroke(isSelected: Bool, isHovered: Bool) -> Color {
-        if isSelected { return EditorIDEChrome.hairline.opacity(1.05) }
-        if isHovered { return EditorIDEChrome.hairline.opacity(0.95) }
+        if isSelected { return t.border.opacity(1.05) }
+        if isHovered { return t.border.opacity(0.95) }
         return Color.clear
     }
 
@@ -1030,7 +1013,7 @@ struct EditorSurfaceRootView: View {
                     if index > 0 {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(EditorIDEChrome.breadcrumbChevron)
+                            .foregroundStyle(t.textMuted)
                             .padding(.horizontal, 6)
                             .fixedSize()
                     }
@@ -1041,7 +1024,7 @@ struct EditorSurfaceRootView: View {
             .padding(.vertical, 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(EditorIDEChrome.canvas)
+        .background(t.editorChromeSurface.color)
     }
 
     private func breadcrumbSegment(item: EditorBreadcrumbItem, index: Int, total: Int) -> some View {
@@ -1071,15 +1054,16 @@ struct EditorSurfaceRootView: View {
 
     private func breadcrumbLabelColor(isLast: Bool, hovered: Bool) -> Color {
         if isLast {
-            return hovered ? Color.white.opacity(0.98) : EditorIDEChrome.text
+            return hovered ? t.text.opacity(0.98) : t.text
         }
-        return hovered ? EditorIDEChrome.breadcrumbHoverMuted : EditorIDEChrome.muted
+        return hovered ? t.text.opacity(0.82) : t.textMuted
     }
 
     private var editorBody: some View {
         Group {
             if let id = model.selectedDocumentId, model.documentStore.buffer(id: id) != nil {
                 EditorCodeTextView(
+                    theme: t,
                     text: model.workingTextBinding(for: id),
                     isEditable: true,
                     onSave: { Task { await model.saveSelectedDocument() } }
@@ -1090,17 +1074,17 @@ struct EditorSurfaceRootView: View {
                 emptyEditorPlaceholder
             }
         }
-        .background(EditorIDEChrome.canvas)
+        .background(t.canvasBackground.color)
     }
 
     private var emptyEditorPlaceholder: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("No file open")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(EditorIDEChrome.text)
+                .foregroundStyle(t.text)
             Text("Choose a file in the sidebar to start editing.")
                 .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(EditorIDEChrome.muted)
+                .foregroundStyle(t.textMuted)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(20)
@@ -1141,10 +1125,10 @@ struct EditorSurfaceRootView: View {
                         }
                         .padding(
                             .leading,
-                            EditorIDEChrome.treeEdgeInset + CGFloat(level) * EditorIDEChrome.treeIndentStep
+                            EditorChromeMetrics.treeEdgeInset + CGFloat(level) * EditorChromeMetrics.treeIndentStep
                         )
                         .padding(.vertical, 4)
-                        .padding(.trailing, EditorIDEChrome.treeEdgeInset)
+                        .padding(.trailing, EditorChromeMetrics.treeEdgeInset)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(sidebarRowBackground(isSelected: false, isHovered: isHovered))
                         .contentShape(Rectangle())
@@ -1184,7 +1168,7 @@ struct EditorSurfaceRootView: View {
                             .foregroundStyle(
                                 treeRowIconColor(isSelected: isSelected, isHovered: isHovered, dimmed: isDotfile)
                             )
-                            .frame(width: EditorIDEChrome.treeIconColumn, alignment: .center)
+                            .frame(width: EditorChromeMetrics.treeIconColumn, alignment: .center)
                         Text(node.name)
                             .font(.system(size: 11, weight: .regular, design: .monospaced))
                             .foregroundStyle(
@@ -1195,10 +1179,10 @@ struct EditorSurfaceRootView: View {
                     }
                     .padding(
                         .leading,
-                        EditorIDEChrome.treeEdgeInset + CGFloat(level) * EditorIDEChrome.treeIndentStep
+                        EditorChromeMetrics.treeEdgeInset + CGFloat(level) * EditorChromeMetrics.treeIndentStep
                     )
                     .padding(.vertical, 4)
-                    .padding(.trailing, EditorIDEChrome.treeEdgeInset)
+                    .padding(.trailing, EditorChromeMetrics.treeEdgeInset)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(sidebarRowBackground(isSelected: isSelected, isHovered: isHovered))
                     .contentShape(Rectangle())
@@ -1218,36 +1202,36 @@ struct EditorSurfaceRootView: View {
 
     /// Sidebar tree labels: breadcrumb-like muted idle, brighten on hover; selected file = full text. Same weight always.
     private func treeRowLabelColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
-        if dimmed, !isSelected, !isHovered { return EditorIDEChrome.treeDimmed }
-        if isSelected { return EditorIDEChrome.text }
-        if isHovered { return EditorIDEChrome.breadcrumbHoverMuted }
-        return EditorIDEChrome.muted
+        if dimmed, !isSelected, !isHovered { return t.textFaint }
+        if isSelected { return t.text }
+        if isHovered { return t.text.opacity(0.82) }
+        return t.textMuted
     }
 
     private func treeRowIconColor(isSelected: Bool, isHovered: Bool, dimmed: Bool) -> Color {
-        if dimmed, !isSelected, !isHovered { return EditorIDEChrome.treeDimmed }
-        if isSelected { return EditorIDEChrome.text.opacity(0.88) }
-        if isHovered { return EditorIDEChrome.breadcrumbHoverMuted.opacity(0.95) }
-        return EditorIDEChrome.muted.opacity(0.92)
+        if dimmed, !isSelected, !isHovered { return t.textFaint }
+        if isSelected { return t.text.opacity(0.88) }
+        if isHovered { return t.text.opacity(0.78) }
+        return t.textMuted.opacity(0.92)
     }
 
     private func treeDisclosureTint(isHovered: Bool) -> Color {
-        if isHovered { return EditorIDEChrome.muted.opacity(1.05) }
-        return EditorIDEChrome.disclosureTint
+        if isHovered { return t.textMuted.opacity(1.05) }
+        return t.textMuted.opacity(0.78)
     }
 
     @ViewBuilder
     private func sidebarRowBackground(isSelected: Bool, isHovered: Bool) -> some View {
         if isSelected {
             RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(EditorIDEChrome.fileRowSelectedFill)
+                .fill(t.selected.opacity(0.55))
                 .overlay(
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .stroke(EditorIDEChrome.hairline, lineWidth: 1)
+                        .stroke(t.border, lineWidth: 1)
                 )
         } else if isHovered {
             RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(EditorIDEChrome.fileRowHoverFill)
+                .fill(t.hover.opacity(0.75))
         } else {
             Color.clear
         }
@@ -1576,10 +1560,10 @@ struct EditorSurfaceRootView: View {
         VStack(alignment: .leading, spacing: 6) {
             Label(title, systemImage: "exclamationmark.triangle")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(EditorIDEChrome.text)
+                .foregroundStyle(t.text)
             Text(detail)
                 .font(.system(size: 12))
-                .foregroundStyle(EditorIDEChrome.muted)
+                .foregroundStyle(t.textMuted)
             HStack(spacing: 10) {
                 Button("Retry", action: model.onRetry)
                     .buttonStyle(.borderedProminent)
