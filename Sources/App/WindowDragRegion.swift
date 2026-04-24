@@ -6,6 +6,7 @@ import SwiftUI
 ///
 /// The app keeps `window.isMovable = false` globally so SwiftUI content never
 /// steals unexpected drags; this view temporarily flips it on for `performDrag`.
+@MainActor
 struct WindowDragRegion: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
         DragView()
@@ -13,6 +14,7 @@ struct WindowDragRegion: NSViewRepresentable {
 
     func updateNSView(_: NSView, context _: Context) {}
 
+    @MainActor
     private final class DragView: NSView {
         override var mouseDownCanMoveWindow: Bool {
             false
