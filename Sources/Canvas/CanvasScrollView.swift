@@ -8,6 +8,7 @@ struct CanvasLayoutUpdateOptions: OptionSet {
 }
 
 /// The horizontal-scrolling canvas that holds all terminal panes.
+@MainActor
 final class CanvasScrollView: NSScrollView {
     let documentCanvasView: CanvasDocumentView
 
@@ -81,10 +82,18 @@ final class CanvasScrollView: NSScrollView {
         reflectScrolledClipView(contentView)
     }
 
-    func applyTheme(canvasMatte: NSColor, paneBackground: NSColor, accentColor: NSColor) {
+    func applyTheme(
+        canvasMatte: NSColor,
+        paneBackground: NSColor,
+        accentColor: NSColor,
+        dividerColor: NSColor
+    ) {
         backgroundColor = canvasMatte
         documentCanvasView.applyTheme(
-            canvasMatte: canvasMatte, paneBackground: paneBackground, accentColor: accentColor
+            canvasMatte: canvasMatte,
+            paneBackground: paneBackground,
+            accentColor: accentColor,
+            dividerColor: dividerColor
         )
     }
 

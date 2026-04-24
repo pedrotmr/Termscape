@@ -101,12 +101,14 @@ final class PaneDividerView: NSView {
         case vertical
     }
 
-    static let hitThickness: CGFloat = 8
+    static let hitThickness: CGFloat = 6
+    private static let visibleBorderPixels: CGFloat = 1.5
 
     var orientation: Orientation = .horizontal {
         didSet {
             window?.invalidateCursorRects(for: self)
             grabber.longAxis = orientation == .horizontal ? .vertical : .horizontal
+            updateBorderFrame()
         }
     }
 
@@ -125,6 +127,10 @@ final class PaneDividerView: NSView {
         set { grabber.accentColor = newValue }
     }
 
+    var dividerColor: NSColor = .separatorColor {
+        didSet { borderLayer.backgroundColor = effectiveDividerColor.cgColor }
+    }
+
     var onPressFocus: ((FocusSide) -> Void)?
     var onDragBegan: ((FocusSide) -> Void)?
     var onDragDeltaPixels: ((CGFloat) -> Void)?
@@ -140,6 +146,9 @@ final class PaneDividerView: NSView {
     private var deferredPressFocus: DispatchWorkItem?
 
     private let grabber = PaneGrabberIndicator()
+    private let borderLayer = CALayer()
+    private var cachedBorderScale: CGFloat = 0
+    private var cachedBorderFrame: CGRect = .null
     private var isHovering = false
     private var hoverTrackingArea: NSTrackingArea?
 
@@ -150,12 +159,20 @@ final class PaneDividerView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+        borderLayer.backgroundColor = effectiveDividerColor.cgColor
+        borderLayer.zPosition = 1
+        borderLayer.actions = ["bounds": NSNull(), "position": NSNull(), "frame": NSNull()]
+        layer?.addSublayer(borderLayer)
         grabber.longAxis = .vertical
         grabber.attach(to: self)
+        updateBorderFrame()
     }
 
     override var frame: NSRect {
-        didSet { grabber.updateFrame(in: bounds) }
+        didSet {
+            grabber.updateFrame(in: bounds)
+            updateBorderFrame()
+        }
     }
 
     override func updateTrackingAreas() {
@@ -181,6 +198,18 @@ final class PaneDividerView: NSView {
     override func mouseExited(with _: NSEvent) {
         isHovering = false
         updateGrabber()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        invalidateCachedBorderGeometry()
+        updateBorderFrame()
+    }
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        invalidateCachedBorderGeometry()
+        updateBorderFrame()
     }
 
     @available(*, unavailable)
@@ -276,5 +305,52 @@ final class PaneDividerView: NSView {
 
     private func updateGrabber() {
         grabber.apply(isHovering: isHovering, isTracking: isTrackingPointer, in: bounds)
+    }
+
+    private var effectiveDividerColor: NSColor {
+        dividerColor.withAlphaComponent(dividerColor.alphaComponent * 0.7)
+    }
+
+    private func updateBorderFrame() {
+        let scaleFactor = max(window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2, 1)
+        let pixelWidth = Self.visibleBorderPixels / scaleFactor
+        let borderFrame = if orientation == .horizontal {
+            CGRect(
+                x: (bounds.width - pixelWidth) / 2,
+                y: 0,
+                width: pixelWidth,
+                height: bounds.height
+            )
+        } else {
+            CGRect(
+                x: 0,
+                y: (bounds.height - pixelWidth) / 2,
+                width: bounds.width,
+                height: pixelWidth
+            )
+        }
+        let alignedFrame = alignedToBackingScale(borderFrame, scaleFactor: scaleFactor)
+        guard cachedBorderScale != scaleFactor || cachedBorderFrame != alignedFrame else { return }
+        cachedBorderScale = scaleFactor
+        cachedBorderFrame = alignedFrame
+        borderLayer.frame = alignedFrame
+    }
+
+    private func invalidateCachedBorderGeometry() {
+        cachedBorderScale = 0
+        cachedBorderFrame = .null
+    }
+
+    private func alignedToBackingScale(_ rect: CGRect, scaleFactor: CGFloat) -> CGRect {
+        guard scaleFactor > 0 else { return rect }
+        let snap: (CGFloat) -> CGFloat = { value in
+            (value * scaleFactor).rounded() / scaleFactor
+        }
+        return CGRect(
+            x: snap(rect.origin.x),
+            y: snap(rect.origin.y),
+            width: snap(rect.size.width),
+            height: snap(rect.size.height)
+        )
     }
 }
