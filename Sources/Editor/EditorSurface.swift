@@ -902,10 +902,12 @@ struct EditorSurfaceRootView: View {
 
     private var readyMainColumn: some View {
         VStack(spacing: 0) {
-            tabStrip
-            Rectangle()
-                .fill(EditorIDEChrome.hairline)
-                .frame(height: 1)
+            if !model.documentTabs.isEmpty {
+                tabStrip
+                Rectangle()
+                    .fill(EditorIDEChrome.hairline)
+                    .frame(height: 1)
+            }
             breadcrumbStrip
             Rectangle()
                 .fill(EditorIDEChrome.hairline)
@@ -916,30 +918,14 @@ struct EditorSurfaceRootView: View {
     }
 
     private var tabStrip: some View {
-        HStack(spacing: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 3) {
-                    ForEach(model.documentTabs) { tab in
-                        tabChip(tab)
-                    }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 3) {
+                ForEach(model.documentTabs) { tab in
+                    tabChip(tab)
                 }
-                .padding(.horizontal, 2)
-                .padding(.vertical, 2)
             }
-            HStack(spacing: 12) {
-                Button(action: {
-                    Task { await model.saveSelectedDocument() }
-                }) {
-                    Image(systemName: "arrow.up.document")
-                }
-                .buttonStyle(.plain)
-                .help("Save (⌘S)")
-                Image(systemName: "chevron.left.forwardslash.chevron.right")
-                Image(systemName: "rectangle.split.2x1")
-            }
-            .font(.system(size: 11, weight: .regular))
-            .foregroundStyle(EditorIDEChrome.muted)
-            .padding(.trailing, 10)
+            .padding(.horizontal, 2)
+            .padding(.vertical, 2)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)

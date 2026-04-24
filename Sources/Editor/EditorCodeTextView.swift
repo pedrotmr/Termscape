@@ -206,6 +206,15 @@ final class EditorSourceTextView: NSTextView {
         }
         return super.performKeyEquivalent(with: event)
     }
+
+    /// Ensure the first glyph is visible with correct TextKit/ruler geometry.
+    func revealDocumentStart() {
+        setSelectedRange(NSRange(location: 0, length: 0))
+        scrollRangeToVisible(NSRange(location: 0, length: 0))
+        if let scrollView = enclosingScrollView {
+            scrollView.reflectScrolledClipView(scrollView.contentView)
+        }
+    }
 }
 
 /// Vertical line-number gutter paired with `EditorSourceTextView`.
@@ -373,6 +382,11 @@ struct EditorCodeTextView: NSViewRepresentable {
         EditorCodeTypography.applyParagraphStyleToDocument(tv)
         context.coordinator.suppressCallbacks = false
         tv.isEditable = isEditable
+        tv.revealDocumentStart()
+        DispatchQueue.main.async {
+            guard tv.window != nil else { return }
+            tv.revealDocumentStart()
+        }
         tv.refreshAuxiliaryHighlights()
         return scroll
     }
@@ -386,8 +400,15 @@ struct EditorCodeTextView: NSViewRepresentable {
 
         context.coordinator.suppressCallbacks = true
         if tv.string != text {
+            // Keep current caret for non-navigation model refreshes (formatter/reload/sync),
+            // and only hard-reset to document start on fresh mount (makeNSView path).
+            let oldSelection = tv.selectedRange()
             tv.string = text
             EditorCodeTypography.applyParagraphStyleToDocument(tv)
+            let upperBound = (tv.string as NSString).length
+            let restoredLocation = min(max(0, oldSelection.location), upperBound)
+            let restoredLength = min(max(0, oldSelection.length), upperBound - restoredLocation)
+            tv.setSelectedRange(NSRange(location: restoredLocation, length: restoredLength))
         }
         context.coordinator.suppressCallbacks = false
         tv.isEditable = isEditable
