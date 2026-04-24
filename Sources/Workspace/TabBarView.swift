@@ -14,7 +14,7 @@ struct TabBarView: View {
     var body: some View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 1) {
+                HStack(spacing: 0) {
                     ForEach(workspace.tabs) { tab in
                         TabItemView(
                             tab: tab,
@@ -27,11 +27,7 @@ struct TabBarView: View {
                     }
                 }
                 .animation(.easeInOut(duration: 0.15), value: workspace.tabs.map(\.id))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
             }
-
-            separator
 
             // New tab button
             TabBarIconButton(systemImage: "terminal", help: "New Terminal Tab (⌘T)", theme: t) {
@@ -73,19 +69,12 @@ struct TabBarView: View {
             WindowDragHandleStrip(symbolColor: t.textMuted)
                 .padding(.trailing, 8)
         }
-        .frame(height: 38)
-        .background(t.surface)
+        .frame(height: 34)
+        .background(t.sidebar)
         .zIndex(50)
         .overlay(alignment: .bottom) {
-            Rectangle().fill(t.border).frame(height: 1)
+            Rectangle().fill(t.border.opacity(0.6)).frame(height: 1)
         }
-    }
-
-    private var separator: some View {
-        Rectangle()
-            .fill(t.border)
-            .frame(width: 1, height: 16)
-            .padding(.horizontal, 3)
     }
 }
 
@@ -113,7 +102,7 @@ struct TabItemView: View {
     }
 
     var body: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 6) {
             if tab.isPinned {
                 Image(systemName: "pin.fill")
                     .font(.system(size: 8, weight: .semibold))
@@ -122,7 +111,7 @@ struct TabItemView: View {
                 let kind = tab.focusedPaneContentKind(snapshot: tab.bonsplitController.layoutSnapshot())
                 Image(systemName: kind.defaultIcon)
                     .font(.system(size: 10))
-                    .foregroundStyle(isSelected ? t.text.opacity(0.7) : t.textFaint)
+                    .foregroundStyle(isSelected ? t.text.opacity(0.75) : t.textFaint)
             }
 
             if isRenaming {
@@ -134,11 +123,6 @@ struct TabItemView: View {
                     .focused($isRenameFocused)
                     .onSubmit { commitRename() }
                     .onExitCommand { cancelRename() }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(t.accent.opacity(0.6), lineWidth: 1)
-                            .padding(.horizontal, -4)
-                    )
             } else {
                 Text(tab.title)
                     .font(.system(size: 12, weight: isSelected ? .medium : .regular))
@@ -156,8 +140,6 @@ struct TabItemView: View {
                             .font(.system(size: 8.5, weight: .semibold))
                             .foregroundStyle(Color.white.opacity(0.45))
                             .frame(width: 14, height: 14)
-                            .background(Color.white.opacity(0.07))
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
                     }
                     .buttonStyle(.plain)
                 } else {
@@ -169,17 +151,14 @@ struct TabItemView: View {
                         .font(.system(size: 8.5, weight: .semibold))
                         .foregroundStyle(t.textMuted)
                         .frame(width: 14, height: 14)
-                        .background(isHovered ? t.hover : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
                 }
                 .buttonStyle(.plain)
                 .opacity((isHovered || isSelected) ? 1 : 0)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 12)
+        .frame(height: 34)
         .background(tabBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
         .contentShape(Rectangle())
         .onTapGesture { onSelect() }
         .simultaneousGesture(
@@ -189,14 +168,6 @@ struct TabItemView: View {
         )
         .onHover { isHovered = $0 }
         .animation(.easeInOut(duration: 0.12), value: isHovered)
-        .overlay(alignment: .bottom) {
-            if isSelected {
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(t.accent)
-                    .frame(height: 2)
-                    .padding(.horizontal, 8)
-            }
-        }
         .onChange(of: isRenaming) { renaming in
             if renaming {
                 isRenameFocused = true
@@ -216,9 +187,9 @@ struct TabItemView: View {
     @ViewBuilder
     private var tabBackground: some View {
         if isSelected {
-            t.selected
+            isHovered ? t.hover : t.selected
         } else if isHovered {
-            t.hover
+            t.surface
         } else {
             Color.clear
         }
@@ -281,9 +252,8 @@ private struct TabBarIconButton: View {
             Image(systemName: systemImage)
                 .font(.system(size: 11, weight: .regular))
                 .foregroundStyle(isHovered ? theme.text : theme.textMuted)
-                .frame(width: 28, height: 28)
+                .frame(width: 30, height: 30)
                 .background(isHovered ? theme.hover : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: 5))
         }
         .buttonStyle(.plain)
         .releaseSafeHelp(help)

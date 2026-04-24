@@ -4,6 +4,7 @@ import QuartzCore
 import SwiftUI
 
 /// NSView that positions pane content views absolutely based on the Bonsplit layout.
+@MainActor
 final class CanvasDocumentView: NSView {
     private struct HostedPaneView {
         let containerView: NSView
@@ -28,15 +29,12 @@ final class CanvasDocumentView: NSView {
     private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
     private var currentAccentColor: NSColor = AppTheme.tobacco.accentNSColor
 
-    /// Arc-style floating tiles: gutters, rounded rects, neutral borders.
+    /// Flush grid at outer edges; gutter matches divider hit width so the 8pt strip does not overlap pane content.
     private enum CanvasPaneChrome {
-        static let interPaneGutter: CGFloat = 8
-        static let outerInsetLoose: CGFloat = 8
-        static let outerInsetTight: CGFloat = 4
-        static let viewportTightThreshold: CGFloat = 880
-        static let cornerRadius: CGFloat = 12
-        static let borderWidthFocused: CGFloat = 1.5
-        static let borderWidthNormal: CGFloat = 1
+        static let interPaneGutter: CGFloat = PaneDividerView.hitThickness
+        static let outerInset: CGFloat = 0
+        static let focusStripeHeight: CGFloat = 2
+        static let focusStripeOpacity: Float = 0.9
     }
 
     private struct HorizontalDragState {
@@ -100,6 +98,10 @@ final class CanvasDocumentView: NSView {
         for (_, hosted) in hostedViews {
             hosted.applyTheme(paneBackground)
         }
+        for (_, divider) in dividerViews {
+            divider.accentColor = accentColor
+        }
+        trailingResizeHandleView?.accentColor = accentColor
     }
 
     // MARK: - Layout update
@@ -128,7 +130,7 @@ final class CanvasDocumentView: NSView {
         let snapshot = tab.bonsplitController.layoutSnapshot()
         let isMultiPane = snapshot.panes.count > 1
 
-        let outerInset = Self.outerInset(viewportWidth: viewportSize.width)
+        let outerInset = CanvasPaneChrome.outerInset
         let innerLayoutRegion = CGRect(
             x: outerInset,
             y: outerInset,
@@ -404,6 +406,7 @@ final class CanvasDocumentView: NSView {
                         focusSide: focusSide
                     )
                 }
+                created.accentColor = currentAccentColor
                 dividerViews[descriptor.splitId] = created
                 dividerView = created
                 addSubview(dividerView)
@@ -427,6 +430,7 @@ final class CanvasDocumentView: NSView {
                 handleView = existing
             } else {
                 let created = PaneTrailingResizeHandleView(frame: trailingDescriptor.frame)
+                created.accentColor = currentAccentColor
                 created.onPressFocus = { [weak self] in
                     self?.focusPaneForTrailingResizeInteraction()
                 }
@@ -923,8 +927,9 @@ final class CanvasDocumentView: NSView {
         region: CGRect
     ) -> TrailingResizeDescriptor? {
         guard rightmostResizableNode(in: node) != nil else { return nil }
+        // Keep the full hit rect inside the document so the outer half is still hittable (NSView hit testing clips to bounds).
         let frame = CGRect(
-            x: region.maxX - PaneTrailingResizeHandleView.hitThickness / 2,
+            x: region.maxX - PaneTrailingResizeHandleView.hitThickness,
             y: region.minY,
             width: PaneTrailingResizeHandleView.hitThickness,
             height: region.height
@@ -1001,22 +1006,42 @@ final class CanvasDocumentView: NSView {
         }
     }
 
-    private static func outerInset(viewportWidth: CGFloat) -> CGFloat {
-        viewportWidth < CanvasPaneChrome.viewportTightThreshold
-            ? CanvasPaneChrome.outerInsetTight : CanvasPaneChrome.outerInsetLoose
-    }
+    private static let focusStripeLayerName = "termscape.focusStripe"
 
     private func applyPaneChrome(to view: NSView, focused: Bool) {
         view.wantsLayer = true
         guard let layer = view.layer else { return }
-        layer.cornerRadius = CanvasPaneChrome.cornerRadius
+        layer.cornerRadius = 0
         layer.masksToBounds = true
+        layer.borderWidth = 0
+        updateFocusStripe(in: view, focused: focused)
+    }
+
+    private func updateFocusStripe(in view: NSView, focused: Bool) {
+        guard let parentLayer = view.layer else { return }
+        let existing = parentLayer.sublayers?.first { $0.name == Self.focusStripeLayerName }
         if focused {
-            layer.borderWidth = CanvasPaneChrome.borderWidthFocused
-            layer.borderColor = currentAccentColor.withAlphaComponent(0.85).cgColor
+            let stripe: CALayer
+            if let existing { stripe = existing } else {
+                let created = CALayer()
+                created.name = Self.focusStripeLayerName
+                created.actions = ["position": NSNull(), "bounds": NSNull(), "backgroundColor": NSNull(), "opacity": NSNull()]
+                created.zPosition = 1000
+                parentLayer.addSublayer(created)
+                stripe = created
+            }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            stripe.backgroundColor = currentAccentColor.cgColor
+            stripe.opacity = CanvasPaneChrome.focusStripeOpacity
+            let width = parentLayer.bounds.width
+            let height = CanvasPaneChrome.focusStripeHeight
+            // Sublayers inherit the parent view's coordinate system: flipped views use y=0 at top; standard Quartz uses y=height-h at top.
+            let y: CGFloat = view.isFlipped ? 0 : max(0, parentLayer.bounds.height - height)
+            stripe.frame = CGRect(x: 0, y: y, width: width, height: height)
+            CATransaction.commit()
         } else {
-            layer.borderWidth = CanvasPaneChrome.borderWidthNormal
-            layer.borderColor = NSColor.labelColor.withAlphaComponent(0.18).cgColor
+            existing?.removeFromSuperlayer()
         }
     }
 
@@ -1254,6 +1279,7 @@ final class CanvasDocumentView: NSView {
     }
 }
 
+@MainActor
 private final class FlippedContainerView: NSView {
     override var isFlipped: Bool {
         true
@@ -1261,8 +1287,14 @@ private final class FlippedContainerView: NSView {
 }
 
 /// Invisible trailing-edge hit target that resizes the rightmost pane column width.
+@MainActor
 private final class PaneTrailingResizeHandleView: NSView {
     static let hitThickness: CGFloat = 10
+
+    var accentColor: NSColor {
+        get { grabber.accentColor }
+        set { grabber.accentColor = newValue }
+    }
 
     var onPressFocus: (() -> Void)?
     var onDragBegan: (() -> Void)?
@@ -1273,17 +1305,53 @@ private final class PaneTrailingResizeHandleView: NSView {
     private var dragStartPointInParent: CGPoint?
     private var hasDragMovement = false
 
+    private let grabber = PaneGrabberIndicator()
+    private var isHovering = false
+    private var hoverTrackingArea: NSTrackingArea?
+
     override var isFlipped: Bool {
         true
     }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        wantsLayer = true
+        grabber.longAxis = .vertical
+        grabber.attach(to: self)
     }
 
     @available(*, unavailable)
     required init?(coder _: NSCoder) {
         fatalError("init(coder:) not supported")
+    }
+
+    override var frame: NSRect {
+        didSet { grabber.updateFrame(in: bounds) }
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverTrackingArea {
+            removeTrackingArea(hoverTrackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func mouseEntered(with _: NSEvent) {
+        isHovering = true
+        updateGrabber()
+    }
+
+    override func mouseExited(with _: NSEvent) {
+        isHovering = false
+        updateGrabber()
     }
 
     override func resetCursorRects() {
@@ -1295,6 +1363,7 @@ private final class PaneTrailingResizeHandleView: NSView {
         dragStartPointInParent = dragPoint(inParentFor: event)
         hasDragMovement = false
         onPressFocus?()
+        updateGrabber()
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -1318,10 +1387,15 @@ private final class PaneTrailingResizeHandleView: NSView {
         isTrackingPointer = false
         dragStartPointInParent = nil
         onDragEnd?(hasDragMovement)
+        updateGrabber()
     }
 
     private func dragPoint(inParentFor event: NSEvent) -> CGPoint {
         let localPoint = convert(event.locationInWindow, from: nil)
         return superview?.convert(localPoint, from: self) ?? localPoint
+    }
+
+    private func updateGrabber() {
+        grabber.apply(isHovering: isHovering, isTracking: isTrackingPointer, in: bounds)
     }
 }

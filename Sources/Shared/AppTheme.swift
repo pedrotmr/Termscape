@@ -52,21 +52,21 @@ struct AppTheme: Identifiable, Equatable {
         lhs.id == rhs.id
     }
 
-    /// Recessed void behind floating terminal panes (gutters); derived from `canvasBackground`.
+    /// Subtle grid-line color for inter-pane separators; derived from `canvasBackground`.
     var canvasMatte: NSColor {
         guard let c = canvasBackground.usingColorSpace(.deviceRGB) else { return canvasBackground }
         if isDark {
             return NSColor(
-                red: max(0, c.redComponent * 0.42),
-                green: max(0, c.greenComponent * 0.42),
-                blue: max(0, c.blueComponent * 0.45),
+                red: min(1, c.redComponent + 0.055),
+                green: min(1, c.greenComponent + 0.055),
+                blue: min(1, c.blueComponent + 0.060),
                 alpha: 1
             )
         }
         return NSColor(
-            red: max(0, min(1, c.redComponent - 0.035)),
-            green: max(0, min(1, c.greenComponent - 0.035)),
-            blue: max(0, min(1, c.blueComponent - 0.035)),
+            red: max(0, c.redComponent - 0.055),
+            green: max(0, c.greenComponent - 0.055),
+            blue: max(0, c.blueComponent - 0.055),
             alpha: 1
         )
     }
