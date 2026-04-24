@@ -28,7 +28,7 @@ final class CanvasDocumentView: NSView {
     private var currentCanvasMatte: NSColor = AppTheme.tobacco.canvasMatte
     private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
     private var currentAccentColor: NSColor = AppTheme.tobacco.accentNSColor
-    private var currentDividerColor: NSColor = .init(AppTheme.tobacco.border)
+    private var currentDividerColor: NSColor = AppTheme.tobacco.borderNSColor
 
     /// Keep panes visually contiguous; divider hit target can overlap content without adding a visible seam.
     private enum CanvasPaneChrome {

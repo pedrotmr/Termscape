@@ -70,6 +70,11 @@ struct AppTheme: Identifiable, Equatable {
             alpha: 1
         )
     }
+
+    /// AppKit border color for NSView/CALayer usage.
+    var borderNSColor: NSColor {
+        NSColor(border)
+    }
 }
 
 // MARK: - All themes

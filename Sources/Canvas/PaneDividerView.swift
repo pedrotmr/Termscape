@@ -102,7 +102,7 @@ final class PaneDividerView: NSView {
     }
 
     static let hitThickness: CGFloat = 6
-    private static let visibleBorderPixels: CGFloat = 1.5
+    private static let visibleBorderPixels: CGFloat = 1.0
 
     var orientation: Orientation = .horizontal {
         didSet {
@@ -128,7 +128,10 @@ final class PaneDividerView: NSView {
     }
 
     var dividerColor: NSColor = .separatorColor {
-        didSet { borderLayer.backgroundColor = effectiveDividerColor.cgColor }
+        didSet {
+            tryAttachBorderLayer()
+            borderLayer.backgroundColor = effectiveDividerColor.cgColor
+        }
     }
 
     var onPressFocus: ((FocusSide) -> Void)?
@@ -161,8 +164,8 @@ final class PaneDividerView: NSView {
         wantsLayer = true
         borderLayer.backgroundColor = effectiveDividerColor.cgColor
         borderLayer.zPosition = 1
-        borderLayer.actions = ["bounds": NSNull(), "position": NSNull(), "frame": NSNull()]
-        layer?.addSublayer(borderLayer)
+        borderLayer.actions = ["bounds": NSNull(), "position": NSNull(), "frame": NSNull(), "backgroundColor": NSNull()]
+        tryAttachBorderLayer()
         grabber.longAxis = .vertical
         grabber.attach(to: self)
         updateBorderFrame()
@@ -202,6 +205,7 @@ final class PaneDividerView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        tryAttachBorderLayer()
         invalidateCachedBorderGeometry()
         updateBorderFrame()
     }
@@ -312,7 +316,11 @@ final class PaneDividerView: NSView {
     }
 
     private func updateBorderFrame() {
-        let scaleFactor = max(window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2, 1)
+        tryAttachBorderLayer()
+        let scaleFactor = max(
+            window?.backingScaleFactor ?? window?.screen?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 1,
+            1
+        )
         let pixelWidth = Self.visibleBorderPixels / scaleFactor
         let borderFrame = if orientation == .horizontal {
             CGRect(
@@ -334,6 +342,12 @@ final class PaneDividerView: NSView {
         cachedBorderScale = scaleFactor
         cachedBorderFrame = alignedFrame
         borderLayer.frame = alignedFrame
+    }
+
+    private func tryAttachBorderLayer() {
+        guard let hostLayer = layer, borderLayer.superlayer !== hostLayer else { return }
+        borderLayer.removeFromSuperlayer()
+        hostLayer.addSublayer(borderLayer)
     }
 
     private func invalidateCachedBorderGeometry() {
