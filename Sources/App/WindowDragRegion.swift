@@ -54,7 +54,7 @@ struct WindowDragRegion: NSViewRepresentable {
                 .lowercased()
             {
                 switch action {
-                case "minimize":
+                case "minimize", "miniaturize":
                     window.miniaturize(nil)
                     return
                 case "none":
