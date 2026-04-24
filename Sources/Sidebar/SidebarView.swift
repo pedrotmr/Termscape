@@ -49,7 +49,7 @@ struct SidebarView: View {
         @Bindable var appState = appState
 
         VStack(spacing: 0) {
-            Color.clear.frame(height: 42)
+            WindowDragRegion().frame(height: 42)
 
             ScrollView {
                 VStack(spacing: 0) {
