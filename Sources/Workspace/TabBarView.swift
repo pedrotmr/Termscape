@@ -26,14 +26,16 @@ struct TabBarView: View {
                                 onTogglePin: { workspace.togglePin(tab.id) }
                             )
                         }
-                        // Trailing empty area acts as a window-drag handle.
-                        WindowDragRegion()
-                            .frame(maxWidth: .infinity, minHeight: 34)
                     }
                     .frame(minWidth: geo.size.width, alignment: .leading)
                     .animation(.easeInOut(duration: 0.15), value: workspace.tabs.map(\.id))
                 }
             }
+            .frame(maxWidth: .infinity)
+
+            // Keep a fixed drag affordance visible even when tabs overflow.
+            WindowDragRegion()
+                .frame(width: 44, height: 34)
 
             // New tab button
             TabBarIconButton(systemImage: "terminal", help: "New Terminal Tab (⌘T)", theme: t) {

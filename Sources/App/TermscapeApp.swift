@@ -232,6 +232,12 @@ struct EmptyWorkspaceView: View {
             t.surface.ignoresSafeArea()
 
             VStack(spacing: 0) {
+                WindowDragRegion()
+                    .frame(maxWidth: .infinity, minHeight: 40)
+                Spacer()
+            }
+
+            VStack(spacing: 0) {
                 Spacer()
 
                 ZStack {
