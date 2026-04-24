@@ -26,6 +26,9 @@ struct TabBarView: View {
                                 onTogglePin: { workspace.togglePin(tab.id) }
                             )
                         }
+                        // Make the visible free strip next to tabs draggable.
+                        WindowDragRegion()
+                            .frame(maxWidth: .infinity, minHeight: 34)
                     }
                     .frame(minWidth: geo.size.width, alignment: .leading)
                     .animation(.easeInOut(duration: 0.15), value: workspace.tabs.map(\.id))
