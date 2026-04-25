@@ -41,10 +41,12 @@ struct TermscapeApp: App {
         .defaultSize(width: 1200, height: 750)
         .commands {
             CommandGroup(after: .appInfo) {
-                Button("Check for Updates...") {
-                    appUpdater.checkForUpdates()
+                if appUpdater.isSparkleConfigured {
+                    Button("Check for Updates...") {
+                        appUpdater.checkForUpdates()
+                    }
+                    .disabled(!appUpdater.canCheckForUpdates)
                 }
-                .disabled(!appUpdater.canCheckForUpdates)
             }
 
             CommandGroup(replacing: .newItem) {

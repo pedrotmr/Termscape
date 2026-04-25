@@ -215,6 +215,7 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .topLeading)
                 .padding(.bottom, 24)
             }
+            .id(selectedPane)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -485,7 +486,7 @@ private struct UpdatesSettingsDetail: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(t.text)
             Text(
-                "The app is missing update feed configuration (for example in local debug builds). Release builds can enable Sparkle from the bundle so checks appear here."
+                "This build is missing Sparkle update configuration (for example a feed URL or signing key, which is common in local debug builds). Release builds can enable Sparkle from the bundle so checks appear here."
             )
             .font(.system(size: 13))
             .foregroundStyle(t.textMuted)
