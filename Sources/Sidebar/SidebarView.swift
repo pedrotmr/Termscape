@@ -11,7 +11,7 @@ private struct GroupFrameKey: PreferenceKey {
 struct SidebarView: View {
     @Environment(AppState.self) var appState
     @Environment(ThemeManager.self) var theme
-    @State private var isAppearanceHovered = false
+    @State private var isSettingsGearHovered = false
     @State private var isAddHovered = false
     @State private var showAddPopover = false
     @State private var showSettings = false
@@ -77,13 +77,13 @@ struct SidebarView: View {
                     showSettings = true
                 } label: {
                     SidebarIconGlyph(
-                        systemImage: "slider.horizontal.3", theme: t, isHovered: isAppearanceHovered
+                        systemImage: "gearshape", theme: t, isHovered: isSettingsGearHovered
                     )
                 }
                 .buttonStyle(.plain)
-                .releaseSafeHelp("Appearance")
-                .onHover { isAppearanceHovered = $0 }
-                .animation(.easeInOut(duration: 0.12), value: isAppearanceHovered)
+                .releaseSafeHelp("Settings")
+                .onHover { isSettingsGearHovered = $0 }
+                .animation(.easeInOut(duration: 0.12), value: isSettingsGearHovered)
 
                 Spacer()
 
