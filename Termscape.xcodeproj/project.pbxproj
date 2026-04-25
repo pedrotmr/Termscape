@@ -28,6 +28,7 @@
 		7D6081722E151B340D1D4103 /* GhosttyNSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F188918092D5460D7741715F /* GhosttyNSView.swift */; };
 		81285CE453E1FCD649984304 /* HorizontalPaneSizingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921AE8AD69F5F1B66526D750 /* HorizontalPaneSizingEngine.swift */; };
 		82AB12FA9FDF7A82442EA627 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */; };
+		84FFA3A8A4C947E063CF62AA /* AppTheme+BundledEditorThemes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2619C48A34582C14FCEE91F /* AppTheme+BundledEditorThemes.swift */; };
 		863B40612AFB5F5C30B15E8D /* EditorRootContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98785A10618A04A23591C720 /* EditorRootContractTests.swift */; };
 		8D3688FE35BCBC2B23DA854E /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D13644947346C5C3B6824FE /* GhosttyApp.swift */; };
 		91A95B45D79D5332ABCDBFE7 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40BBEA2DF39DEE65354CC615 /* Carbon.framework */; };
@@ -110,6 +111,7 @@
 		D6A69410181B2B6E5FE3C4E8 /* FileTreeIndexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTreeIndexTests.swift; sourceTree = "<group>"; };
 		DE1B6A129784A486481CDF45 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		DF437AE72351424B0EFEDBFD /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		E2619C48A34582C14FCEE91F /* AppTheme+BundledEditorThemes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppTheme+BundledEditorThemes.swift"; sourceTree = "<group>"; };
 		EC9B81CDEA8E4836331A2E6D /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 		EC9CAE583DACC3C22A6AE447 /* TermscapeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TermscapeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneLayoutEngine.swift; sourceTree = "<group>"; };
@@ -209,6 +211,7 @@
 			isa = PBXGroup;
 			children = (
 				1874CAFE46683ABFBF03FA05 /* AppTheme.swift */,
+				E2619C48A34582C14FCEE91F /* AppTheme+BundledEditorThemes.swift */,
 				B3D5A15956DECE42BC68D182 /* Extensions.swift */,
 				1F853A83253EFF52A90C26D6 /* HorizontalResizeDivider.swift */,
 				74D7D60369E322A18AEA2A1F /* ThemeManager.swift */,
@@ -468,6 +471,7 @@
 			files = (
 				B045B96BAB54CC6AB1E08598 /* AppDelegate.swift in Sources */,
 				071EFC7EAF6E69A812304318 /* AppState.swift in Sources */,
+				84FFA3A8A4C947E063CF62AA /* AppTheme+BundledEditorThemes.swift in Sources */,
 				D05705721001037CB61371FD /* AppTheme.swift in Sources */,
 				04F6E0A7ABEA08C3ADE169E6 /* AppUpdater.swift in Sources */,
 				92D82089611E60F0D5B9F2B2 /* BrowserSurface.swift in Sources */,
