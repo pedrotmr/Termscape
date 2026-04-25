@@ -45,6 +45,18 @@ extension AppTheme {
         "#1E1E1E", "#F14C4C", "#23D18B", "#F5F543", "#3B8EEA", "#BC3FBC", "#29B8DB", "#CCCCCC",
         "#656565", "#F14C4C", "#23D18B", "#F5F543", "#3B8EEA", "#BC3FBC", "#29B8DB", "#FFFFFF",
     ]
+    private static let abyssNightBluePalette: [String] = [
+        "#111111", "#ff9da4", "#d1f1a9", "#ffeead",
+        "#bbdaff", "#ebbbff", "#99ffff", "#cccccc",
+        "#333333", "#ff7882", "#b8f171", "#ffe580",
+        "#80baff", "#d778ff", "#78ffff", "#ffffff",
+    ]
+    private static let solarizedPalette: [String] = [
+        "#073642", "#dc322f", "#859900", "#b58900",
+        "#268bd2", "#d33682", "#2aa198", "#eee8d5",
+        "#002b36", "#cb4b16", "#586e75", "#657b83",
+        "#839496", "#6c71c4", "#93a1a1", "#fdf6e3",
+    ]
 
     static let vscodeDarkModern = AppTheme(
         id: "vscode-dark-modern",
@@ -125,12 +137,7 @@ extension AppTheme {
             cursor: "#bbdaff",
             selectionBackground: "#770811",
             selectionForeground: "#f8f8f8",
-            palette: [
-                "#111111", "#ff9da4", "#d1f1a9", "#ffeead",
-                "#bbdaff", "#ebbbff", "#99ffff", "#cccccc",
-                "#333333", "#ff7882", "#b8f171", "#ffe580",
-                "#80baff", "#d778ff", "#78ffff", "#ffffff",
-            ]
+            palette: abyssNightBluePalette
         )
     )
 
@@ -157,12 +164,7 @@ extension AppTheme {
             cursor: "#93a1a1",
             selectionBackground: "#073642",
             selectionForeground: "#93a1a1",
-            palette: [
-                "#073642", "#dc322f", "#859900", "#b58900",
-                "#268bd2", "#d33682", "#2aa198", "#eee8d5",
-                "#002b36", "#cb4b16", "#586e75", "#657b83",
-                "#839496", "#6c71c4", "#93a1a1", "#fdf6e3",
-            ]
+            palette: solarizedPalette
         )
     )
 
@@ -189,12 +191,7 @@ extension AppTheme {
             cursor: "#657b83",
             selectionBackground: "#eee8d5",
             selectionForeground: "#586e75",
-            palette: [
-                "#073642", "#dc322f", "#859900", "#b58900",
-                "#268bd2", "#d33682", "#2aa198", "#eee8d5",
-                "#002b36", "#cb4b16", "#586e75", "#657b83",
-                "#839496", "#6c71c4", "#93a1a1", "#fdf6e3",
-            ]
+            palette: solarizedPalette
         )
     )
 
@@ -221,12 +218,7 @@ extension AppTheme {
             cursor: "#99ffff",
             selectionBackground: "#003f8e",
             selectionForeground: "#ffffff",
-            palette: [
-                "#111111", "#ff9da4", "#d1f1a9", "#ffeead",
-                "#bbdaff", "#ebbbff", "#99ffff", "#cccccc",
-                "#333333", "#ff7882", "#b8f171", "#ffe580",
-                "#80baff", "#d778ff", "#78ffff", "#ffffff",
-            ]
+            palette: abyssNightBluePalette
         )
     )
 }

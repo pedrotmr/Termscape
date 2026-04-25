@@ -71,4 +71,14 @@ final class ThemeManagerTests: XCTestCase {
         XCTAssertEqual(manager.current.id, "vscode-dark-modern")
         XCTAssertEqual(defaults.string(forKey: selectedThemeKey), "vscode-dark-modern")
     }
+
+    func testLegacyTomorrowNightBlueThemeIdMapsToNightBlue() {
+        let defaults = UserDefaults.standard
+        defaults.set("tomorrow-night-blue", forKey: selectedThemeKey)
+
+        let manager = ThemeManager()
+
+        XCTAssertEqual(manager.current.id, "night-blue")
+        XCTAssertEqual(defaults.string(forKey: selectedThemeKey), "night-blue")
+    }
 }
