@@ -192,6 +192,7 @@ struct SettingsView: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Close Settings")
             }
             .padding(.horizontal, 22)
             .padding(.top, 18)
@@ -313,7 +314,7 @@ private struct AppearanceSettingsDetail: View {
 
     private var terminalOverrideRow: some View {
         SettingsInsetCard(t: t) {
-            HStack(alignment: .top, spacing: 14) {
+            Toggle(isOn: $theme.overridesTerminalColors) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Override terminal colors")
                         .font(.system(size: 14, weight: .semibold))
@@ -325,12 +326,10 @@ private struct AppearanceSettingsDetail: View {
                     .foregroundStyle(t.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer(minLength: 12)
-                Toggle("", isOn: $theme.overridesTerminalColors)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-                    .tint(t.accent)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .toggleStyle(.switch)
+            .tint(t.accent)
         }
     }
 }
@@ -344,7 +343,7 @@ private struct UpdatesPreferenceToggleRow: View {
     let t: AppTheme
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        Toggle(isOn: $isOn) {
             VStack(alignment: .leading, spacing: 5) {
                 Text(title)
                     .font(.system(size: 14, weight: .semibold))
@@ -354,13 +353,10 @@ private struct UpdatesPreferenceToggleRow: View {
                     .foregroundStyle(t.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 10)
-            Toggle("", isOn: $isOn)
-                .toggleStyle(.switch)
-                .labelsHidden()
-                .tint(t.accent)
-                .padding(.top, 1)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .toggleStyle(.switch)
+        .tint(t.accent)
     }
 }
 
