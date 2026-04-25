@@ -1,6 +1,22 @@
 import AppKit
 import SwiftUI
 
+// MARK: - NSColor depth (chrome vs content)
+
+extension NSColor {
+    /// Step the content surface toward black (dark UI) or paper gray (light UI) for housing chrome.
+    func termscapeChromeDepth(isDark: Bool, amount: CGFloat) -> NSColor {
+        guard let c = usingColorSpace(.sRGB) ?? usingColorSpace(.deviceRGB) else { return self }
+        let a = isDark ? amount : amount * 0.88
+        return NSColor(
+            red: max(0, min(1, c.redComponent - a)),
+            green: max(0, min(1, c.greenComponent - a)),
+            blue: max(0, min(1, c.blueComponent - a)),
+            alpha: c.alphaComponent
+        )
+    }
+}
+
 // MARK: - Terminal color palette
 
 struct TerminalTheme {
@@ -68,6 +84,29 @@ struct AppTheme: Identifiable, Equatable {
             green: max(0, c.greenComponent - 0.055),
             blue: max(0, c.blueComponent - 0.055),
             alpha: 1
+        )
+    }
+
+    /// Workspace sidebar, window tab strip — darker than the terminal/editor reading surface.
+    var layoutChromeSurface: NSColor {
+        canvasBackground.termscapeChromeDepth(isDark: isDark, amount: isDark ? 0.052 : 0.036)
+    }
+
+    /// Editor doc tabs, breadcrumbs — between content and workspace chrome.
+    var editorChromeSurface: NSColor {
+        canvasBackground.termscapeChromeDepth(isDark: isDark, amount: isDark ? 0.026 : 0.020)
+    }
+
+    /// Terminal + editor + Ghostty `background` — one shared content plane.
+    var terminalThemeSyncedToCanvas: TerminalTheme {
+        let base = terminalTheme
+        return TerminalTheme(
+            background: canvasBackground.hexString(),
+            foreground: base.foreground,
+            cursor: base.cursor,
+            selectionBackground: base.selectionBackground,
+            selectionForeground: base.selectionForeground,
+            palette: base.palette
         )
     }
 

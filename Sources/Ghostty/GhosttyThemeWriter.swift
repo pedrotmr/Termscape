@@ -17,7 +17,7 @@ enum GhosttyThemeWriter {
     // MARK: - Public API
 
     static func apply(_ theme: AppTheme) {
-        write(theme.terminalTheme)
+        write(theme.terminalThemeSyncedToCanvas)
         reloadConfig()
     }
 

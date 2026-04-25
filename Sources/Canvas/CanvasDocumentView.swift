@@ -11,7 +11,7 @@ final class CanvasDocumentView: NSView {
         let contentView: NSView
         let focusView: NSView
         let kind: WorkspacePaneContentKind
-        let applyTheme: (NSColor) -> Void
+        let applyTheme: (AppTheme) -> Void
         let ensureReadyForFocus: () -> Void
     }
 
@@ -25,6 +25,7 @@ final class CanvasDocumentView: NSView {
     private weak var lastContainerFrameTab: WorkspaceTab?
     private var lastContainerFrameSize: CGSize = .zero
 
+    private var lastAppliedTheme: AppTheme = .tobacco
     private var currentCanvasMatte: NSColor = AppTheme.tobacco.canvasMatte
     private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
     private var currentAccentColor: NSColor = AppTheme.tobacco.accentNSColor
@@ -70,6 +71,16 @@ final class CanvasDocumentView: NSView {
         private var dragTelemetryBySplitId: [String: DragTelemetry] = [:]
     #endif
 
+    // MARK: - Pane drag reorder (multi-pane only; small corner handle — not a tab strip)
+
+    private var paneDragHandles: [String: PaneDragHandleView] = [:]
+    private var paneDragOverlay: PaneDropHighlightOverlay?
+    private weak var paneDragTab: WorkspaceTab?
+    private var paneDragSourcePaneId: String?
+    private var paneDragMonitor: Any?
+    private var lastPaneDisplayFrames: [String: CGRect] = [:]
+    private var paneDragHandleStyleCache: String?
+
     override var isFlipped: Bool {
         true
     }
@@ -90,26 +101,23 @@ final class CanvasDocumentView: NSView {
 
     // MARK: - Theme
 
-    func applyTheme(
-        canvasMatte: NSColor,
-        paneBackground: NSColor,
-        accentColor: NSColor,
-        dividerColor: NSColor
-    ) {
-        currentAccentColor = accentColor
-        currentCanvasMatte = canvasMatte
-        currentPaneBackground = paneBackground
-        currentDividerColor = dividerColor
-        layer?.backgroundColor = canvasMatte.cgColor
+    func applyTheme(_ theme: AppTheme) {
+        lastAppliedTheme = theme
+        currentAccentColor = theme.accentNSColor
+        currentCanvasMatte = theme.canvasMatte
+        currentPaneBackground = theme.canvasBackground
+        currentDividerColor = theme.borderNSColor
+        layer?.backgroundColor = theme.canvasMatte.cgColor
 
         for (_, hosted) in hostedViews {
-            hosted.applyTheme(paneBackground)
+            hosted.applyTheme(theme)
         }
         for (_, divider) in dividerViews {
-            divider.accentColor = accentColor
-            divider.dividerColor = dividerColor
+            divider.accentColor = theme.accentNSColor
+            divider.dividerColor = theme.borderNSColor
         }
-        trailingResizeHandleView?.accentColor = accentColor
+        trailingResizeHandleView?.accentColor = theme.accentNSColor
+        paneDragOverlay?.applyAccent(theme.accentNSColor)
     }
 
     // MARK: - Layout update
@@ -125,6 +133,9 @@ final class CanvasDocumentView: NSView {
         let canvasHeight = viewportSize.height
         let canvasSize = CGSize(width: canvasWidth, height: canvasHeight)
         frame = CGRect(origin: .zero, size: canvasSize)
+        if paneDragOverlay?.superview != nil {
+            paneDragOverlay?.frame = bounds
+        }
         let containerSizeChanged =
             abs(lastContainerFrameSize.width - canvasSize.width) > 0.5
                 || abs(lastContainerFrameSize.height - canvasSize.height) > 0.5
@@ -211,7 +222,7 @@ final class CanvasDocumentView: NSView {
                         contentView: hostedView,
                         focusView: hostedView.surfaceView,
                         kind: .terminal,
-                        applyTheme: { color in hostedView.setBackgroundColor(color) },
+                        applyTheme: { theme in hostedView.setBackgroundColor(theme.canvasBackground) },
                         ensureReadyForFocus: {
                             if hostedView.surfaceView.terminalSurface?.surface == nil {
                                 hostedView.surfaceView.terminalSurface?.attachToView(hostedView.surfaceView)
@@ -274,7 +285,7 @@ final class CanvasDocumentView: NSView {
                         focusView: shouldFocusAddressBar
                             ? surface.addressBarFocusTargetView : surface.focusTargetView,
                         kind: .browser,
-                        applyTheme: { color in hostedView.setThemeBackground(color) },
+                        applyTheme: { theme in hostedView.setThemeBackground(theme.canvasBackground) },
                         ensureReadyForFocus: {}
                     )
                     hostedViews[pane.paneId] = hosted
@@ -293,6 +304,7 @@ final class CanvasDocumentView: NSView {
                     let containerView = FlippedContainerView(frame: displayFrame)
                     hostedView.wantsLayer = true
                     hostedView.layer?.backgroundColor = currentPaneBackground.cgColor
+                    surface.applyAppTheme(lastAppliedTheme)
                     let paneIdStr = pane.paneId
                     surface.onFocused = { [weak tab] in
                         guard let tab, let paneUUID = UUID(uuidString: paneIdStr) else { return }
@@ -332,8 +344,9 @@ final class CanvasDocumentView: NSView {
                         contentView: hostedView,
                         focusView: hostedView,
                         kind: .editor,
-                        applyTheme: { color in
-                            hostedView.layer?.backgroundColor = color.cgColor
+                        applyTheme: { theme in
+                            hostedView.layer?.backgroundColor = theme.canvasBackground.cgColor
+                            surface.applyAppTheme(theme)
                         },
                         ensureReadyForFocus: {
                             surface.ensureInitialized()
@@ -364,6 +377,9 @@ final class CanvasDocumentView: NSView {
                 editorSurface.setFocused(isFocused)
             }
         }
+
+        lastPaneDisplayFrames = displayFrames
+        syncPaneDragHandles(tab: tab, isMultiPane: isMultiPane, displayFrames: displayFrames)
 
         let removed = Set(hostedViews.keys).subtracting(activePaneIds)
         for paneId in removed {
@@ -1285,6 +1301,192 @@ final class CanvasDocumentView: NSView {
               let surface = tab.surfaces[tabUUID]
         else { return }
         surface.performClearScreen()
+    }
+
+    // MARK: - Pane drag reorder
+
+    private func syncPaneDragHandles(
+        tab _: WorkspaceTab,
+        isMultiPane: Bool,
+        displayFrames: [String: CGRect]
+    ) {
+        guard isMultiPane else {
+            for (_, handle) in paneDragHandles {
+                handle.removeFromSuperview()
+            }
+            paneDragHandles.removeAll()
+            paneDragHandleStyleCache = nil
+            return
+        }
+
+        let style = PaneDragHandleStyle.current
+        if paneDragHandleStyleCache != style.rawValue {
+            paneDragHandleStyleCache = style.rawValue
+            for (_, handle) in paneDragHandles {
+                handle.removeFromSuperview()
+            }
+            paneDragHandles.removeAll()
+        }
+
+        for paneKey in displayFrames.keys {
+            if paneDragHandles[paneKey] == nil {
+                let handle = PaneDragHandleView(paneId: paneKey, style: style)
+                handle.document = self
+                handle.applyAccent(currentAccentColor)
+                paneDragHandles[paneKey] = handle
+                addSubview(handle, positioned: .above, relativeTo: nil)
+            }
+            if let paneFrame = displayFrames[paneKey], let handle = paneDragHandles[paneKey] {
+                handle.frame = style.layoutFrame(in: paneFrame)
+                handle.applyAccent(currentAccentColor)
+                // New pane surfaces are appended after existing subviews; re-stack so the affordance
+                // stays above that pane’s Metal/canvas content (restore paths often create everything in one pass).
+                if let hosted = hostedViews[paneKey] {
+                    addSubview(handle, positioned: .above, relativeTo: hosted.containerView)
+                } else {
+                    addSubview(handle, positioned: .above, relativeTo: nil)
+                }
+            }
+        }
+
+        for key in Array(paneDragHandles.keys) where displayFrames[key] == nil {
+            paneDragHandles[key]?.removeFromSuperview()
+            paneDragHandles.removeValue(forKey: key)
+        }
+    }
+
+    func beginPaneDragSession(sourcePaneId: String, seedEvent: NSEvent) {
+        guard paneDragMonitor == nil, let tab = currentTab else { return }
+        paneDragTab = tab
+        paneDragSourcePaneId = sourcePaneId
+
+        let overlay = paneDragOverlay ?? PaneDropHighlightOverlay(frame: bounds)
+        paneDragOverlay = overlay
+        overlay.applyAccent(currentAccentColor)
+        overlay.frame = bounds
+        overlay.setHighlight(targetPaneId: nil, zone: nil, frames: lastPaneDisplayFrames)
+        if overlay.superview == nil {
+            addSubview(overlay, positioned: .above, relativeTo: nil)
+        }
+
+        paneDragMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDragged, .leftMouseUp]) {
+            [weak self] event in
+            self?.handlePaneDragMonitorEvent(event)
+            return event
+        }
+
+        NSCursor.closedHand.set()
+        handlePaneDragMonitorEvent(seedEvent)
+    }
+
+    func paneDragHandleMouseUpIfIdle() {
+        // No-op unless we add small-tap behavior; session teardown uses the global monitor.
+    }
+
+    private func handlePaneDragMonitorEvent(_ event: NSEvent) {
+        guard let tab = paneDragTab, paneDragSourcePaneId != nil else {
+            tearDownPaneDragSession()
+            return
+        }
+        let pointInDoc = convert(event.locationInWindow, from: nil)
+
+        switch event.type {
+        case .leftMouseDragged:
+            updatePaneDragHighlight(at: pointInDoc)
+        case .leftMouseUp:
+            endPaneDragSession(at: pointInDoc, tab: tab)
+        default:
+            break
+        }
+    }
+
+    private func updatePaneDragHighlight(at pointInDoc: CGPoint) {
+        var hitPane: String?
+        var hitFrame: CGRect?
+        for (id, frame) in lastPaneDisplayFrames where frame.contains(pointInDoc) {
+            hitPane = id
+            hitFrame = frame
+            break
+        }
+        guard let hitPane, let frame = hitFrame else {
+            paneDragOverlay?.setHighlight(targetPaneId: nil, zone: nil, frames: lastPaneDisplayFrames)
+            return
+        }
+        let zone = CanvasPaneDropZone.zone(at: pointInDoc, in: frame)
+        paneDragOverlay?.setHighlight(targetPaneId: hitPane, zone: zone, frames: lastPaneDisplayFrames)
+    }
+
+    private func endPaneDragSession(at pointInDoc: CGPoint, tab: WorkspaceTab) {
+        defer { tearDownPaneDragSession() }
+        guard let source = paneDragSourcePaneId else { return }
+
+        var hitPane: String?
+        var hitFrame: CGRect?
+        for (id, frame) in lastPaneDisplayFrames where frame.contains(pointInDoc) {
+            hitPane = id
+            hitFrame = frame
+            break
+        }
+        guard let target = hitPane, let frame = hitFrame else { return }
+
+        let zone = CanvasPaneDropZone.zone(at: pointInDoc, in: frame)
+        applyPaneMove(tab: tab, sourcePaneId: source, targetPaneId: target, zone: zone)
+    }
+
+    private func applyPaneMove(
+        tab: WorkspaceTab,
+        sourcePaneId: String,
+        targetPaneId: String,
+        zone: CanvasPaneDropZone
+    ) {
+        let snap = tab.bonsplitController.layoutSnapshot()
+        guard let srcGeo = snap.panes.first(where: { $0.paneId == sourcePaneId }),
+              let tgtUUID = UUID(uuidString: targetPaneId),
+              snap.panes.contains(where: { $0.paneId == targetPaneId })
+        else { return }
+
+        let tabIDs = srcGeo.tabIds.compactMap { UUID(uuidString: $0) }.map { TabID(uuid: $0) }
+        guard !tabIDs.isEmpty else { return }
+
+        let tgtPane = PaneID(id: tgtUUID)
+
+        switch zone {
+        case .center:
+            guard sourcePaneId != targetPaneId else { return }
+            for tid in tabIDs {
+                _ = tab.bonsplitController.moveTab(tid, toPane: tgtPane, atIndex: nil)
+            }
+        case .left, .right, .top, .bottom:
+            guard sourcePaneId != targetPaneId else { return }
+            let orient = zone.splitOrientation
+            let insertFirst = zone.insertsFirst
+            guard let first = tabIDs.first else { return }
+            _ = tab.bonsplitController.splitPane(
+                tgtPane,
+                orientation: orient,
+                movingTab: first,
+                insertFirst: insertFirst
+            )
+            guard let newPane = tab.bonsplitController.focusedPaneId else { return }
+            for tid in tabIDs.dropFirst() {
+                _ = tab.bonsplitController.moveTab(tid, toPane: newPane, atIndex: nil)
+            }
+        }
+    }
+
+    private func tearDownPaneDragSession() {
+        if let monitor = paneDragMonitor {
+            NSEvent.removeMonitor(monitor)
+            paneDragMonitor = nil
+        }
+        NSCursor.arrow.set()
+        paneDragOverlay?.removeFromSuperview()
+        paneDragOverlay = nil
+        paneDragTab = nil
+        paneDragSourcePaneId = nil
+        for (_, handle) in paneDragHandles {
+            handle.resetAfterSession()
+        }
     }
 }
 

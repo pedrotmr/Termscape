@@ -155,6 +155,9 @@ private extension String {
 final class EditorSourceTextView: NSTextView {
     var onSaveRequest: () -> Void = {}
 
+    /// Bracket-pair highlight fill — set from `AppTheme` via `EditorCodeTextView`.
+    var bracketPairHighlight: NSColor = .white.withAlphaComponent(0.12)
+
     /// Ranges last touched by `refreshAuxiliaryHighlights` (caret line + bracket pair) for narrow invalidation.
     private var auxiliaryHighlightRanges: [NSRange] = []
 
@@ -175,18 +178,12 @@ final class EditorSourceTextView: NSTextView {
         }
 
         let insertion = selectedRange().location
-        let lineAnchor = min(max(0, insertion), len)
-        let ns = ts.string as NSString
-        let lineRange = ns.lineRange(for: NSRange(location: lineAnchor, length: 0))
-        let lineFill = NSColor.white.withAlphaComponent(0.055)
-        lm.addTemporaryAttribute(.backgroundColor, value: lineFill, forCharacterRange: lineRange)
-        auxiliaryHighlightRanges.append(lineRange)
 
         if let (openRange, closeRange) = EditorBracketMatcher.matchingPairUTF16(
             in: ts.string,
             insertionUTF16: insertion
         ) {
-            let bracketFill = NSColor.white.withAlphaComponent(0.12)
+            let bracketFill = bracketPairHighlight
             lm.addTemporaryAttribute(.backgroundColor, value: bracketFill, forCharacterRange: openRange)
             lm.addTemporaryAttribute(.backgroundColor, value: bracketFill, forCharacterRange: closeRange)
             auxiliaryHighlightRanges.append(openRange)
@@ -220,6 +217,10 @@ final class EditorSourceTextView: NSTextView {
 /// Vertical line-number gutter paired with `EditorSourceTextView`.
 final class EditorLineNumberRulerView: NSRulerView {
     weak var lineTextView: NSTextView?
+    var gutterBackground: NSColor = .init(red: 0.07, green: 0.07, blue: 0.08, alpha: 1)
+    var gutterNumber: NSColor = .white.withAlphaComponent(0.28)
+    /// Current line — foreground only (no gutter band).
+    var gutterActiveNumber: NSColor = .white.withAlphaComponent(0.92)
 
     init(scrollView: NSScrollView) {
         super.init(scrollView: scrollView, orientation: .verticalRuler)
@@ -234,7 +235,7 @@ final class EditorLineNumberRulerView: NSRulerView {
     }
 
     override func drawHashMarksAndLabels(in _: NSRect) {
-        NSColor(red: 0.07, green: 0.07, blue: 0.08, alpha: 0.55).setFill()
+        gutterBackground.setFill()
         NSBezierPath(rect: bounds).fill()
 
         guard let tv = lineTextView,
@@ -248,11 +249,6 @@ final class EditorLineNumberRulerView: NSRulerView {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .right
         paragraph.lineSpacing = EditorCodeTypography.defaultParagraphStyle.lineSpacing
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.white.withAlphaComponent(0.28),
-            .paragraphStyle: paragraph,
-        ]
 
         let origin = tv.textContainerOrigin
         let docNSString: NSString = {
@@ -279,17 +275,12 @@ final class EditorLineNumberRulerView: NSRulerView {
             let midInRuler = self.convert(midInTextView, from: tv)
             // `usedRect.height` reflects paragraph `lineSpacing`; keeps gutter bands aligned with text lines.
             let lineHeight = max(usedRect.height, lm.defaultLineHeight(for: tv.font ?? EditorCodeTypography.bodyFont))
-            if lineNumber == activeLogicalLine {
-                NSColor.white.withAlphaComponent(0.045).setFill()
-                NSBezierPath(
-                    rect: NSRect(
-                        x: 0,
-                        y: midInRuler.y - lineHeight / 2,
-                        width: self.bounds.width,
-                        height: lineHeight
-                    )
-                ).fill()
-            }
+            let numberColor = lineNumber == activeLogicalLine ? self.gutterActiveNumber : self.gutterNumber
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: numberColor,
+                .paragraphStyle: paragraph,
+            ]
             let s = "\(lineNumber)" as NSString
             let size = s.size(withAttributes: attrs)
             let drawX = self.bounds.width - 8 - size.width
@@ -310,9 +301,30 @@ final class EditorLineNumberRulerView: NSRulerView {
 
 /// Monospace `NSTextView` in a scroll view with a line-number ruler and ⌘S forwarding.
 struct EditorCodeTextView: NSViewRepresentable {
+    var theme: AppTheme
     @Binding var text: String
     var isEditable: Bool
     var onSave: () -> Void
+
+    private func applyEditorTextKitColors(tv: EditorSourceTextView, ruler: EditorLineNumberRulerView?) {
+        tv.backgroundColor = theme.canvasBackground
+        let textColor = NSColor(theme.text)
+        tv.textColor = textColor
+        tv.insertionPointColor = theme.accentNSColor
+        tv.typingAttributes = [
+            .foregroundColor: textColor,
+            .font: EditorCodeTypography.bodyFont,
+            .paragraphStyle: EditorCodeTypography.defaultParagraphStyle,
+        ]
+        if theme.isDark {
+            tv.bracketPairHighlight = NSColor.white.withAlphaComponent(0.12)
+        } else {
+            tv.bracketPairHighlight = NSColor.black.withAlphaComponent(0.09)
+        }
+        ruler?.gutterBackground = theme.canvasBackground
+        ruler?.gutterNumber = NSColor(theme.textMuted).withAlphaComponent(theme.isDark ? 0.38 : 0.48)
+        ruler?.gutterActiveNumber = NSColor(theme.text)
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -333,9 +345,6 @@ struct EditorCodeTextView: NSViewRepresentable {
         tv.clipsToBounds = true
         tv.focusRingType = .none
         tv.drawsBackground = true
-        tv.backgroundColor = NSColor(red: 0.07, green: 0.07, blue: 0.08, alpha: 1)
-        tv.textColor = NSColor.white.withAlphaComponent(0.93)
-        tv.insertionPointColor = NSColor.white
         tv.font = EditorCodeTypography.bodyFont
         tv.isAutomaticQuoteSubstitutionEnabled = false
         tv.isAutomaticDashSubstitutionEnabled = false
@@ -363,6 +372,8 @@ struct EditorCodeTextView: NSViewRepresentable {
         ruler.lineTextView = tv
         ruler.clientView = tv
         scroll.verticalRulerView = ruler
+
+        applyEditorTextKitColors(tv: tv, ruler: ruler)
 
         context.coordinator.textView = tv
         context.coordinator.rulerView = ruler
@@ -397,6 +408,10 @@ struct EditorCodeTextView: NSViewRepresentable {
         context.coordinator.rulerView = scroll.verticalRulerView as? EditorLineNumberRulerView
         context.coordinator.textBinding = $text
         context.coordinator.onSave = onSave
+        applyEditorTextKitColors(
+            tv: tv,
+            ruler: scroll.verticalRulerView as? EditorLineNumberRulerView
+        )
 
         context.coordinator.suppressCallbacks = true
         if tv.string != text {
