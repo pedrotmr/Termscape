@@ -8,14 +8,6 @@ extension NSColor {
     func termscapeChromeDepth(isDark: Bool, amount: CGFloat) -> NSColor {
         guard let c = usingColorSpace(.sRGB) ?? usingColorSpace(.deviceRGB) else { return self }
         let a = isDark ? amount : amount * 0.88
-        if isDark {
-            return NSColor(
-                red: max(0, min(1, c.redComponent - a)),
-                green: max(0, min(1, c.greenComponent - a)),
-                blue: max(0, min(1, c.blueComponent - a)),
-                alpha: c.alphaComponent
-            )
-        }
         return NSColor(
             red: max(0, min(1, c.redComponent - a)),
             green: max(0, min(1, c.greenComponent - a)),

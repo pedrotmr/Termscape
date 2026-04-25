@@ -308,8 +308,14 @@ struct EditorCodeTextView: NSViewRepresentable {
 
     private func applyEditorTextKitColors(tv: EditorSourceTextView, ruler: EditorLineNumberRulerView?) {
         tv.backgroundColor = theme.canvasBackground
-        tv.textColor = NSColor(theme.text)
+        let textColor = NSColor(theme.text)
+        tv.textColor = textColor
         tv.insertionPointColor = theme.accentNSColor
+        tv.typingAttributes = [
+            .foregroundColor: textColor,
+            .font: EditorCodeTypography.bodyFont,
+            .paragraphStyle: EditorCodeTypography.defaultParagraphStyle,
+        ]
         if theme.isDark {
             tv.bracketPairHighlight = NSColor.white.withAlphaComponent(0.12)
         } else {

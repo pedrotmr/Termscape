@@ -27,7 +27,7 @@ final class GhosttySurfaceScrollView: NSView {
         // Background
         backgroundView.wantsLayer = true
         // Replaced on embed via `setBackgroundColor` from the active `AppTheme`.
-        backgroundView.layer?.backgroundColor = NSColor(calibratedWhite: 0.06, alpha: 1).cgColor
+        backgroundView.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(backgroundView)
 

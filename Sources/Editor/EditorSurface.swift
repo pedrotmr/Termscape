@@ -551,7 +551,7 @@ struct EditorSurfaceRootView: View {
                 fileTreePanel
                     .frame(width: fileSidebarWidth, alignment: .topLeading)
                     .frame(maxHeight: .infinity, alignment: .topLeading)
-                    .background(t.editorChromeSurface.color)
+                    .background(t.layoutChromeSurface.color)
                 HorizontalResizeDivider(
                     width: $fileSidebarWidth,
                     minWidth: EditorChromeMetrics.fileSidebarMinWidth,
@@ -740,7 +740,7 @@ struct EditorSurfaceRootView: View {
                 Image(systemName: isOn.wrappedValue ? "checkmark.square.fill" : "square")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(
-                        isOn.wrappedValue ? Color.accentColor : t.textMuted.opacity(0.9)
+                        isOn.wrappedValue ? t.accent : t.textMuted.opacity(0.9)
                     )
                 Text(title)
                     .font(.system(size: 11, weight: .medium))
