@@ -120,43 +120,94 @@ struct AppTheme: Identifiable, Equatable {
 
 extension AppTheme {
     static let all: [AppTheme] = [
-        // Dark
-        .obsidian, .tobacco, .dracula, .catppuccin, .aurora, .claude, .gruvbox, .brutalist, .sakura,
+        // Cursor + VS Code / bundled editor themes (ported from Cursor.app extensions)
+        .cursorDark,
+        .cursorMidnight,
+        .cursorLight,
+        .vscodeDarkModern,
+        .vscodeDarkVS,
+        .abyss,
+        .solarizedDark,
+        .solarizedLight,
+        .nightBlue,
+        // Termscape originals
+        .tobacco,
+        .dracula,
+        .catppuccin,
+        .aurora,
+        .claude,
+        .gruvbox,
+        .brutalist,
+        .sakura,
         .nordic,
-        // Light
-        .chalk, .parchment,
+        .chalk,
+        .parchment,
     ]
 
-    // MARK: Obsidian — original near-black cool dark
+    // MARK: Cursor Dark — Anysphere `cursor-dark-color-theme.json` in Cursor.app
 
-    static let obsidian = AppTheme(
-        id: "obsidian",
-        name: "Obsidian",
-        emoji: "🪨",
+    static let cursorDark = AppTheme(
+        id: "cursor-dark",
+        name: "Cursor Dark",
+        emoji: "✦",
         isDark: true,
-        sidebar: Color(red: 0.059, green: 0.059, blue: 0.067),
-        surface: Color(red: 0.082, green: 0.082, blue: 0.094),
-        elevated: Color(red: 0.106, green: 0.106, blue: 0.122),
-        accent: Color(red: 0.337, green: 0.400, blue: 0.957), // #5666F4
-        border: Color.white.opacity(0.07),
-        text: Color.white.opacity(0.88),
-        textMuted: Color.white.opacity(0.42),
-        textFaint: Color.white.opacity(0.24),
-        hover: Color.white.opacity(0.05),
-        selected: Color.white.opacity(0.09),
-        canvasBackground: NSColor(red: 0.050, green: 0.050, blue: 0.060, alpha: 1),
-        accentNSColor: NSColor(red: 0.337, green: 0.400, blue: 0.957, alpha: 0.85),
+        sidebar: Color(red: 0.078, green: 0.078, blue: 0.078), // sideBar #141414
+        surface: Color(red: 0.094, green: 0.094, blue: 0.094), // editor / active tab #181818
+        elevated: Color(red: 0.149, green: 0.149, blue: 0.149), // editor.lineHighlight #262626
+        accent: Color(red: 0.533, green: 0.753, blue: 0.816), // activityBarBadge #88C0D0
+        border: Color.white.opacity(0.075),
+        text: Color(red: 0.894, green: 0.894, blue: 0.894), // #E4E4E4
+        textMuted: Color(red: 0.894, green: 0.894, blue: 0.894).opacity(0.55),
+        textFaint: Color(red: 0.894, green: 0.894, blue: 0.894).opacity(0.37),
+        hover: Color.white.opacity(0.067),
+        selected: Color.white.opacity(0.12),
+        canvasBackground: NSColor(red: 0.094, green: 0.094, blue: 0.094, alpha: 1), // editor #181818
+        accentNSColor: NSColor(red: 0.533, green: 0.753, blue: 0.816, alpha: 0.85),
         terminalTheme: TerminalTheme(
-            background: "#0F0F11",
-            foreground: "#E0E0E8",
-            cursor: "#5666F4",
-            selectionBackground: "#2A2A38",
-            selectionForeground: "#E0E0E8",
+            background: "#141414",
+            foreground: "#E4E4E4",
+            cursor: "#E4E4E4",
+            selectionBackground: "#404040",
+            selectionForeground: "#E4E4E4",
             palette: [
-                "#1A1A1F", "#FF5F5F", "#5FAFA3", "#D7AF5F",
-                "#5666F4", "#9B78D4", "#5FAFAF", "#C8C8D0",
-                "#2E2E3A", "#FF7F7F", "#6FCFBF", "#EFCF7F",
-                "#7080FF", "#BF98F4", "#7FCFCF", "#E0E0E8",
+                "#242424", "#FC6B83", "#3FA266", "#D2943E",
+                "#81A1C1", "#B48EAD", "#88C0D0", "#E4E4E4",
+                "#5A5A5A", "#FC6B83", "#70B489", "#F1B467",
+                "#87A6C4", "#B48EAD", "#88C0D0", "#E4E4E4",
+            ]
+        )
+    )
+
+    // MARK: Cursor Midnight — Anysphere `Cursor Dark Midnight-color-theme.json` in Cursor.app
+
+    static let cursorMidnight = AppTheme(
+        id: "cursor-midnight",
+        name: "Cursor Midnight",
+        emoji: "🌙",
+        isDark: true,
+        sidebar: Color(red: 0.098, green: 0.110, blue: 0.133), // sideBar #191c22
+        surface: Color(red: 0.118, green: 0.129, blue: 0.153), // editor #1e2127
+        elevated: Color(red: 0.263, green: 0.298, blue: 0.369), // polar highlight #434c5e
+        accent: Color(red: 0.561, green: 0.737, blue: 0.733), // terminalCursor / links #8fbcbb
+        border: Color.white.opacity(0.05),
+        text: Color(red: 0.847, green: 0.871, blue: 0.914), // tab.activeForeground #d8dee9
+        textMuted: Color(red: 0.482, green: 0.533, blue: 0.631), // workbench foreground #7b88a1
+        textFaint: Color(red: 0.294, green: 0.318, blue: 0.388), // tab.inactive #4b5163
+        hover: Color.white.opacity(0.055),
+        selected: Color.white.opacity(0.10),
+        canvasBackground: NSColor(red: 0.118, green: 0.129, blue: 0.153, alpha: 1), // editor #1e2127
+        accentNSColor: NSColor(red: 0.561, green: 0.737, blue: 0.733, alpha: 0.85),
+        terminalTheme: TerminalTheme(
+            background: "#191c22",
+            foreground: "#d8dee9",
+            cursor: "#8fbcbb",
+            selectionBackground: "#434c5e",
+            selectionForeground: "#d8dee9",
+            palette: [
+                "#272c36", "#bf616a", "#a3be8c", "#ebcb8b",
+                "#81a1c1", "#7d7c9b", "#88c0d0", "#e5e9f0",
+                "#4c566a", "#bf616a", "#a3be8c", "#ebcb8b",
+                "#81a1c1", "#b48ead", "#8fbcbb", "#eceff4",
             ]
         )
     )
