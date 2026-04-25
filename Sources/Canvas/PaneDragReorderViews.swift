@@ -91,8 +91,8 @@ enum CanvasPaneDropZone: Equatable {
         let h = paneFrame.height
         guard w > 0, h > 0 else { return .center }
 
-        let horizontalEdge = max(Self.minimumEdgeSize, w * Self.edgeRatio)
-        let verticalEdge = max(Self.minimumEdgeSize, h * Self.edgeRatio)
+        let horizontalEdge = min(max(Self.minimumEdgeSize, w * Self.edgeRatio), w / 2)
+        let verticalEdge = min(max(Self.minimumEdgeSize, h * Self.edgeRatio), h / 2)
 
         if lx < horizontalEdge { return .left }
         if lx > w - horizontalEdge { return .right }

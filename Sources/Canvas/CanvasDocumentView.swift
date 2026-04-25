@@ -1349,7 +1349,7 @@ final class CanvasDocumentView: NSView {
             }
         }
 
-        for key in paneDragHandles.keys where displayFrames[key] == nil {
+        for key in Array(paneDragHandles.keys) where displayFrames[key] == nil {
             paneDragHandles[key]?.removeFromSuperview()
             paneDragHandles.removeValue(forKey: key)
         }
@@ -1441,7 +1441,8 @@ final class CanvasDocumentView: NSView {
     ) {
         let snap = tab.bonsplitController.layoutSnapshot()
         guard let srcGeo = snap.panes.first(where: { $0.paneId == sourcePaneId }),
-              let tgtUUID = UUID(uuidString: targetPaneId)
+              let tgtUUID = UUID(uuidString: targetPaneId),
+              snap.panes.contains(where: { $0.paneId == targetPaneId })
         else { return }
 
         let tabIDs = srcGeo.tabIds.compactMap { UUID(uuidString: $0) }.map { TabID(uuid: $0) }
