@@ -17,6 +17,7 @@
 		2EC5C6354C2628CDD33033FF /* EditorCodeTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14A723DB6DA209EA9255384D /* EditorCodeTextView.swift */; };
 		37E6BDB8DB7856661C6970DC /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB19A51E82EF41BDEBE2E6E /* SidebarView.swift */; };
 		500CC535722229B8A4D4FC97 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2E620B88920BF3FEC0CF27BF /* Assets.xcassets */; };
+		51246E0055020A6BE21639F9 /* PaneDragReorderViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F14B7779506011A1A3066B /* PaneDragReorderViews.swift */; };
 		51A89FD719288759DE80C8A6 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B30FED21AA1C9FB54E59D51A /* GhosttyKit.xcframework */; };
 		59618C3590FF7C9BB3AA8EC9 /* GhosttyThemeWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */; };
 		5B596766AE9C1C70A0554AB0 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EC9B81CDEA8E4836331A2E6D /* UniformTypeIdentifiers.framework */; };
@@ -74,6 +75,7 @@
 		1874CAFE46683ABFBF03FA05 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		1F853A83253EFF52A90C26D6 /* HorizontalResizeDivider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalResizeDivider.swift; sourceTree = "<group>"; };
 		261561B96E12B36929EF6FA5 /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
+		27F14B7779506011A1A3066B /* PaneDragReorderViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneDragReorderViews.swift; sourceTree = "<group>"; };
 		2BC22503F07454B1D3B8181E /* FileTreeIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTreeIndex.swift; sourceTree = "<group>"; };
 		2E620B88920BF3FEC0CF27BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		302DCA5B1F5E47F86106FFE1 /* EditorSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorSurface.swift; sourceTree = "<group>"; };
@@ -296,6 +298,7 @@
 				612B700BB644C942EA3F2EB3 /* CanvasScrollView.swift */,
 				921AE8AD69F5F1B66526D750 /* HorizontalPaneSizingEngine.swift */,
 				48594151CBFD24181532EB5E /* PaneDividerView.swift */,
+				27F14B7779506011A1A3066B /* PaneDragReorderViews.swift */,
 				ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */,
 			);
 			path = Canvas;
@@ -490,6 +493,7 @@
 				81285CE453E1FCD649984304 /* HorizontalPaneSizingEngine.swift in Sources */,
 				976E0E48CBC0C64134E37C64 /* HorizontalResizeDivider.swift in Sources */,
 				EB7CADE425DAF9E7F92DB400 /* PaneDividerView.swift in Sources */,
+				51246E0055020A6BE21639F9 /* PaneDragReorderViews.swift in Sources */,
 				DB05AB6321B71628FA374250 /* PaneLayoutEngine.swift in Sources */,
 				82AB12FA9FDF7A82442EA627 /* SettingsView.swift in Sources */,
 				37E6BDB8DB7856661C6970DC /* SidebarView.swift in Sources */,
