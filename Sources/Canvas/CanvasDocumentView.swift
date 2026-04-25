@@ -1384,7 +1384,10 @@ final class CanvasDocumentView: NSView {
     }
 
     private func handlePaneDragMonitorEvent(_ event: NSEvent) {
-        guard let tab = paneDragTab, paneDragSourcePaneId != nil else { return }
+        guard let tab = paneDragTab, paneDragSourcePaneId != nil else {
+            tearDownPaneDragSession()
+            return
+        }
         let pointInDoc = convert(event.locationInWindow, from: nil)
 
         switch event.type {
@@ -1453,6 +1456,7 @@ final class CanvasDocumentView: NSView {
                 _ = tab.bonsplitController.moveTab(tid, toPane: tgtPane, atIndex: nil)
             }
         case .left, .right, .top, .bottom:
+            guard sourcePaneId != targetPaneId else { return }
             let orient = zone.splitOrientation
             let insertFirst = zone.insertsFirst
             guard let first = tabIDs.first else { return }

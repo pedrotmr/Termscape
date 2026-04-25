@@ -75,6 +75,9 @@ enum PaneDragHandleStyle: String, CaseIterable {
 // MARK: - Drop zone (mirrors Bonsplit’s split-edge affordances; local so we stay on public APIs only)
 
 enum CanvasPaneDropZone: Equatable {
+    private static let edgeRatio: CGFloat = 0.25
+    private static let minimumEdgeSize: CGFloat = 80
+
     case center
     case left
     case right
@@ -88,9 +91,8 @@ enum CanvasPaneDropZone: Equatable {
         let h = paneFrame.height
         guard w > 0, h > 0 else { return .center }
 
-        let edgeRatio: CGFloat = 0.25
-        let horizontalEdge = max(80, w * edgeRatio)
-        let verticalEdge = max(80, h * edgeRatio)
+        let horizontalEdge = max(Self.minimumEdgeSize, w * Self.edgeRatio)
+        let verticalEdge = max(Self.minimumEdgeSize, h * Self.edgeRatio)
 
         if lx < horizontalEdge { return .left }
         if lx > w - horizontalEdge { return .right }
@@ -157,6 +159,7 @@ final class PaneDropHighlightOverlay: NSView {
         guard let targetPaneId, let zone, let paneFrame = paneFrames[targetPaneId] else { return }
 
         let inset: CGFloat = 4
+        let halfPaneMinusInsets = inset * 1.5
         let highlight: NSRect = {
             switch zone {
             case .center:
@@ -165,11 +168,11 @@ final class PaneDropHighlightOverlay: NSView {
                 return CGRect(
                     x: paneFrame.minX + inset,
                     y: paneFrame.minY + inset,
-                    width: max(paneFrame.width / 2 - inset * 1.5, 1),
+                    width: max(paneFrame.width / 2 - halfPaneMinusInsets, 1),
                     height: max(paneFrame.height - inset * 2, 1)
                 )
             case .right:
-                let w = max(paneFrame.width / 2 - inset * 1.5, 1)
+                let w = max(paneFrame.width / 2 - halfPaneMinusInsets, 1)
                 return CGRect(
                     x: paneFrame.maxX - inset - w,
                     y: paneFrame.minY + inset,
@@ -181,10 +184,10 @@ final class PaneDropHighlightOverlay: NSView {
                     x: paneFrame.minX + inset,
                     y: paneFrame.minY + inset,
                     width: max(paneFrame.width - inset * 2, 1),
-                    height: max(paneFrame.height / 2 - inset * 1.5, 1)
+                    height: max(paneFrame.height / 2 - halfPaneMinusInsets, 1)
                 )
             case .bottom:
-                let h = max(paneFrame.height / 2 - inset * 1.5, 1)
+                let h = max(paneFrame.height / 2 - halfPaneMinusInsets, 1)
                 return CGRect(
                     x: paneFrame.minX + inset,
                     y: paneFrame.maxY - inset - h,
@@ -228,7 +231,7 @@ final class PaneDragHandleView: NSView {
         self.style = style
         super.init(frame: .zero)
         wantsLayer = true
-        layer?.cornerRadius = style == .lineBadge ? 5 : 5
+        layer?.cornerRadius = 5
         toolTip = style.toolTipText
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
