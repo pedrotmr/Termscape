@@ -551,7 +551,7 @@ struct EditorSurfaceRootView: View {
                 fileTreePanel
                     .frame(width: fileSidebarWidth, alignment: .topLeading)
                     .frame(maxHeight: .infinity, alignment: .topLeading)
-                    .background(t.layoutChromeSurface.color)
+                    .background(t.editorChromeSurface.color)
                 HorizontalResizeDivider(
                     width: $fileSidebarWidth,
                     minWidth: EditorChromeMetrics.fileSidebarMinWidth,
