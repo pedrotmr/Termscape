@@ -11,7 +11,7 @@ final class CanvasDocumentView: NSView {
         let contentView: NSView
         let focusView: NSView
         let kind: WorkspacePaneContentKind
-        let applyTheme: (NSColor) -> Void
+        let applyTheme: (AppTheme) -> Void
         let ensureReadyForFocus: () -> Void
     }
 
@@ -25,6 +25,7 @@ final class CanvasDocumentView: NSView {
     private weak var lastContainerFrameTab: WorkspaceTab?
     private var lastContainerFrameSize: CGSize = .zero
 
+    private var lastAppliedTheme: AppTheme = .tobacco
     private var currentCanvasMatte: NSColor = AppTheme.tobacco.canvasMatte
     private var currentPaneBackground: NSColor = AppTheme.tobacco.canvasBackground
     private var currentAccentColor: NSColor = AppTheme.tobacco.accentNSColor
@@ -90,26 +91,22 @@ final class CanvasDocumentView: NSView {
 
     // MARK: - Theme
 
-    func applyTheme(
-        canvasMatte: NSColor,
-        paneBackground: NSColor,
-        accentColor: NSColor,
-        dividerColor: NSColor
-    ) {
-        currentAccentColor = accentColor
-        currentCanvasMatte = canvasMatte
-        currentPaneBackground = paneBackground
-        currentDividerColor = dividerColor
-        layer?.backgroundColor = canvasMatte.cgColor
+    func applyTheme(_ theme: AppTheme) {
+        lastAppliedTheme = theme
+        currentAccentColor = theme.accentNSColor
+        currentCanvasMatte = theme.canvasMatte
+        currentPaneBackground = theme.canvasBackground
+        currentDividerColor = theme.borderNSColor
+        layer?.backgroundColor = theme.canvasMatte.cgColor
 
         for (_, hosted) in hostedViews {
-            hosted.applyTheme(paneBackground)
+            hosted.applyTheme(theme)
         }
         for (_, divider) in dividerViews {
-            divider.accentColor = accentColor
-            divider.dividerColor = dividerColor
+            divider.accentColor = theme.accentNSColor
+            divider.dividerColor = theme.borderNSColor
         }
-        trailingResizeHandleView?.accentColor = accentColor
+        trailingResizeHandleView?.accentColor = theme.accentNSColor
     }
 
     // MARK: - Layout update
@@ -211,7 +208,7 @@ final class CanvasDocumentView: NSView {
                         contentView: hostedView,
                         focusView: hostedView.surfaceView,
                         kind: .terminal,
-                        applyTheme: { color in hostedView.setBackgroundColor(color) },
+                        applyTheme: { theme in hostedView.setBackgroundColor(theme.canvasBackground) },
                         ensureReadyForFocus: {
                             if hostedView.surfaceView.terminalSurface?.surface == nil {
                                 hostedView.surfaceView.terminalSurface?.attachToView(hostedView.surfaceView)
@@ -274,7 +271,7 @@ final class CanvasDocumentView: NSView {
                         focusView: shouldFocusAddressBar
                             ? surface.addressBarFocusTargetView : surface.focusTargetView,
                         kind: .browser,
-                        applyTheme: { color in hostedView.setThemeBackground(color) },
+                        applyTheme: { theme in hostedView.setThemeBackground(theme.canvasBackground) },
                         ensureReadyForFocus: {}
                     )
                     hostedViews[pane.paneId] = hosted
@@ -293,6 +290,7 @@ final class CanvasDocumentView: NSView {
                     let containerView = FlippedContainerView(frame: displayFrame)
                     hostedView.wantsLayer = true
                     hostedView.layer?.backgroundColor = currentPaneBackground.cgColor
+                    surface.applyAppTheme(lastAppliedTheme)
                     let paneIdStr = pane.paneId
                     surface.onFocused = { [weak tab] in
                         guard let tab, let paneUUID = UUID(uuidString: paneIdStr) else { return }
@@ -332,8 +330,9 @@ final class CanvasDocumentView: NSView {
                         contentView: hostedView,
                         focusView: hostedView,
                         kind: .editor,
-                        applyTheme: { color in
-                            hostedView.layer?.backgroundColor = color.cgColor
+                        applyTheme: { theme in
+                            hostedView.layer?.backgroundColor = theme.canvasBackground.cgColor
+                            surface.applyAppTheme(theme)
                         },
                         ensureReadyForFocus: {
                             surface.ensureInitialized()
