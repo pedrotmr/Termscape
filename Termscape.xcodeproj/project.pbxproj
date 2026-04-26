@@ -16,6 +16,7 @@
 		21B459A147B0561A73B95462 /* TermscapeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C332B2614A4DA5CF398B0077 /* TermscapeApp.swift */; };
 		2EC5C6354C2628CDD33033FF /* EditorCodeTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14A723DB6DA209EA9255384D /* EditorCodeTextView.swift */; };
 		37E6BDB8DB7856661C6970DC /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB19A51E82EF41BDEBE2E6E /* SidebarView.swift */; };
+		4ABA50F8A5608BB99EBBCAF8 /* ThemeManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B18AA0C1E4AFCD9ECF99E1 /* ThemeManagerTests.swift */; };
 		500CC535722229B8A4D4FC97 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2E620B88920BF3FEC0CF27BF /* Assets.xcassets */; };
 		51246E0055020A6BE21639F9 /* PaneDragReorderViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F14B7779506011A1A3066B /* PaneDragReorderViews.swift */; };
 		51A89FD719288759DE80C8A6 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B30FED21AA1C9FB54E59D51A /* GhosttyKit.xcframework */; };
@@ -35,6 +36,7 @@
 		91A95B45D79D5332ABCDBFE7 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40BBEA2DF39DEE65354CC615 /* Carbon.framework */; };
 		92D82089611E60F0D5B9F2B2 /* BrowserSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7F44744BDDA3921B7EA0E4 /* BrowserSurface.swift */; };
 		976E0E48CBC0C64134E37C64 /* HorizontalResizeDivider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F853A83253EFF52A90C26D6 /* HorizontalResizeDivider.swift */; };
+		9B63AC79E46B5F6975A2789E /* CodeMirrorEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E40A0B1D906803CDBF9389DF /* CodeMirrorEditorView.swift */; };
 		9F0E2BFDD3710439BDD4F582 /* EditorSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 302DCA5B1F5E47F86106FFE1 /* EditorSurface.swift */; };
 		A281C9EF6A66477745FE7D94 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDB98A780A647FB766C3C871 /* IOKit.framework */; };
 		A455E4D9B7AC72FDF38F977B /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D7D60369E322A18AEA2A1F /* ThemeManager.swift */; };
@@ -82,6 +84,7 @@
 		302DCA5B1F5E47F86106FFE1 /* EditorSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorSurface.swift; sourceTree = "<group>"; };
 		3450FED3EB048C63B4D0BAD8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F4DD94A092C06EC5DACBBA /* GhosttyThemeWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyThemeWriter.swift; sourceTree = "<group>"; };
+		40B18AA0C1E4AFCD9ECF99E1 /* ThemeManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManagerTests.swift; sourceTree = "<group>"; };
 		40BBEA2DF39DEE65354CC615 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		48594151CBFD24181532EB5E /* PaneDividerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneDividerView.swift; sourceTree = "<group>"; };
 		50AF240872C7EB5781E7A324 /* GroupRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRowView.swift; sourceTree = "<group>"; };
@@ -114,6 +117,7 @@
 		DE1B6A129784A486481CDF45 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		DF437AE72351424B0EFEDBFD /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		E2619C48A34582C14FCEE91F /* AppTheme+BundledEditorThemes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppTheme+BundledEditorThemes.swift"; sourceTree = "<group>"; };
+		E40A0B1D906803CDBF9389DF /* CodeMirrorEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeMirrorEditorView.swift; sourceTree = "<group>"; };
 		EC9B81CDEA8E4836331A2E6D /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 		EC9CAE583DACC3C22A6AE447 /* TermscapeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TermscapeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ECB0EE19282F59F0C7D52381 /* PaneLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneLayoutEngine.swift; sourceTree = "<group>"; };
@@ -159,6 +163,7 @@
 				D6A6528C46D2BB8E5DC0AC7B /* EditorDocumentStoreTests.swift */,
 				98785A10618A04A23591C720 /* EditorRootContractTests.swift */,
 				D6A69410181B2B6E5FE3C4E8 /* FileTreeIndexTests.swift */,
+				40B18AA0C1E4AFCD9ECF99E1 /* ThemeManagerTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -219,6 +224,14 @@
 				74D7D60369E322A18AEA2A1F /* ThemeManager.swift */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		5C796A001C761054D9C8DD48 /* CodeMirror */ = {
+			isa = PBXGroup;
+			children = (
+				E40A0B1D906803CDBF9389DF /* CodeMirrorEditorView.swift */,
+			);
+			path = CodeMirror;
 			sourceTree = "<group>";
 		};
 		5F63323DD48578127C279D41 /* Workspace */ = {
@@ -329,6 +342,7 @@
 		F54D4463AD904E5C093C7229 /* Editor */ = {
 			isa = PBXGroup;
 			children = (
+				5C796A001C761054D9C8DD48 /* CodeMirror */,
 				6C10D6978DB0135EE88B15DE /* Document */,
 				6A06E154067F501C8512079D /* EditorCanvasScrollForwarder.swift */,
 				14A723DB6DA209EA9255384D /* EditorCodeTextView.swift */,
@@ -453,7 +467,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Copy shell integration resources if present\nif [ -d \"${SRCROOT}/Resources/shell-integration\" ]; then\n  cp -r \"${SRCROOT}/Resources/shell-integration\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/\" 2>/dev/null || true\nfi\n";
+			shellScript = "# Copy shell integration resources if present\nif [ -d \"${SRCROOT}/Resources/shell-integration\" ]; then\n  cp -r \"${SRCROOT}/Resources/shell-integration\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/\" 2>/dev/null || true\nfi\n# Copy bundled editor web assets if present\nif [ -d \"${SRCROOT}/Resources/Editor\" ]; then\n  rm -rf \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/Editor\"\n  cp -r \"${SRCROOT}/Resources/Editor\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -465,6 +479,7 @@
 				F89EF1EBE20F292B042B4B8B /* EditorDocumentStoreTests.swift in Sources */,
 				863B40612AFB5F5C30B15E8D /* EditorRootContractTests.swift in Sources */,
 				C3DDC6C17F98FFABF4FB61D8 /* FileTreeIndexTests.swift in Sources */,
+				4ABA50F8A5608BB99EBBCAF8 /* ThemeManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -481,6 +496,7 @@
 				F93A8869DCDB9F06FFA2E7A5 /* CanvasDocumentView.swift in Sources */,
 				B5496ECAF40081BD5375BCB1 /* CanvasHostingView.swift in Sources */,
 				7B10CB53D1B2501FDEC7601A /* CanvasScrollView.swift in Sources */,
+				9B63AC79E46B5F6975A2789E /* CodeMirrorEditorView.swift in Sources */,
 				FE2D905F18F7FF911895C8F8 /* EditorCanvasScrollForwarder.swift in Sources */,
 				2EC5C6354C2628CDD33033FF /* EditorCodeTextView.swift in Sources */,
 				71D07461B7A5E2D193894499 /* EditorDocumentStore.swift in Sources */,

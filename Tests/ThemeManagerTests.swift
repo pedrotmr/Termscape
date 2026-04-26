@@ -81,4 +81,14 @@ final class ThemeManagerTests: XCTestCase {
         XCTAssertEqual(manager.current.id, "night-blue")
         XCTAssertEqual(defaults.string(forKey: selectedThemeKey), "night-blue")
     }
+
+    func testUnknownLegacyThemeFallsBackToTobacco() {
+        let defaults = UserDefaults.standard
+        defaults.set("totally-unknown-theme-id", forKey: selectedThemeKey)
+
+        let manager = ThemeManager()
+
+        XCTAssertEqual(manager.current.id, "tobacco")
+        XCTAssertEqual(defaults.string(forKey: selectedThemeKey), "tobacco")
+    }
 }
