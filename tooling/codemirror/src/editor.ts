@@ -519,6 +519,9 @@ function setEditable(editable: boolean) {
 }
 
 function setDocument(payload: DocumentPayload) {
+  if (pendingChangeTimer !== null) {
+    flushText("preSetDocument");
+  }
   const incomingText = payload.text ?? "";
   const sameDocument = currentDocumentId === payload.id;
   const prevText = view.state.doc.toString();
