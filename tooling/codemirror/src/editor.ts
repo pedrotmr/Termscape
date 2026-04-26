@@ -5,6 +5,7 @@ import {
   historyKeymap,
   indentWithTab,
   insertTab,
+  isolateHistory,
 } from "@codemirror/commands";
 import { cpp } from "@codemirror/lang-cpp";
 import { css } from "@codemirror/lang-css";
@@ -519,12 +520,34 @@ function setEditable(editable: boolean) {
 
 function setDocument(payload: DocumentPayload) {
   const incomingText = payload.text ?? "";
+  const sameDocument = currentDocumentId === payload.id;
+  const prevText = view.state.doc.toString();
+  if (sameDocument && incomingText === prevText) {
+    view.dispatch({
+      effects: [
+        languageCompartment.reconfigure(languageForPath(payload.path)),
+        editableCompartment.reconfigure([
+          EditorView.editable.of(payload.editable !== false),
+          EditorState.readOnly.of(payload.editable === false),
+        ]),
+      ],
+    });
+    return;
+  }
+  const selection =
+    sameDocument && incomingText !== prevText
+      ? EditorSelection.single(
+          Math.min(view.state.selection.main.anchor, incomingText.length),
+          Math.min(view.state.selection.main.head, incomingText.length)
+        )
+      : EditorSelection.cursor(0);
   currentDocumentId = payload.id;
   revision = 0;
   suppressChangeNotification = true;
   view.dispatch({
     changes: { from: 0, to: view.state.doc.length, insert: incomingText },
-    selection: EditorSelection.cursor(0),
+    selection,
+    annotations: isolateHistory.of("full"),
     effects: [
       languageCompartment.reconfigure(languageForPath(payload.path)),
       editableCompartment.reconfigure([
@@ -591,8 +614,8 @@ function buildExtensions(): Extension[] {
         },
         preventDefault: true,
       },
-      { key: "Tab", run: insertTab },
       indentWithTab,
+      { key: "Tab", run: insertTab },
       ...closeBracketsKeymap,
       ...searchKeymap,
       ...historyKeymap,

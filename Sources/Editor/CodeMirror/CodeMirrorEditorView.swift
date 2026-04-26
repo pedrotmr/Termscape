@@ -95,10 +95,11 @@ struct CodeMirrorEditorView: NSViewRepresentable {
 
         let configuration = WKWebViewConfiguration()
         configuration.userContentController = contentController
-        configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
         configuration.suppressesIncrementalRendering = false
 
         let webView = CodeMirrorWebView(frame: .zero, configuration: configuration)
+        // WKWebView does not expose a supported public API for a transparent backing
+        // store on macOS; `drawsBackground` is the common WebKit pattern used here.
         webView.setValue(false, forKey: "drawsBackground")
         webView.navigationDelegate = context.coordinator
         webView.onFocused = { [weak coordinator = context.coordinator] in
@@ -107,9 +108,11 @@ struct CodeMirrorEditorView: NSViewRepresentable {
         webView.onContextMenu = { [weak coordinator = context.coordinator] event in
             coordinator?.onContextMenu?(event)
         }
-        if #available(macOS 13.3, *) {
-            webView.isInspectable = true
-        }
+        #if DEBUG
+            if #available(macOS 13.3, *) {
+                webView.isInspectable = true
+            }
+        #endif
 
         context.coordinator.webView = webView
         context.coordinator.textBinding = $text
@@ -156,10 +159,16 @@ struct CodeMirrorEditorView: NSViewRepresentable {
             context.coordinator.currentFilePath = filePath
             context.coordinator.currentEditable = isEditable
             context.coordinator.applyDocument(payload)
-        } else if context.coordinator.lastTextSentToJavaScript != text,
-                  context.coordinator.lastTextReceivedFromJavaScript != text
-        {
-            context.coordinator.applyDocument(payload)
+        } else {
+            let lastSent = context.coordinator.lastTextSentToJavaScript
+            let lastReceived = context.coordinator.lastTextReceivedFromJavaScript
+            let editorBehindModelWhileSentMatchesModel =
+                lastSent == text && lastReceived.map { $0 != text } == true
+            let modelDiffersFromTrackedEditorAndSent =
+                lastSent != text && lastReceived != text
+            if editorBehindModelWhileSentMatchesModel || modelDiffersFromTrackedEditorAndSent {
+                context.coordinator.applyDocument(payload)
+            }
         }
     }
 
@@ -244,15 +253,34 @@ struct CodeMirrorEditorView: NSViewRepresentable {
         }
 
         func teardown() {
-            webView?.configuration.userContentController.removeScriptMessageHandler(forName: "termscapeEditor")
-            webView?.navigationDelegate = nil
-            webView?.stopLoading()
+            guard let webView else { return }
+            let flushScript =
+                "(function(){try{if(window.termscapeEditor&&window.termscapeEditor.flushText){window.termscapeEditor.flushText('teardown');}}catch(e){}})();"
+            webView.evaluateJavaScript(flushScript) { [weak self] _, _ in
+                DispatchQueue.main.async {
+                    self?.finishTeardown(webView: webView)
+                }
+            }
+        }
+
+        private func finishTeardown(webView: WKWebView) {
+            webView.configuration.userContentController.removeScriptMessageHandler(forName: "termscapeEditor")
+            webView.navigationDelegate = nil
+            webView.stopLoading()
         }
 
         func markLoadFailure(_ message: String) {
             guard !didReportLoadFailure else { return }
             didReportLoadFailure = true
             print("CodeMirror editor load failure: \(message)")
+        }
+
+        private func messageDocumentMatchesCurrent(_ body: [String: Any]) -> Bool {
+            guard let idString = body["documentId"] as? String,
+                  let incoming = UUID(uuidString: idString),
+                  let current = currentDocumentId
+            else { return false }
+            return incoming == current
         }
 
         private func applyRemoteTextIfChanged(_ text: String) {
@@ -288,8 +316,10 @@ struct CodeMirrorEditorView: NSViewRepresentable {
                 onFocus()
             case "documentChanged":
                 guard let text = body["text"] as? String else { return }
+                guard messageDocumentMatchesCurrent(body) else { return }
                 applyRemoteTextIfChanged(text)
             case "saveRequested":
+                guard messageDocumentMatchesCurrent(body) else { return }
                 if let text = body["text"] as? String {
                     applyRemoteTextIfChanged(text)
                 }
