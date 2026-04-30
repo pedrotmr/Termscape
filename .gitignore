@@ -41,8 +41,8 @@ Icon
 # VS Code
 .vscode/
 
-# Large binaries / frameworks (tracked via Git LFS)
-# *.a and *.xcframework tracked in .gitattributes
+# Local vendor binary (not tracked in git)
+Resources/GhosttyKit.xcframework/macos-arm64/libghostty-fat.a
 
 # Sensitive / local
 *.env
