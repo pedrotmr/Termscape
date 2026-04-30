@@ -30,15 +30,27 @@ final class ThemeManager {
     }
 
     init() {
-        let rawId = UserDefaults.standard.string(forKey: "termscape.selectedThemeId")
-        let savedId = rawId.flatMap { Self.legacySelectedThemeIdReplacements[$0] } ?? rawId
-        if let savedId, savedId != rawId {
-            UserDefaults.standard.set(savedId, forKey: "termscape.selectedThemeId")
-        }
+        let rawSavedId = UserDefaults.standard.string(forKey: "termscape.selectedThemeId")
+        let savedId = Self.resolveThemeId(rawSavedId)
         let overrides = UserDefaults.standard.object(forKey: "termscape.overridesTerminalColors") as? Bool ?? true
-        current = AppTheme.all.first { $0.id == savedId } ?? .tobacco
+        let resolvedTheme = AppTheme.all.first { $0.id == savedId } ?? .tobacco
+        if rawSavedId != nil, resolvedTheme.id != rawSavedId {
+            UserDefaults.standard.set(resolvedTheme.id, forKey: "termscape.selectedThemeId")
+        }
+        current = resolvedTheme
         overridesTerminalColors = overrides
         applyTerminalThemeIfEnabled()
+    }
+
+    private static func resolveThemeId(_ persistedThemeId: String?) -> String? {
+        guard let persistedThemeId else { return nil }
+        if AppTheme.all.contains(where: { $0.id == persistedThemeId }) {
+            return persistedThemeId
+        }
+        guard let replacementId = legacySelectedThemeIdReplacements[persistedThemeId] else {
+            return nil
+        }
+        return AppTheme.all.contains(where: { $0.id == replacementId }) ? replacementId : nil
     }
 
     private func applyTerminalThemeIfEnabled() {

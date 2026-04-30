@@ -78,6 +78,11 @@ targets:
           if [ -d "${SRCROOT}/Resources/shell-integration" ]; then
             cp -r "${SRCROOT}/Resources/shell-integration" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/" 2>/dev/null || true
           fi
+          # Copy bundled editor web assets if present
+          if [ -d "${SRCROOT}/Resources/Editor" ]; then
+            rm -rf "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/Editor"
+            cp -r "${SRCROOT}/Resources/Editor" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/"
+          fi
 
   TermscapeTests:
     type: bundle.unit-test

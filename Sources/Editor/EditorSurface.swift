@@ -912,7 +912,7 @@ struct EditorSurfaceRootView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(t.editorChromeSurface.color)
+        .background(t.canvasBackground.color)
     }
 
     private func tabChip(_ tab: EditorDocumentBuffer) -> some View {
@@ -1024,7 +1024,7 @@ struct EditorSurfaceRootView: View {
             .padding(.vertical, 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(t.editorChromeSurface.color)
+        .background(t.canvasBackground.color)
     }
 
     private func breadcrumbSegment(item: EditorBreadcrumbItem, index: Int, total: Int) -> some View {
@@ -1061,12 +1061,16 @@ struct EditorSurfaceRootView: View {
 
     private var editorBody: some View {
         Group {
-            if let id = model.selectedDocumentId, model.documentStore.buffer(id: id) != nil {
-                EditorCodeTextView(
+            if let id = model.selectedDocumentId, let buffer = model.documentStore.buffer(id: id) {
+                CodeMirrorEditorView(
                     theme: t,
+                    documentId: id,
+                    filePath: buffer.standardizedPath,
                     text: model.workingTextBinding(for: id),
                     isEditable: true,
-                    onSave: { Task { await model.saveSelectedDocument() } }
+                    onSave: { Task { await model.saveSelectedDocument() } },
+                    onFocus: model.onFocus,
+                    onContextMenu: model.onContextMenu
                 )
                 .id(id)
                 .clipShape(Rectangle())
