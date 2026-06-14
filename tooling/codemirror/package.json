@@ -30,6 +30,6 @@
     "@lezer/highlight": "^1.2.2"
   },
   "devDependencies": {
-    "esbuild": "^0.25.11"
+    "esbuild": "^0.28.1"
   }
 }
